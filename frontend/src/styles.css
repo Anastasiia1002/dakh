@@ -414,6 +414,12 @@ textarea {
   position: static;
 }
 
+.choice .pick {
+  background: var(--sun);
+  color: #1a140b;
+  font-weight: 700;
+}
+
 .sold {
   color: var(--clay);
 }
