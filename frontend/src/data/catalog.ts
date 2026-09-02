@@ -50,7 +50,7 @@ export const images = {
   forest: photo('photo-1441974231531-c6227db76b6e', 1600),
   cabin: photo('photo-1449158743715-0a90ebb6d2d8', 1600),
   lodge: photo('photo-1520250497591-112f2f40a3f4', 1600),
-  pool: photo('photo-1571902943202-507ec2618e8f', 1600),
+  pool: photo('photo-1576013551627-0cc20b96c2a7', 1600),
   spa: photo('photo-1540555700478-4be289fbecef', 1600),
   sauna: photo('photo-1600334129128-685c5582fd35', 1600),
   restaurant: photo('photo-1414235077428-338989a2e8c0', 1600),
@@ -109,7 +109,7 @@ export const stays: Stay[] = [
       { title: 'Зовні', items: ['Балкон', 'Вид на територію', 'Паркінг'] },
     ],
     images: [
-      photo('photo-1616594039964-ae9021a400a7'),
+      photo('photo-1611892440504-42a792e24d32'),
       photo('photo-1566665797739-1674de7a421a'),
       photo('photo-1552321554-5fefe8c9ef14'),
     ],
@@ -207,7 +207,7 @@ export const stays: Stay[] = [
     ],
     images: [
       photo('photo-1520250497591-112f2f40a3f4'),
-      photo('photo-1616594039964-ae9021a400a7'),
+      photo('photo-1611892440504-42a792e24d32'),
       photo('photo-1441974231531-c6227db76b6e'),
     ],
     blocked: [{ from: '2026-09-05', to: '2026-09-08' }],
@@ -273,7 +273,7 @@ export const stays: Stay[] = [
     images: [
       photo('photo-1501785888041-af3ef285b470'),
       photo('photo-1600585154340-be6161a56a0c'),
-      photo('photo-1616594039964-ae9021a400a7'),
+      photo('photo-1611892440504-42a792e24d32'),
     ],
     blocked: [],
   },
@@ -306,7 +306,7 @@ export const stays: Stay[] = [
     images: [
       photo('photo-1542314831-068cd1dbfeeb'),
       photo('photo-1556912173-46c336c7fd55'),
-      photo('photo-1571902943202-507ec2618e8f'),
+      photo('photo-1576013551627-0cc20b96c2a7'),
     ],
     blocked: [{ from: '2026-09-08', to: '2026-09-11' }],
   },
