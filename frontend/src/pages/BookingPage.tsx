@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { BookingCalendar } from '../components/BookingCalendar'
 import { Photo } from '../components/Photo'
 import { stayBySlug, stays } from '../data/catalog'
 import {
@@ -13,12 +14,11 @@ import {
   type BookingDraft,
   type StoredBooking,
 } from '../lib/booking'
-import { addDays, formatDate, formatMoney, nightsBetween, todayIso } from '../lib/format'
+import { formatDate, formatMoney, nightsBetween } from '../lib/format'
 
 function draftFromParams(params: URLSearchParams): BookingDraft {
-  const from = params.get('from') || todayIso()
-  const minOut = addDays(from, 1)
-  const to = params.get('to') && params.get('to')! > from ? params.get('to')! : minOut
+  const from = params.get('from') || ''
+  const to = params.get('to') && from && params.get('to')! > from ? params.get('to')! : ''
   return {
     ...emptyDraft,
     checkIn: from,
@@ -34,7 +34,7 @@ export function BookingPage() {
   const [draft, setDraft] = useState<BookingDraft>(() => draftFromParams(params))
   const [confirmed, setConfirmed] = useState<StoredBooking | null>(null)
   const [error, setError] = useState('')
-  const previous = loadBookings()
+  const previous = useMemo(() => loadBookings(), [])
 
   const nights = nightsBetween(draft.checkIn, draft.checkOut)
   const selected = stayBySlug(draft.staySlug)
@@ -45,15 +45,26 @@ export function BookingPage() {
       stays.map((stay) => ({
         stay,
         ok:
-          nights > 0 &&
           stayFitsGuests(stay, draft.adults, draft.children) &&
-          stayAvailable(stay, draft.checkIn, draft.checkOut),
+          (nights < 1 || stayAvailable(stay, draft.checkIn, draft.checkOut, previous)),
       })),
-    [draft.adults, draft.children, draft.checkIn, draft.checkOut, nights],
+    [draft.adults, draft.children, draft.checkIn, draft.checkOut, nights, previous],
   )
 
   function patch(next: Partial<BookingDraft>) {
-    setDraft((current) => ({ ...current, ...next }))
+    setDraft((current) => {
+      const merged = { ...current, ...next }
+      const stay = stayBySlug(merged.staySlug)
+      const span = nightsBetween(merged.checkIn, merged.checkOut)
+      if (
+        stay &&
+        (!stayFitsGuests(stay, merged.adults, merged.children) ||
+          (span > 0 && !stayAvailable(stay, merged.checkIn, merged.checkOut, previous)))
+      ) {
+        merged.staySlug = ''
+      }
+      return merged
+    })
     setError('')
   }
 
@@ -63,7 +74,7 @@ export function BookingPage() {
       setError('Оберіть кімнату й дати.')
       return
     }
-    if (!stayAvailable(selected, draft.checkIn, draft.checkOut)) {
+    if (!stayAvailable(selected, draft.checkIn, draft.checkOut, previous)) {
       setError('На ці дати кімната зайнята.')
       return
     }
@@ -132,68 +143,31 @@ export function BookingPage() {
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
       <p className="mt-5 max-w-xl text-sm text-wood/70">
-        Тільки кімнати. Стіл у ресторані — телефоном. Заявки пишуться в localStorage, без
-        оплати.
+        Оберіть кімнату — календар покаже вільні дати й ціну за ніч. Зайняті дні з «—» обрати
+        не можна. Стіл у ресторані — телефоном.
       </p>
 
-      <form onSubmit={submit} className="mt-14 grid gap-12 md:grid-cols-12">
-        <div className="space-y-12 md:col-span-7">
-          <fieldset className="border-0 p-0">
-            <legend className="font-display text-3xl">Параметри бронювання</legend>
-            <div className="mt-6 grid gap-6 sm:grid-cols-2">
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Заїзд
-                <input
-                  type="date"
-                  value={draft.checkIn}
-                  min={todayIso()}
-                  required
-                  onChange={(event) => {
-                    const checkIn = event.target.value
-                    patch({
-                      checkIn,
-                      checkOut: draft.checkOut <= checkIn ? addDays(checkIn, 1) : draft.checkOut,
-                    })
-                  }}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-                />
-              </label>
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Виїзд
-                <input
-                  type="date"
-                  value={draft.checkOut}
-                  min={addDays(draft.checkIn, 1)}
-                  required
-                  onChange={(event) => patch({ checkOut: event.target.value })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-                />
-              </label>
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Дорослі
-                <input
-                  type="number"
-                  min={1}
-                  max={8}
-                  value={draft.adults}
-                  onChange={(event) => patch({ adults: Number(event.target.value) })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-                />
-              </label>
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Діти
-                <input
-                  type="number"
-                  min={0}
-                  max={6}
-                  value={draft.children}
-                  onChange={(event) => patch({ children: Number(event.target.value) })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-                />
-              </label>
-            </div>
-          </fieldset>
+      <p className="mt-10 text-sm text-wood/60">
+        {draft.staySlug
+          ? 'Календар показує вільні ночі та ціну обраної кімнати.'
+          : 'Оберіть кімнату нижче — або дивіться найнижчу ціну серед вільних.'}
+      </p>
 
+      <div className="mt-4">
+        <BookingCalendar
+          checkIn={draft.checkIn}
+          checkOut={draft.checkOut}
+          adults={draft.adults}
+          kids={draft.children}
+          staySlug={draft.staySlug}
+          stays={stays}
+          bookings={previous}
+          onChange={patch}
+        />
+      </div>
+
+      <form onSubmit={submit} className="mt-12 grid gap-12 md:grid-cols-12">
+        <div className="space-y-12 md:col-span-7">
           <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Обрати кімнату</legend>
             <div className="mt-6 space-y-4">

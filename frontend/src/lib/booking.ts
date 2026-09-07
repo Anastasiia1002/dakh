@@ -1,5 +1,5 @@
 import type { Stay } from '../data/catalog'
-import { nightsBetween, rangesOverlap } from './format'
+import { addDays, nightsBetween, rangesOverlap } from './format'
 
 export type BookingDraft = {
   checkIn: string
@@ -42,10 +42,72 @@ export function stayFitsGuests(stay: Stay, adults: number, children: number) {
   return total <= stay.guests
 }
 
-export function stayAvailable(stay: Stay, checkIn: string, checkOut: string) {
+export function occupiedRanges(stay: Stay, bookings: StoredBooking[] = []) {
+  return [
+    ...stay.blocked,
+    ...bookings
+      .filter((booking) => booking.staySlug === stay.slug)
+      .map((booking) => ({ from: booking.checkIn, to: booking.checkOut })),
+  ]
+}
+
+export function stayAvailable(
+  stay: Stay,
+  checkIn: string,
+  checkOut: string,
+  bookings: StoredBooking[] = [],
+) {
   if (!checkIn || !checkOut) return true
   const request = { from: checkIn, to: checkOut }
-  return !stay.blocked.some((range) => rangesOverlap(range, request))
+  return !occupiedRanges(stay, bookings).some((range) => rangesOverlap(range, request))
+}
+
+export function nightIsFree(stay: Stay, night: string, bookings: StoredBooking[] = []) {
+  return stayAvailable(stay, night, addDays(night, 1), bookings)
+}
+
+export function matchingStays(
+  rooms: Stay[],
+  adults: number,
+  children: number,
+  staySlug = '',
+) {
+  return rooms.filter((stay) => {
+    if (staySlug && stay.slug !== staySlug) return false
+    return stayFitsGuests(stay, adults, children)
+  })
+}
+
+export function staysOpenForRange(
+  rooms: Stay[],
+  checkIn: string,
+  checkOut: string,
+  adults: number,
+  children: number,
+  staySlug = '',
+  bookings: StoredBooking[] = [],
+) {
+  return matchingStays(rooms, adults, children, staySlug).filter((stay) =>
+    stayAvailable(stay, checkIn, checkOut, bookings),
+  )
+}
+
+export function nightQuote(
+  night: string,
+  rooms: Stay[],
+  adults: number,
+  children: number,
+  staySlug = '',
+  bookings: StoredBooking[] = [],
+) {
+  const open = matchingStays(rooms, adults, children, staySlug).filter((stay) =>
+    nightIsFree(stay, night, bookings),
+  )
+  if (!open.length) return { free: false as const, price: null }
+  return {
+    free: true as const,
+    price: Math.min(...open.map((stay) => stay.priceFrom)),
+  }
 }
 
 export function quoteStay(stay: Stay, checkIn: string, checkOut: string) {

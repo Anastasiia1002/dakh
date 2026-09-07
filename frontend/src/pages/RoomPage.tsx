@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AmenityIcon } from '../components/AmenityIcon'
+import { BookingCalendar } from '../components/BookingCalendar'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { stayBySlug, stays } from '../data/catalog'
-import { addDays, formatMoney, todayIso } from '../lib/format'
+import { loadBookings, stayAvailable, stayFitsGuests } from '../lib/booking'
+import { formatMoney } from '../lib/format'
 
 export function RoomPage() {
   const { slug = '' } = useParams()
   const stay = stayBySlug(slug)
   const navigate = useNavigate()
   const [active, setActive] = useState(0)
-  const [checkIn, setCheckIn] = useState(todayIso())
-  const [checkOut, setCheckOut] = useState(addDays(todayIso(), 2))
+  const [checkIn, setCheckIn] = useState('')
+  const [checkOut, setCheckOut] = useState('')
   const [adults, setAdults] = useState(2)
+  const [children, setChildren] = useState(0)
+  const bookings = loadBookings()
 
   if (!stay) return <Navigate to="/gotel" replace />
 
@@ -21,11 +25,14 @@ export function RoomPage() {
   const similar = stays.filter((item) => item.slug !== room.slug)
 
   function book() {
+    if (!checkIn || !checkOut) return
+    if (!stayFitsGuests(room, adults, children)) return
+    if (!stayAvailable(room, checkIn, checkOut, bookings)) return
     const params = new URLSearchParams({
       from: checkIn,
       to: checkOut,
       adults: String(adults),
-      children: '0',
+      children: String(children),
       stay: room.slug,
     })
     navigate(`/bronuvannya?${params.toString()}`)
@@ -70,45 +77,29 @@ export function RoomPage() {
 
         <aside className="h-fit bg-beige p-6 md:col-span-5">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">Дати</p>
-          <label className="mt-4 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-            Заїзд
-            <input
-              type="date"
-              value={checkIn}
-              min={todayIso()}
-              onChange={(event) => {
-                const next = event.target.value
-                setCheckIn(next)
-                if (checkOut <= next) setCheckOut(addDays(next, 1))
+          <div className="mt-4">
+            <BookingCalendar
+              align="end"
+              checkIn={checkIn}
+              checkOut={checkOut}
+              adults={adults}
+              kids={children}
+              staySlug={room.slug}
+              stays={stays}
+              bookings={bookings}
+              onChange={(next) => {
+                if (next.checkIn !== undefined) setCheckIn(next.checkIn)
+                if (next.checkOut !== undefined) setCheckOut(next.checkOut)
+                if (next.adults !== undefined) setAdults(next.adults)
+                if (next.children !== undefined) setChildren(next.children)
               }}
-              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
             />
-          </label>
-          <label className="mt-4 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-            Виїзд
-            <input
-              type="date"
-              value={checkOut}
-              min={addDays(checkIn, 1)}
-              onChange={(event) => setCheckOut(event.target.value)}
-              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-            />
-          </label>
-          <label className="mt-4 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-            Гості
-            <input
-              type="number"
-              min={1}
-              max={room.guests}
-              value={adults}
-              onChange={(event) => setAdults(Number(event.target.value))}
-              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-            />
-          </label>
+          </div>
           <button
             type="button"
             onClick={book}
-            className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
+            disabled={!checkIn || !checkOut || !stayAvailable(room, checkIn, checkOut, bookings)}
+            className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
           >
             Забронювати
           </button>
