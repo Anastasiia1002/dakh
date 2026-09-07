@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BirdMark, Spot } from '../components/BrandMarks'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { images, site, stays } from '../data/catalog'
@@ -6,31 +7,38 @@ import { images, site, stays } from '../data/catalog'
 export function HomePage() {
   return (
     <>
-      <section className="relative min-h-[92vh]">
-        <Photo src={images.heroHouse} alt="Дерев’яний дім серед саду" className="absolute inset-0 h-full w-full" />
-        <div className="absolute inset-0 bg-wood/25" />
-        <div className="relative flex min-h-[92vh] items-end px-6 pb-24 pt-32 md:items-center md:justify-center md:pb-0">
-          <h1 className="max-w-4xl text-center font-display text-5xl leading-[1.05] text-linen md:text-7xl">
+      <section className="photo-grain relative min-h-[92vh]">
+        <Photo src={images.heroHouse} alt="Дім серед хвої" className="absolute inset-0 h-full w-full" />
+        <div className="absolute inset-0 bg-wood/30" />
+        <BirdMark className="absolute right-[12%] top-[28%] h-10 w-16 text-linen/70" />
+        <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24">
+          <p className="kicker text-[0.68rem] text-linen/80">Sunny Park · New Edition</p>
+          <h1 className="-rotate-1 font-display text-5xl leading-[1.05] text-linen md:text-7xl">
             «Вище даху тільки небо»
           </h1>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl items-start gap-12 px-6 py-28 md:grid-cols-2">
-        <div className="min-w-0 md:pt-8">
-          <h2 className="font-display text-4xl leading-[1.15] md:text-5xl">«Тут не треба поспішати.»</h2>
-          <p className="mt-6 text-[0.95rem] leading-relaxed text-wood/80">
-            DAKH стоїть у тихому кутку старого міста. Кімнати — світлі й майже порожні.
-            Унизу готують борщ і бануш. Між дахом і небом — лише повітря Чернівців.
+      <section className="relative mx-auto grid max-w-6xl items-start gap-12 px-6 py-28 md:grid-cols-2">
+        <Spot className="absolute -left-16 top-10 h-40 w-64 text-beige/80" />
+        <div className="relative min-w-0 md:pt-8">
+          <p className="kicker text-[0.68rem] text-clay">Буковина на смак і дотик</p>
+          <h2 className="mt-3 font-display text-4xl leading-[1.15] text-clay md:text-5xl">
+            «Тут не треба поспішати.»
+          </h2>
+          <p className="mt-6 text-[0.95rem] leading-relaxed">
+            Sunny Park — простір у Мигові, де сучасний спокій зустрічається з духом Карпат.
+            Унизу — ресторан <em>DAKH</em>: бануш як спогад, а не як страва з меню.
           </p>
         </div>
-        <div className="min-w-0">
+        <div className="relative min-w-0">
           <Photo src={images.pottery} alt="Кераміка й лляні тканини" className="aspect-[4/5] w-full" />
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-24">
-        <h2 className="max-w-xl font-display text-4xl leading-tight">
+        <p className="kicker text-[0.68rem] text-wood/55">Готель</p>
+        <h2 className="mt-3 max-w-xl font-display text-4xl leading-tight text-wood">
           Простір, сповнений світла й текстур
         </h2>
         <div className="mt-14 grid gap-14 md:grid-cols-3">
@@ -40,16 +48,17 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative min-h-[70vh]">
+      <section className="photo-grain relative min-h-[70vh]">
         <Photo src={images.borscht} alt="Миска борщу" className="absolute inset-0 h-full w-full" />
         <div className="absolute inset-0 bg-wood/35" />
         <div className="relative flex min-h-[70vh] flex-col items-start justify-end gap-6 px-6 py-20 md:px-16">
-          <h2 className="max-w-2xl font-display text-5xl text-linen md:text-6xl">«Тут смакують.»</h2>
+          <p className="kicker text-[0.68rem] text-linen/80">Ресторан</p>
+          <h2 className="-rotate-1 font-display text-5xl text-linen md:text-6xl">«Тут смакують.»</h2>
           <Link
             to="/restoran"
-            className="text-[0.75rem] tracking-[0.16em] uppercase text-linen underline decoration-linen/40 underline-offset-8"
+            className="text-[0.72rem] font-medium tracking-[0.16em] uppercase text-linen underline decoration-linen/40 underline-offset-8"
           >
-            Ресторан DAKH
+            DAKH
           </Link>
         </div>
       </section>
@@ -57,14 +66,14 @@ export function HomePage() {
       <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-28 md:grid-cols-2">
         <MapSketch />
         <div>
-          <p className="text-[0.7rem] tracking-[0.18em] uppercase text-clay">{site.city}</p>
-          <h2 className="mt-3 font-display text-4xl leading-tight">У тихому куточку старого міста</h2>
+          <p className="kicker text-[0.68rem] text-clay">{site.city}</p>
+          <h2 className="mt-3 font-display text-4xl leading-tight">У тихому куточку Карпат</h2>
           <p className="mt-5 text-sm leading-relaxed text-wood/80">
-            {site.address}. Пішки до площі — кілька хвилин, до шуму — трохи далі, ніж здається.
+            {site.address}. Гори близько, місто — коли захочете. Якщо шукаєте тишу — вона тут.
           </p>
           <Link
             to="/kontakty"
-            className="mt-6 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+            className="mt-6 inline-block text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
           >
             Як нас знайти
           </Link>
@@ -76,20 +85,19 @@ export function HomePage() {
 
 function MapSketch() {
   return (
-    <svg viewBox="0 0 480 320" className="w-full bg-beige text-wood" aria-label="Схема кварталу">
+    <svg viewBox="0 0 480 320" className="w-full bg-beige text-wood" aria-label="Схема Мигове">
       <rect width="480" height="320" fill="#e9dcce" />
-      <path d="M40 220 H440" fill="none" stroke="#56382b" strokeOpacity="0.25" />
-      <path d="M180 40 V280" fill="none" stroke="#56382b" strokeOpacity="0.25" />
-      <rect x="210" y="90" width="90" height="70" fill="none" stroke="#2f3f23" strokeWidth="1.4" />
-      <text x="255" y="130" textAnchor="middle" fill="#56382b" fontSize="14" fontFamily="serif">
-        DAKH
+      <path d="M20 210 C80 170 160 150 260 168 C340 184 400 150 460 130" fill="none" stroke="#5b382b" strokeOpacity="0.28" />
+      <path d="M40 240 L120 150 L170 190 L260 120 L440 240" fill="none" stroke="#2f3f23" strokeWidth="1.2" />
+      <path d="M210 70 C230 50 250 50 255 70 C240 68 226 74 210 70Z" fill="#5b382b" />
+      <text x="255" y="268" textAnchor="middle" fill="#5b382b" fontSize="13" fontFamily="Montserrat, sans-serif">
+        SUNNY PARK
       </text>
-      <circle cx="255" cy="200" r="5" fill="#b25f38" />
-      <text x="270" y="204" fill="#56382b" fontSize="11" fontFamily="sans-serif">
-        Кобилянської
+      <text x="255" y="288" textAnchor="middle" fill="#b25f38" fontSize="12" fontFamily="Marck Script, cursive">
+        dakh
       </text>
-      <text x="50" y="50" fill="#56382b" fillOpacity="0.55" fontSize="11">
-        старе місто
+      <text x="36" y="40" fill="#5b382b" fillOpacity="0.5" fontSize="11">
+        Мигове
       </text>
     </svg>
   )

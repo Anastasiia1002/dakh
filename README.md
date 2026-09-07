@@ -1,9 +1,7 @@
-# dakh
+# Sunny Park / DAKH
 
-Фронтенд-прототип бутик-готелю й етно-ресторану **DAKH** (Чернівці). Дизайн за брендбуком: лляний фон, Hajdamaka/Cormorant, Montserrat, бронювання кімнат у `localStorage`.
+Фронтенд-прототип комплексу **Sunny Park. New Edition** (Мигове) і ресторану **DAKH**. Айдентика за офіційним брендбуком 2026.
 
 ```bash
 cd frontend && npm install && npm run dev
 ```
-
-Деталі — у `frontend/README.md`.

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
-import { Logo } from './Logo'
+import { DakhLogo, SunnyParkLogo } from './BrandMarks'
 
 const nav = [
   { to: '/gotel', label: 'Готель' },
-  { to: '/restoran', label: 'Ресторан' },
+  { to: '/restoran', label: 'DAKH' },
   { to: '/menu', label: 'Меню' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },
@@ -22,11 +22,10 @@ function ScrollToTop() {
 export function Layout() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
+  const restaurant = pathname === '/restoran' || pathname === '/menu'
   const overHero =
-    pathname === '/' ||
-    pathname === '/restoran' ||
-    pathname === '/menu' ||
-    /^\/gotel\/[^/]+$/.test(pathname)
+    pathname === '/' || restaurant || /^\/gotel\/[^/]+$/.test(pathname)
+  const tone = overHero ? 'linen' : 'wood'
 
   return (
     <div className="min-h-screen bg-linen text-wood">
@@ -38,9 +37,9 @@ export function Layout() {
             : 'sticky top-0 z-30 border-b border-wood/10 bg-linen/95 text-wood'
         }
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-6">
-          <Logo light={overHero} />
-          <nav className="hidden items-center gap-8 text-[0.82rem] font-medium tracking-[0.14em] uppercase md:flex">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-5">
+          {restaurant ? <DakhLogo tone={tone} compact /> : <SunnyParkLogo tone={tone} compact />}
+          <nav className="hidden items-center gap-8 text-[0.72rem] font-medium tracking-[0.16em] uppercase md:flex">
             {nav.map((item) => (
               <NavLink
                 key={item.to}
@@ -55,13 +54,13 @@ export function Layout() {
           </nav>
           <Link
             to="/bronuvannya"
-            className="hidden bg-clay px-5 py-2.5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen md:inline-flex"
+            className="hidden bg-clay px-5 py-2.5 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen md:inline-flex"
           >
             Забронювати
           </Link>
           <button
             type="button"
-            className={`md:hidden ${overHero ? 'text-linen' : 'text-wood'}`}
+            className="md:hidden"
             aria-expanded={open}
             aria-label={open ? 'Закрити меню' : 'Відкрити меню'}
             onClick={() => setOpen((value) => !value)}
@@ -85,7 +84,7 @@ export function Layout() {
             <Link
               to="/bronuvannya"
               onClick={() => setOpen(false)}
-              className="mt-4 inline-flex bg-clay px-5 py-2.5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
+              className="mt-4 inline-flex bg-clay px-5 py-2.5 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
             >
               Забронювати
             </Link>
@@ -97,17 +96,18 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <footer className="mt-24 border-t border-wood/10 bg-beige">
+      <footer className="relative mt-24 overflow-hidden border-t border-wood/10 bg-beige">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 md:grid-cols-3">
-          <div>
-            <Logo />
-            <p className="mt-6 max-w-xs text-sm leading-relaxed text-wood/80">
-              Бутик-готель і етно-ресторан у старому місті Чернівців. Тут не треба
+          <div className="flex flex-col gap-8">
+            <SunnyParkLogo />
+            <DakhLogo />
+            <p className="max-w-xs text-sm leading-relaxed text-wood/80">
+              Готель Sunny Park і ресторан DAKH — одна екосистема в Мигові. Тут не треба
               поспішати.
             </p>
           </div>
           <div className="text-sm">
-            <p className="mb-3 text-[0.7rem] tracking-[0.18em] uppercase text-wood/60">Навігація</p>
+            <p className="kicker mb-3 text-[0.68rem] text-wood/55">Навігація</p>
             {nav.map((item) => (
               <Link key={item.to} to={item.to} className="block py-1">
                 {item.label}
@@ -118,9 +118,12 @@ export function Layout() {
             </Link>
           </div>
           <div className="text-sm">
-            <p className="mb-3 text-[0.7rem] tracking-[0.18em] uppercase text-wood/60">Контакти</p>
+            <p className="kicker mb-3 text-[0.68rem] text-wood/55">Контакти</p>
             <a href={site.phoneHref} className="block py-1">
               {site.phones[0]}
+            </a>
+            <a href="tel:+380968180001" className="block py-1">
+              {site.phones[1]}
             </a>
             <a href={`mailto:${site.email}`} className="block py-1">
               {site.email}
@@ -132,8 +135,8 @@ export function Layout() {
             </p>
           </div>
         </div>
-        <div className="mx-auto flex max-w-6xl justify-between gap-4 border-t border-wood/10 px-6 py-5 text-[0.72rem] tracking-wide text-wood/55">
-          <span>Заявки зберігаються в localStorage цього браузера</span>
+        <div className="mx-auto flex max-w-6xl justify-between gap-4 border-t border-wood/10 px-6 py-5 text-[0.72rem] text-wood/55">
+          <span>Заявки кімнат — у localStorage цього браузера. Стіл у DAKH — телефоном.</span>
           <span>
             Заїзд {site.checkIn} · виїзд {site.checkOut}
           </span>

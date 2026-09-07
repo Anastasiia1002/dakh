@@ -34,16 +34,17 @@ const photo = (id: string, w = 1600) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`
 
 export const site = {
-  name: 'DAKH',
-  city: 'Чернівці',
-  region: 'Буковина',
-  address: 'вул. Ольги Кобилянської, 18, Чернівці',
-  phones: ['+38 (095) 320-20-20'],
-  phoneHref: 'tel:+380953202020',
-  email: 'hello@dakh.ua',
+  hotel: 'Sunny Park',
+  restaurant: 'DAKH',
+  city: 'Мигове',
+  region: 'Чернівецька область, Буковина',
+  address: 'вул. Солонецька, Мигове',
+  phones: ['+38 (095) 818-00-01', '+38 (096) 818-00-01'],
+  phoneHref: 'tel:+380958180001',
+  email: 'sunny@sunnypark.com.ua',
   instagram: 'https://instagram.com/',
-  checkIn: '15:00',
-  checkOut: '12:00',
+  checkIn: '14:00',
+  checkOut: '11:00',
 }
 
 export const images = {
@@ -93,7 +94,7 @@ export const stays: Stay[] = [
     kicker: 'Під дахом',
     summary: 'Схил стелі, балка і вікно в небо — місце, де хочеться читати до вечора.',
     description:
-      'Горище лишили майже таким, яким воно було: нахил, дерево, тиша. З вікна видно дахи Чернівців. На двох, якщо вмієте ділити плед.',
+      'Горище лишили майже таким, яким воно було: нахил, дерево, тиша. З вікна — дахи Мигове й смуга лісу. На двох, якщо вмієте ділити плед.',
     priceFrom: 6200,
     area: 34,
     guests: 2,

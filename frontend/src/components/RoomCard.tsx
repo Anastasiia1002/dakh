@@ -13,7 +13,7 @@ export function RoomCard({ stay }: { stay: Stay }) {
           className="aspect-[4/3] w-full transition duration-700 group-hover:scale-[1.02]"
         />
       </Link>
-      <p className="mt-5 text-[0.7rem] tracking-[0.18em] uppercase text-clay">{stay.kicker}</p>
+      <p className="kicker mt-5 text-[0.68rem] text-clay">{stay.kicker}</p>
       <h3 className="font-display text-3xl">
         <Link to={`/gotel/${stay.slug}`}>{stay.name}</Link>
       </h3>

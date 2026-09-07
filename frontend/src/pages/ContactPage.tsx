@@ -23,14 +23,17 @@ export function ContactPage() {
   return (
     <article className="mx-auto grid max-w-6xl gap-16 px-6 pb-24 pt-32 md:grid-cols-2">
       <div>
-        <p className="text-[0.7rem] tracking-[0.18em] uppercase text-clay">Контакти</p>
-        <h1 className="mt-3 font-display text-5xl">Напишіть або зайдіть</h1>
+        <p className="kicker text-[0.68rem] text-clay">Контакти</p>
+        <h1 className="mt-3 font-display text-5xl text-clay">Напишіть або зайдіть</h1>
         <p className="mt-6 text-sm leading-relaxed text-wood/75">
-          Стіл у ресторані — телефоном. Кімнату можна залишити заявкою на сайті: вона
+          Стіл у DAKH — телефоном. Кімнату Sunny Park можна залишити заявкою: вона
           збережеться в localStorage.
         </p>
         <a href={site.phoneHref} className="mt-10 block font-display text-3xl">
           {site.phones[0]}
+        </a>
+        <a href="tel:+380968180001" className="mt-1 block font-display text-2xl">
+          {site.phones[1]}
         </a>
         <a href={`mailto:${site.email}`} className="mt-2 block text-lg">
           {site.email}

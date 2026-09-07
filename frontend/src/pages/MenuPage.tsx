@@ -32,7 +32,7 @@ export function MenuPage() {
         />
         <div className="absolute inset-0 bg-wood/45" />
         <div className="relative flex min-h-[58vh] items-end px-6 pb-16 md:px-16">
-          <h1 className="font-display text-5xl text-linen md:text-7xl">Меню DAKH</h1>
+          <h1 className="font-display text-5xl text-linen md:text-7xl">меню dakh</h1>
         </div>
       </section>
 
