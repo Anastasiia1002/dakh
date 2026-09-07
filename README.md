@@ -1,6 +1,6 @@
 # dakh
 
-Фронтенд-прототип сайту готельного комплексу **Sunny Park** (Мигове, Карпати).
+Фронтенд-прототип бутик-готелю й етно-ресторану **DAKH** (Чернівці). Дизайн за брендбуком: лляний фон, Hajdamaka/Cormorant, Montserrat, бронювання кімнат у `localStorage`.
 
 ```bash
 cd frontend && npm install && npm run dev

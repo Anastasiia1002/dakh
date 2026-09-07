@@ -1,54 +1,59 @@
-import { images, menuHighlights } from '../data/catalog'
+import { Link } from 'react-router-dom'
+import { Photo } from '../components/Photo'
+import { featuredDishes, images } from '../data/catalog'
+import { formatMoney } from '../lib/format'
 
 export function RestaurantPage() {
   return (
-    <article className="page">
-      <header className="page-hero is-photo">
-        <img src={images.restaurant} alt="Страва ресторану LA Terrace" />
-        <div>
-          <p className="eyebrow">Кухня</p>
-          <h1>LA Terrace</h1>
-          <p className="lede">
-            Світлий зал до 80 гостей, панорамні вікна й відкрита тераса.
-            Українська та європейська кухня на локальних продуктах — вечеря,
-            родина, день народження чи камерний корпоратив.
-          </p>
+    <article>
+      <section className="relative min-h-[86vh]">
+        <Photo src={images.dining} alt="Сервірування столу в DAKH" className="absolute inset-0 h-full w-full" />
+        <div className="absolute inset-0 bg-wood/30" />
+        <div className="relative flex min-h-[86vh] items-center justify-center px-6">
+          <h1 className="font-display text-7xl text-linen md:text-8xl">DAKH</h1>
         </div>
-      </header>
-
-      <section className="section split">
-        <div>
-          <p className="eyebrow">Атмосфера</p>
-          <h2>Дерево, камінь і вид на схили.</h2>
-          <p>
-            Ресторан зібраний як продовження тераси: тепле світло, довгі столи,
-            місце для тосту й для тихої вечері після SPA. Сніданки для гостей
-            комплексу подаємо тут же.
-          </p>
-        </div>
-        <img className="panel-photo" src={images.terrace} alt="Тераса ресторану" />
       </section>
 
-      <section className="section">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">На вечір</p>
-            <h2>Кілька страв, з яких починається розмова.</h2>
-          </div>
+      <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-28 md:grid-cols-12">
+        <Photo src={images.chef} alt="Кухар збирає тарілку" className="aspect-[4/5] w-full md:col-span-5" />
+        <div className="md:col-span-6 md:col-start-7">
+          <h2 className="font-display text-4xl leading-tight md:text-5xl">
+            Повернення до першоджерел через вишуканість сучасності
+          </h2>
+          <p className="mt-6 text-sm leading-relaxed text-wood/80">
+            Ресторан DAKH готує з того, що росте поруч: бринза, гриби, форель, калина.
+            Немає дегустаційного театру — є вечеря, після якої хочеться помовчати.
+          </p>
+          <Link
+            to="/menu"
+            className="mt-8 inline-block text-[0.75rem] tracking-[0.16em] uppercase underline decoration-wood/30 underline-offset-8"
+          >
+            Відкрити меню
+          </Link>
         </div>
-        <ol className="menu-list">
-          {menuHighlights.map((item) => (
-            <li key={item.dish}>
-              <span>{item.course}</span>
-              <strong>{item.dish}</strong>
-              <em>{item.note}</em>
-            </li>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <h2 className="font-display text-4xl">Знакові страви нашого меню</h2>
+        <div className="mt-14 grid gap-12 md:grid-cols-3">
+          {featuredDishes.map((dish) => (
+            <Link key={dish.slug} to={`/menu?dish=${dish.slug}`} className="group block">
+              <Photo src={dish.image} alt={dish.name} className="aspect-square w-full" />
+              <h3 className="mt-5 font-display text-3xl group-hover:text-clay">{dish.name}</h3>
+              <p className="mt-2 text-sm text-wood/70">{dish.lead}</p>
+              <p className="mt-3 text-sm font-medium">{formatMoney(dish.price)}</p>
+            </Link>
           ))}
-        </ol>
-        <p className="muted">
-          Меню змінюється з сезоном. Актуальну карту уточнюйте на рецепції або
-          телефоном.
-        </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-28">
+        <h2 className="font-display text-4xl">Краса в деталях</h2>
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          <Photo src={images.interior} alt="Зал ресторану" className="aspect-[3/4] w-full" />
+          <Photo src={images.chef} alt="Руки на кухні" className="aspect-[3/4] w-full md:mt-12" />
+          <Photo src={images.cocktail} alt="Склянка настоянки" className="aspect-[3/4] w-full" />
+        </div>
       </section>
     </article>
   )

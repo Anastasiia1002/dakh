@@ -76,5 +76,5 @@ export function makeBookingId() {
     .replace(/[-:TZ.]/g, '')
     .slice(0, 12)
   const rand = Math.random().toString(36).slice(2, 5).toUpperCase()
-  return `SP-${stamp}-${rand}`
+  return `DAKH-${stamp}-${rand}`
 }

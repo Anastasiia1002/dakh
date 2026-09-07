@@ -1,9 +1,10 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { StayCard } from '../components/StayCard'
+import { Photo } from '../components/Photo'
 import { stayBySlug, stays } from '../data/catalog'
 import {
   emptyDraft,
+  loadBookings,
   makeBookingId,
   quoteStay,
   saveBooking,
@@ -33,20 +34,23 @@ export function BookingPage() {
   const [draft, setDraft] = useState<BookingDraft>(() => draftFromParams(params))
   const [confirmed, setConfirmed] = useState<StoredBooking | null>(null)
   const [error, setError] = useState('')
+  const previous = loadBookings()
 
   const nights = nightsBetween(draft.checkIn, draft.checkOut)
-  const matches = useMemo(
+  const selected = stayBySlug(draft.staySlug)
+  const quote = selected && nights > 0 ? quoteStay(selected, draft.checkIn, draft.checkOut) : null
+
+  const options = useMemo(
     () =>
       stays.map((stay) => ({
         stay,
-        fits: stayFitsGuests(stay, draft.adults, draft.children),
-        free: stayAvailable(stay, draft.checkIn, draft.checkOut),
+        ok:
+          nights > 0 &&
+          stayFitsGuests(stay, draft.adults, draft.children) &&
+          stayAvailable(stay, draft.checkIn, draft.checkOut),
       })),
-    [draft.adults, draft.children, draft.checkIn, draft.checkOut],
+    [draft.adults, draft.children, draft.checkIn, draft.checkOut, nights],
   )
-
-  const selected = stayBySlug(draft.staySlug)
-  const quote = selected && nights > 0 ? quoteStay(selected, draft.checkIn, draft.checkOut) : null
 
   function patch(next: Partial<BookingDraft>) {
     setDraft((current) => ({ ...current, ...next }))
@@ -56,15 +60,15 @@ export function BookingPage() {
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!selected || !quote || quote.nights < 1) {
-      setError('Оберіть житло й коректні дати.')
+      setError('Оберіть кімнату й дати.')
       return
     }
     if (!stayAvailable(selected, draft.checkIn, draft.checkOut)) {
-      setError('На ці дати цей варіант зайнятий.')
+      setError('На ці дати кімната зайнята.')
       return
     }
     if (!stayFitsGuests(selected, draft.adults, draft.children)) {
-      setError('Забагато гостей для цього житла.')
+      setError('Забагато гостей для цієї кімнати.')
       return
     }
     const booking: StoredBooking = {
@@ -81,46 +85,42 @@ export function BookingPage() {
 
   if (confirmed) {
     return (
-      <section className="page confirm">
-        <p className="eyebrow">Заявку збережено</p>
-        <h1>Чекаємо вас під дахом Sunny Park.</h1>
-        <p className="lede">
-          Номер заявки <strong>{confirmed.id}</strong>. У цьому прототипі вона
-          лежить у браузері — рецепція ще не отримує лист.
+      <section className="mx-auto max-w-3xl px-6 pb-24 pt-32">
+        <p className="text-[0.7rem] tracking-[0.18em] uppercase text-clay">Заявку збережено</p>
+        <h1 className="mt-3 font-display text-5xl leading-tight">Чекаємо вас під дахом.</h1>
+        <p className="mt-6 text-sm text-wood/70">
+          Номер <strong>{confirmed.id}</strong> лежить у localStorage ключа{' '}
+          <code>dakh-bookings</code>.
         </p>
-        <dl className="confirm-card">
+        <dl className="mt-10 grid gap-6 bg-beige p-8 text-sm md:grid-cols-2">
           <div>
-            <dt>Житло</dt>
-            <dd>{confirmed.stayName}</dd>
+            <dt className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/55">Кімната</dt>
+            <dd className="mt-1">{confirmed.stayName}</dd>
           </div>
           <div>
-            <dt>Дати</dt>
-            <dd>
-              {formatDate(confirmed.checkIn)} — {formatDate(confirmed.checkOut)} ·{' '}
-              {confirmed.nights} н.
+            <dt className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/55">Дати</dt>
+            <dd className="mt-1">
+              {formatDate(confirmed.checkIn)} — {formatDate(confirmed.checkOut)} · {confirmed.nights}{' '}
+              н.
             </dd>
           </div>
           <div>
-            <dt>Гості</dt>
-            <dd>
-              {confirmed.adults} дорослих
-              {confirmed.children ? `, ${confirmed.children} дітей` : ''}
-            </dd>
+            <dt className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/55">Сума</dt>
+            <dd className="mt-1">{formatMoney(confirmed.total)}</dd>
           </div>
           <div>
-            <dt>Сума</dt>
-            <dd>{formatMoney(confirmed.total)}</dd>
-          </div>
-          <div>
-            <dt>Контакт</dt>
-            <dd>
+            <dt className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/55">Гість</dt>
+            <dd className="mt-1">
               {confirmed.name}
               <br />
               {confirmed.phone}
             </dd>
           </div>
         </dl>
-        <Link className="btn btn-sun" to="/">
+        <Link
+          to="/"
+          className="mt-10 inline-flex bg-clay px-8 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
+        >
           На головну
         </Link>
       </section>
@@ -128,159 +128,180 @@ export function BookingPage() {
   }
 
   return (
-    <section className="page booking-page">
-      <header className="page-hero">
-        <p className="eyebrow">Крок за кроком</p>
-        <h1>Бронювання</h1>
-        <p className="lede">
-          Дати, житло, контакти. Наявність рахується з тестового календаря —
-          частина дат уже «зайнята», щоб було видно відмову.
-        </p>
-      </header>
+    <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
+      <p className="text-[0.7rem] tracking-[0.18em] uppercase text-clay">Готель</p>
+      <h1 className="mt-3 font-display text-5xl leading-tight">«Забронюйте свій спокій»</h1>
+      <p className="mt-5 max-w-xl text-sm text-wood/70">
+        Тільки кімнати. Стіл у ресторані — телефоном. Заявки пишуться в localStorage, без
+        оплати.
+      </p>
 
-      <form className="book-form" onSubmit={submit}>
-        <fieldset>
-          <legend>1. Дати</legend>
-          <div className="form-grid">
-            <label>
-              Заїзд
-              <input
-                type="date"
-                value={draft.checkIn}
-                min={todayIso()}
-                onChange={(event) => {
-                  const checkIn = event.target.value
-                  patch({
-                    checkIn,
-                    checkOut: draft.checkOut <= checkIn ? addDays(checkIn, 1) : draft.checkOut,
-                  })
-                }}
-                required
-              />
-            </label>
-            <label>
-              Виїзд
-              <input
-                type="date"
-                value={draft.checkOut}
-                min={addDays(draft.checkIn, 1)}
-                onChange={(event) => patch({ checkOut: event.target.value })}
-                required
-              />
-            </label>
-            <label>
-              Дорослі
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={draft.adults}
-                onChange={(event) => patch({ adults: Number(event.target.value) })}
-              />
-            </label>
-            <label>
-              Діти
-              <input
-                type="number"
-                min={0}
-                max={8}
-                value={draft.children}
-                onChange={(event) => patch({ children: Number(event.target.value) })}
-              />
-            </label>
-          </div>
-          <p className="muted">
-            {nights > 0
-              ? `${nights} ${nights === 1 ? 'ніч' : nights < 5 ? 'ночі' : 'ночей'}`
-              : 'Оберіть виїзд пізніше заїзду'}
-          </p>
-        </fieldset>
+      <form onSubmit={submit} className="mt-14 grid gap-12 md:grid-cols-12">
+        <div className="space-y-12 md:col-span-7">
+          <fieldset className="border-0 p-0">
+            <legend className="font-display text-3xl">Параметри бронювання</legend>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Заїзд
+                <input
+                  type="date"
+                  value={draft.checkIn}
+                  min={todayIso()}
+                  required
+                  onChange={(event) => {
+                    const checkIn = event.target.value
+                    patch({
+                      checkIn,
+                      checkOut: draft.checkOut <= checkIn ? addDays(checkIn, 1) : draft.checkOut,
+                    })
+                  }}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Виїзд
+                <input
+                  type="date"
+                  value={draft.checkOut}
+                  min={addDays(draft.checkIn, 1)}
+                  required
+                  onChange={(event) => patch({ checkOut: event.target.value })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Дорослі
+                <input
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={draft.adults}
+                  onChange={(event) => patch({ adults: Number(event.target.value) })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Діти
+                <input
+                  type="number"
+                  min={0}
+                  max={6}
+                  value={draft.children}
+                  onChange={(event) => patch({ children: Number(event.target.value) })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+            </div>
+          </fieldset>
 
-        <fieldset>
-          <legend>2. Житло</legend>
-          <div className="booking-stays">
-            {matches.map(({ stay, fits, free }) => {
-              const disabled = !fits || !free || nights < 1
-              return (
+          <fieldset className="border-0 p-0">
+            <legend className="font-display text-3xl">Обрати кімнату</legend>
+            <div className="mt-6 space-y-4">
+              {options.map(({ stay, ok }) => (
                 <label
                   key={stay.slug}
-                  className={`choice ${draft.staySlug === stay.slug ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}`}
+                  className={`grid cursor-pointer grid-cols-[96px_1fr_auto] items-center gap-4 border p-3 ${
+                    draft.staySlug === stay.slug ? 'border-clay' : 'border-wood/15'
+                  } ${ok ? '' : 'opacity-40'}`}
                 >
                   <input
                     type="radio"
                     name="stay"
                     value={stay.slug}
-                    disabled={disabled}
+                    disabled={!ok}
                     checked={draft.staySlug === stay.slug}
                     onChange={() => patch({ staySlug: stay.slug })}
+                    className="sr-only"
                   />
-                  <StayCard
-                    stay={stay}
-                    available={free && fits}
-                    nights={nights > 0 ? nights : undefined}
-                    selectable
-                  />
+                  <Photo src={stay.images[0]} alt="" className="h-20 w-24" />
+                  <span>
+                    <span className="block font-medium">{stay.name}</span>
+                    <span className="text-sm text-wood/60">
+                      {formatMoney(stay.priceFrom)} / доба
+                      {!ok ? ' · зайнято або не підходить' : ''}
+                    </span>
+                  </span>
                 </label>
-              )
-            })}
-          </div>
-        </fieldset>
+              ))}
+            </div>
+          </fieldset>
 
-        <fieldset>
-          <legend>3. Контакт</legend>
-          <div className="form-grid">
-            <label>
-              Ім’я
-              <input
-                value={draft.name}
-                onChange={(event) => patch({ name: event.target.value })}
-                required
-              />
-            </label>
-            <label>
-              Телефон
-              <input
-                type="tel"
-                placeholder="+38"
-                value={draft.phone}
-                onChange={(event) => patch({ phone: event.target.value })}
-                required
-              />
-            </label>
-            <label className="wide">
-              Email
-              <input
-                type="email"
-                value={draft.email}
-                onChange={(event) => patch({ email: event.target.value })}
-                required
-              />
-            </label>
-            <label className="wide">
-              Коментар
-              <textarea
-                rows={3}
-                value={draft.comment}
-                onChange={(event) => patch({ comment: event.target.value })}
-              />
-            </label>
-          </div>
-        </fieldset>
+          <fieldset className="border-0 p-0">
+            <legend className="font-display text-3xl">Деталі гостя</legend>
+            <div className="mt-6 grid gap-6">
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Ім’я
+                <input
+                  required
+                  value={draft.name}
+                  onChange={(event) => patch({ name: event.target.value })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Телефон
+                <input
+                  type="tel"
+                  required
+                  value={draft.phone}
+                  onChange={(event) => patch({ phone: event.target.value })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Email
+                <input
+                  type="email"
+                  required
+                  value={draft.email}
+                  onChange={(event) => patch({ email: event.target.value })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Коментар
+                <textarea
+                  rows={3}
+                  value={draft.comment}
+                  onChange={(event) => patch({ comment: event.target.value })}
+                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                />
+              </label>
+            </div>
+          </fieldset>
+        </div>
 
-        <div className="booking-summary">
+        <aside className="h-fit bg-beige p-6 md:sticky md:top-8 md:col-span-5">
+          <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
           {selected && quote && quote.nights > 0 ? (
-            <p>
-              {selected.name} · {quote.nights} н. ·{' '}
-              <strong>{formatMoney(quote.total)}</strong>
-            </p>
+            <div className="mt-6 text-sm leading-relaxed">
+              <p className="font-medium">{selected.name}</p>
+              <p className="mt-2 text-wood/70">
+                {formatDate(draft.checkIn)} — {formatDate(draft.checkOut)}
+              </p>
+              <p className="mt-1 text-wood/70">
+                {draft.adults} дорослих
+                {draft.children ? `, ${draft.children} дітей` : ''} · {quote.nights} н.
+              </p>
+              <p className="mt-6 font-display text-3xl">{formatMoney(quote.total)}</p>
+            </div>
           ) : (
-            <p>Оберіть доступне житло, щоб побачити суму.</p>
+            <p className="mt-6 text-sm text-wood/60">Оберіть дати й кімнату.</p>
           )}
-          {error ? <p className="form-error">{error}</p> : null}
-          <button className="btn btn-sun" type="submit">
+          {error ? <p className="mt-4 text-sm text-clay">{error}</p> : null}
+          <button
+            type="submit"
+            className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
+          >
             Надіслати заявку
           </button>
-        </div>
+          {previous.length ? (
+            <p className="mt-4 text-[0.72rem] text-wood/50">
+              У цьому браузері вже є {previous.length} заяв.{' '}
+              <code>dakh-bookings</code>
+            </p>
+          ) : null}
+        </aside>
       </form>
     </section>
   )
