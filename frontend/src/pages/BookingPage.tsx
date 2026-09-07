@@ -129,7 +129,7 @@ export function BookingPage() {
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
-      <p className="kicker text-[0.68rem] text-clay">Sunny Park</p>
+      <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
       <p className="mt-5 max-w-xl text-sm text-wood/70">
         Тільки кімнати. Стіл у ресторані — телефоном. Заявки пишуться в localStorage, без

@@ -26,8 +26,8 @@ export function ContactPage() {
         <p className="kicker text-[0.68rem] text-clay">Контакти</p>
         <h1 className="mt-3 font-display text-5xl text-clay">Напишіть або зайдіть</h1>
         <p className="mt-6 text-sm leading-relaxed text-wood/75">
-          Стіл у DAKH — телефоном. Кімнату Sunny Park можна залишити заявкою: вона
-          збережеться в localStorage.
+          Стіл у ресторані — телефоном. Кімнату можна залишити заявкою: вона збережеться в
+          localStorage.
         </p>
         <a href={site.phoneHref} className="mt-10 block font-display text-3xl">
           {site.phones[0]}

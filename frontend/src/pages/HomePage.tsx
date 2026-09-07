@@ -12,7 +12,7 @@ export function HomePage() {
         <div className="absolute inset-0 bg-wood/30" />
         <BirdMark className="absolute right-[12%] top-[28%] h-10 w-16 text-linen/70" />
         <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24">
-          <p className="kicker text-[0.68rem] text-linen/80">Sunny Park · New Edition</p>
+          <p className="kicker text-[0.68rem] text-linen/80">DAKH · Мигове</p>
           <h1 className="-rotate-1 font-display text-5xl leading-[1.05] text-linen md:text-7xl">
             «Вище даху тільки небо»
           </h1>
@@ -27,8 +27,8 @@ export function HomePage() {
             «Тут не треба поспішати.»
           </h2>
           <p className="mt-6 text-[0.95rem] leading-relaxed">
-            Sunny Park — простір у Мигові, де сучасний спокій зустрічається з духом Карпат.
-            Унизу — ресторан <em>DAKH</em>: бануш як спогад, а не як страва з меню.
+            DAKH — простір у Мигові, де сучасний спокій зустрічається з духом Карпат.
+            Унизу — ресторан: бануш як спогад, а не як страва з меню.
           </p>
         </div>
         <div className="relative min-w-0">
@@ -90,10 +90,7 @@ function MapSketch() {
       <path d="M20 210 C80 170 160 150 260 168 C340 184 400 150 460 130" fill="none" stroke="#5b382b" strokeOpacity="0.28" />
       <path d="M40 240 L120 150 L170 190 L260 120 L440 240" fill="none" stroke="#2f3f23" strokeWidth="1.2" />
       <path d="M210 70 C230 50 250 50 255 70 C240 68 226 74 210 70Z" fill="#5b382b" />
-      <text x="255" y="268" textAnchor="middle" fill="#5b382b" fontSize="13" fontFamily="Montserrat, sans-serif">
-        SUNNY PARK
-      </text>
-      <text x="255" y="288" textAnchor="middle" fill="#b25f38" fontSize="12" fontFamily="Marck Script, cursive">
+      <text x="255" y="278" textAnchor="middle" fill="#b25f38" fontSize="18" fontFamily="Marck Script, cursive">
         dakh
       </text>
       <text x="36" y="40" fill="#5b382b" fillOpacity="0.5" fontSize="11">

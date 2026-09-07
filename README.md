@@ -1,6 +1,6 @@
-# Sunny Park / DAKH
+# DAKH
 
-Фронтенд-прототип комплексу **Sunny Park. New Edition** (Мигове) і ресторану **DAKH**. Айдентика за офіційним брендбуком 2026.
+Фронтенд-прототип готелю і ресторану **DAKH** у Мигові.
 
 ```bash
 cd frontend && npm install && npm run dev

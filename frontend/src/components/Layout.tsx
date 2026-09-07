@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
-import { DakhLogo, SunnyParkLogo } from './BrandMarks'
+import { DakhLogo } from './BrandMarks'
 
 const nav = [
   { to: '/gotel', label: 'Готель' },
@@ -38,7 +38,7 @@ export function Layout() {
         }
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-5">
-          {restaurant ? <DakhLogo tone={tone} compact /> : <SunnyParkLogo tone={tone} compact />}
+          <DakhLogo tone={tone} compact />
           <nav className="hidden items-center gap-8 text-[0.72rem] font-medium tracking-[0.16em] uppercase md:flex">
             {nav.map((item) => (
               <NavLink
@@ -98,12 +98,10 @@ export function Layout() {
 
       <footer className="relative mt-24 overflow-hidden border-t border-wood/10 bg-beige">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 md:grid-cols-3">
-          <div className="flex flex-col gap-8">
-            <SunnyParkLogo />
+          <div>
             <DakhLogo />
-            <p className="max-w-xs text-sm leading-relaxed text-wood/80">
-              Готель Sunny Park і ресторан DAKH — одна екосистема в Мигові. Тут не треба
-              поспішати.
+            <p className="mt-6 max-w-xs text-sm leading-relaxed text-wood/80">
+              Готель і ресторан DAKH у Мигові. Тут не треба поспішати.
             </p>
           </div>
           <div className="text-sm">

@@ -34,14 +34,14 @@ const photo = (id: string, w = 1600) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`
 
 export const site = {
-  hotel: 'Sunny Park',
+  hotel: 'DAKH',
   restaurant: 'DAKH',
   city: 'Мигове',
   region: 'Чернівецька область, Буковина',
   address: 'вул. Солонецька, Мигове',
   phones: ['+38 (095) 818-00-01', '+38 (096) 818-00-01'],
   phoneHref: 'tel:+380958180001',
-  email: 'sunny@sunnypark.com.ua',
+  email: 'hello@dakh.ua',
   instagram: 'https://instagram.com/',
   checkIn: '14:00',
   checkOut: '11:00',

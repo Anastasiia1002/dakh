@@ -10,9 +10,9 @@ export function AboutPage() {
         Місце, де тиша має звук
       </h1>
       <p className="mt-8 max-w-2xl leading-relaxed">
-        Sunny Park і DAKH працюють як одна екосистема: дах над головою, стіл унизу, ліс за
-        хвірткою. Ми не доводимо словами — показуємо атмосферою. Якщо фраза звучить як
-        реклама, ми її викреслюємо.
+        DAKH — готель і ресторан у Мигові: дах над головою, стіл унизу, ліс за хвірткою.
+        Ми не доводимо словами — показуємо атмосферою. Якщо фраза звучить як реклама, ми її
+        викреслюємо.
       </p>
 
       <div className="relative mt-16 grid gap-4 md:grid-cols-2">
@@ -30,7 +30,7 @@ export function AboutPage() {
           </p>
         </div>
         <div>
-          <h2 className="font-display text-3xl">{site.hotel}</h2>
+          <h2 className="font-display text-3xl">Готель</h2>
           <p className="mt-4 text-sm leading-relaxed text-wood/75">
             {site.city}, {site.region}. Кімнати для тих, хто їде не «кудись», а заради
             тиші, світла на дереві й вечері, після якої хочеться помовчати.
