@@ -14,10 +14,10 @@ export function RestaurantPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-28 md:grid-cols-12">
-        <Photo src={images.chef} alt="Кухар збирає тарілку" className="aspect-[4/5] w-full md:col-span-5" />
-        <div className="md:col-span-6 md:col-start-7">
-          <h2 className="font-display text-4xl leading-tight md:text-5xl">
+      <section className="mx-auto grid max-w-6xl items-start gap-12 px-6 py-28 md:grid-cols-2">
+        <Photo src={images.chef} alt="Кухар збирає тарілку" className="aspect-[4/5] w-full min-w-0" />
+        <div className="min-w-0">
+          <h2 className="font-display text-4xl leading-[1.15] text-balance">
             Повернення до першоджерел через вишуканість сучасності
           </h2>
           <p className="mt-6 text-sm leading-relaxed text-wood/80">

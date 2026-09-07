@@ -16,15 +16,15 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-28 md:grid-cols-12">
-        <div className="md:col-span-5">
-          <h2 className="font-display text-4xl leading-tight md:text-5xl">«Тут не треба поспішати.»</h2>
+      <section className="mx-auto grid max-w-6xl items-start gap-12 px-6 py-28 md:grid-cols-2">
+        <div className="min-w-0 md:pt-8">
+          <h2 className="font-display text-4xl leading-[1.15] md:text-5xl">«Тут не треба поспішати.»</h2>
           <p className="mt-6 text-[0.95rem] leading-relaxed text-wood/80">
             DAKH стоїть у тихому кутку старого міста. Кімнати — світлі й майже порожні.
             Унизу готують борщ і бануш. Між дахом і небом — лише повітря Чернівців.
           </p>
         </div>
-        <div className="md:col-span-6 md:col-start-7">
+        <div className="min-w-0">
           <Photo src={images.pottery} alt="Кераміка й лляні тканини" className="aspect-[4/5] w-full" />
         </div>
       </section>

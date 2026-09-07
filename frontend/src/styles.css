@@ -24,6 +24,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   color: var(--color-wood);
   background: var(--color-linen);
   font-family: var(--font-sans);
