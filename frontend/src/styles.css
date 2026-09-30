@@ -68,3 +68,76 @@ em {
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
 }
+
+.dakh-bird-sky {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  overflow: hidden;
+}
+
+.dakh-bird-route {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  animation: dakh-bird-route 56s linear infinite;
+}
+
+.dakh-bird-wing {
+  display: block;
+  width: min(12.5rem, 42vw);
+  height: auto;
+  transform-origin: 60% 45%;
+  animation: dakh-bird-flap 0.85s ease-in-out infinite alternate;
+  filter: drop-shadow(0 10px 14px rgba(91, 56, 43, 0.16));
+}
+
+@keyframes dakh-bird-route {
+  0% {
+    transform: translate3d(-22vw, 16vh, 0) scaleX(1);
+  }
+  18% {
+    transform: translate3d(18vw, 9vh, 0) scaleX(1);
+  }
+  34% {
+    transform: translate3d(58vw, 20vh, 0) scaleX(1);
+  }
+  44% {
+    transform: translate3d(78vw, 40vh, 0) scaleX(1);
+  }
+  46% {
+    transform: translate3d(82vw, 46vh, 0) scaleX(-1);
+  }
+  62% {
+    transform: translate3d(36vw, 62vh, 0) scaleX(-1);
+  }
+  74% {
+    transform: translate3d(6vw, 38vh, 0) scaleX(-1);
+  }
+  78% {
+    transform: translate3d(4vw, 24vh, 0) scaleX(1);
+  }
+  90% {
+    transform: translate3d(48vw, 12vh, 0) scaleX(1);
+  }
+  100% {
+    transform: translate3d(112vw, 18vh, 0) scaleX(1);
+  }
+}
+
+@keyframes dakh-bird-flap {
+  from {
+    transform: rotate(-8deg) translateY(2px);
+  }
+  to {
+    transform: rotate(10deg) translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dakh-bird-sky {
+    display: none;
+  }
+}

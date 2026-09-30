@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Spot } from '../components/BrandMarks'
+import { FlyingBird } from '../components/FlyingBird'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { images, site, stays } from '../data/catalog'
@@ -7,6 +8,7 @@ import { images, site, stays } from '../data/catalog'
 export function HomePage() {
   return (
     <>
+      <FlyingBird />
       <section className="photo-grain relative min-h-[92vh]">
         <Photo
           src={images.heroHouse}
