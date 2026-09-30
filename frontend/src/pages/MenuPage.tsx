@@ -1,5 +1,6 @@
 import { Photo } from '../components/Photo'
 import { images, site } from '../data/catalog'
+import { RestaurantPage } from './RestaurantPage'
 
 const links = [
   { href: site.restaurantOrder, label: 'Ресторан' },
@@ -36,6 +37,8 @@ export function MenuPage() {
           </a>
         ))}
       </section>
+
+      <RestaurantPage />
     </article>
   )
 }

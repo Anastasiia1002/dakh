@@ -64,7 +64,7 @@ export function HomePage() {
           <p className="kicker text-[0.68rem] text-linen/80">Ресторан</p>
           <h2 className="-rotate-1 font-display text-5xl text-linen md:text-6xl">«Тут смакують.»</h2>
           <Link
-            to="/restoran"
+            to="/menu"
             className="text-[0.72rem] font-medium tracking-[0.16em] uppercase text-linen underline decoration-linen/40 underline-offset-8"
           >
             DAKH

@@ -4,12 +4,12 @@ import { formatMoney } from '../lib/format'
 
 export function RestaurantPage() {
   return (
-    <article>
+    <>
       <section className="relative min-h-[86vh]">
         <Photo src={images.dining} alt="Сервірування столу в DAKH" className="absolute inset-0 h-full w-full" />
         <div className="absolute inset-0 bg-wood/30" />
         <div className="relative flex min-h-[86vh] flex-col items-center justify-center px-6">
-          <h1 className="font-display text-7xl text-linen md:text-8xl">dakh</h1>
+          <h2 className="font-display text-7xl text-linen md:text-8xl">dakh</h2>
           <p className="kicker mt-3 text-[0.68rem] text-linen/75">Вище даху тільки небо</p>
         </div>
       </section>
@@ -64,6 +64,6 @@ export function RestaurantPage() {
           <Photo src={images.cocktail} alt="Склянка настоянки" className="aspect-[3/4] w-full" />
         </div>
       </section>
-    </article>
+    </>
   )
 }
