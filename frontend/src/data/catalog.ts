@@ -45,6 +45,9 @@ export const site = {
   instagram: 'https://instagram.com/',
   checkIn: '14:00',
   checkOut: '11:00',
+  restaurantOrder: 'https://dakh-myhovo.choiceqr.com/section:menyu/sezonne-menyu',
+  restaurantBooking: 'https://dakh-myhovo.choiceqr.com/booking',
+  restaurantDelivery: 'https://dakh-myhovo.choiceqr.com/delivery',
 }
 
 export const images = {
@@ -55,6 +58,7 @@ export const images = {
   dining: photo('photo-1559339352-11d035aa65de', 2000),
   chef: photo('photo-1556910103-1c02745aae4d', 1400),
   restaurantDark: photo('photo-1517248135467-4c7edcad34c4', 2000),
+  restaurantHall: '/images/dakh-restaurant-hall.jpg',
   interior: photo('photo-1414235077428-338989a2e8c0', 1400),
   cocktail: photo('photo-1470337458703-46ad1756a187', 1200),
   forest: photo('photo-1441974231531-c6227db76b6e', 1400),

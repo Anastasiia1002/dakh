@@ -6,7 +6,7 @@ import { DakhLogo } from './BrandMarks'
 const nav = [
   { to: '/gotel', label: 'Готель' },
   { to: '/restoran', label: 'DAKH' },
-  { to: '/menu', label: 'Меню' },
+  { to: '/menu', label: 'Ресторан' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },
 ]
