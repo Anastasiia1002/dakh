@@ -35,10 +35,6 @@ export function ContactPage() {
       <div>
         <p className="kicker text-[0.68rem] text-clay">Контакти</p>
         <h1 className="mt-3 font-display text-5xl text-clay">Як з нами зв’язатися</h1>
-        <p className="mt-5 max-w-md text-sm leading-relaxed text-wood/75">
-          Зателефонуйте, напишіть або приїдьте. Стіл зручніше брати по телефону, кімнату —
-          заявкою на сайті.
-        </p>
 
         <div className="mt-12 grid gap-9">
           <Field label="Телефон">
