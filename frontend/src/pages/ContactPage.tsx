@@ -31,28 +31,44 @@ export function ContactPage() {
   }
 
   return (
-    <article className="mx-auto flex max-w-xl flex-col gap-16 px-6 pb-24 pt-32">
-      <div>
-        <p className="kicker text-[0.68rem] text-clay">Контакти</p>
-        <h1 className="mt-3 font-display text-5xl text-clay">Як з нами зв’язатися</h1>
+    <article className="mx-auto flex max-w-5xl flex-col gap-16 px-6 pb-24 pt-32">
+      <div className="grid gap-12 md:grid-cols-2 md:items-start md:gap-16">
+        <div>
+          <p className="kicker text-[0.68rem] text-clay">Контакти</p>
+          <h1 className="mt-3 font-display text-5xl text-clay">Як з нами зв’язатися</h1>
 
-        <div className="mt-12 grid gap-9">
-          <Field label="Телефон">
-            <a href={site.phoneHrefs[0]} className="block font-display text-3xl leading-tight">
-              {site.phones[0]}
-            </a>
-            <a href={site.phoneHrefs[1]} className="mt-2 block font-display text-3xl leading-tight">
-              {site.phones[1]}
-            </a>
-            <p className="mt-2 text-sm text-wood/60">Натисніть номер, щоб подзвонити.</p>
-          </Field>
+          <div className="mt-12 grid gap-9">
+            <Field label="Телефон">
+              <a href={site.phoneHrefs[0]} className="block font-display text-3xl leading-tight">
+                {site.phones[0]}
+              </a>
+              <a href={site.phoneHrefs[1]} className="mt-2 block font-display text-3xl leading-tight">
+                {site.phones[1]}
+              </a>
+              <p className="mt-2 text-sm text-wood/60">Натисніть номер, щоб подзвонити.</p>
+            </Field>
 
-          <Field label="Пошта">
-            <a href={`mailto:${site.email}`} className="text-lg">
-              {site.email}
-            </a>
-          </Field>
+            <Field label="Пошта">
+              <a href={`mailto:${site.email}`} className="text-lg">
+                {site.email}
+              </a>
+            </Field>
 
+            <Field label="Готель">
+              <p>
+                Заїзд з {site.checkIn} · виїзд до {site.checkOut}
+              </p>
+              <Link
+                to="/bronuvannya"
+                className="mt-3 inline-block text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+              >
+                Забронювати кімнату
+              </Link>
+            </Field>
+          </div>
+        </div>
+
+        <div className="grid gap-9">
           <Field label="Адреса">
             <p>
               {site.address}
@@ -61,53 +77,41 @@ export function ContactPage() {
             </p>
           </Field>
 
-          <Field label="Готель">
-            <p>
-              Заїзд з {site.checkIn} · виїзд до {site.checkOut}
-            </p>
-            <Link
-              to="/bronuvannya"
-              className="mt-3 inline-block text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
-            >
-              Забронювати кімнату
-            </Link>
-          </Field>
-        </div>
-
-        <div className="mt-12">
-          <p className="kicker text-[0.68rem] text-wood/55">Як доїхати</p>
-          <div className="relative mt-3 overflow-hidden border border-wood/10">
-            <iframe
-              title="DAKH, вул. Солонецька, 2-И, с. Мигове"
-              src={site.map.embed}
-              className="pointer-events-none h-64 w-full"
-              loading="lazy"
-            />
+          <div>
+            <p className="kicker text-[0.68rem] text-wood/55">Як доїхати</p>
+            <div className="relative mt-3 overflow-hidden border border-wood/10">
+              <iframe
+                title="DAKH, вул. Солонецька, 2-И, с. Мигове"
+                src={site.map.embed}
+                className="pointer-events-none h-64 w-full md:h-80"
+                loading="lazy"
+              />
+              <a
+                href={site.map.directions}
+                target="_blank"
+                rel="noreferrer"
+                className="absolute inset-0"
+                aria-label="Прокласти маршрут до DAKH у Google Maps"
+              />
+            </div>
             <a
               href={site.map.directions}
               target="_blank"
               rel="noreferrer"
-              className="absolute inset-0"
-              aria-label="Прокласти маршрут до DAKH у Google Maps"
-            />
+              className="mt-4 inline-flex bg-clay px-8 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
+            >
+              Прокласти маршрут
+            </a>
           </div>
-          <a
-            href={site.map.directions}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-flex bg-clay px-8 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
-          >
-            Прокласти маршрут
-          </a>
         </div>
       </div>
 
       {sent ? (
-        <p className="bg-beige px-6 py-8 text-sm leading-relaxed">
+        <p className="max-w-xl bg-beige px-6 py-8 text-sm leading-relaxed">
           Дякуємо. Ми прочитаємо повідомлення й відповімо на вказаний телефон або пошту.
         </p>
       ) : (
-        <form onSubmit={submit} className="grid gap-6">
+        <form onSubmit={submit} className="grid max-w-xl gap-6">
           <div>
             <p className="kicker text-[0.68rem] text-clay">Повідомлення</p>
             <h2 className="mt-3 font-display text-4xl text-clay">Напишіть нам</h2>
