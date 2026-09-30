@@ -38,7 +38,12 @@ export function HomePage() {
           </p>
         </div>
         <div className="relative min-w-0">
-          <Photo src={images.pottery} alt="Кераміка й лляні тканини" className="aspect-[4/5] w-full" />
+          <Photo
+            src={images.pottery}
+            alt="Зал DAKH із видом на гори"
+            tone={false}
+            className="aspect-[4/3] w-full"
+          />
         </div>
       </section>
 

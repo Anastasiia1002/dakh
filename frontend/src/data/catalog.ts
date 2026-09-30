@@ -49,7 +49,7 @@ export const site = {
 
 export const images = {
   heroHouse: '/images/dakh-facade-night.jpg',
-  pottery: photo('photo-1610701596007-11502861dcfa', 1400),
+  pottery: '/images/dakh-lounge.jpg',
   borscht: photo('photo-1490645935967-10de6ba17061', 1800),
   dining: photo('photo-1559339352-11d035aa65de', 2000),
   chef: photo('photo-1556910103-1c02745aae4d', 1400),
