@@ -51,13 +51,12 @@ export const site = {
   restaurantBooking: 'https://dakh-myhovo.choiceqr.com/booking',
   restaurantDelivery: 'https://dakh-myhovo.choiceqr.com/delivery',
   map: {
-    lat: 48.138947,
-    lng: 25.363922,
-    google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      'вул. Солонецька, 2-И, с. Мигове, Чернівецька область',
-    )}`,
+    lat: 48.1509479,
+    lng: 25.379971,
+    google: 'https://www.google.com/maps/search/?api=1&query=48.1509479,25.379971',
+    directions: 'https://www.google.com/maps/dir/?api=1&destination=48.1509479,25.379971',
     embed:
-      'https://www.openstreetmap.org/export/embed.html?bbox=25.353922%2C48.130947%2C25.373922%2C48.146947&layer=mapnik&marker=48.138947%2C25.363922',
+      'https://www.openstreetmap.org/export/embed.html?bbox=25.359971%2C48.140948%2C25.399971%2C48.160948&layer=mapnik&marker=48.1509479%2C25.379971',
   },
 }
 

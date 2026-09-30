@@ -49,13 +49,21 @@ export function ContactPage() {
             loading="lazy"
           />
           <a
-            href={site.map.google}
+            href={site.map.directions}
             target="_blank"
             rel="noreferrer"
             className="absolute inset-0"
-            aria-label="Відкрити вул. Солонецька, 2-И, с. Мигове в Google Maps"
+            aria-label="Прокласти маршрут до DAKH у Google Maps"
           />
         </div>
+        <a
+          href={site.map.directions}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex bg-clay px-8 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen"
+        >
+          Прокласти маршрут
+        </a>
       </div>
 
       {sent ? (
