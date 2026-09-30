@@ -1,6 +1,5 @@
 import { Photo } from '../components/Photo'
 import { featuredDishes, images, site } from '../data/catalog'
-import { formatMoney } from '../lib/format'
 
 export function RestaurantPage() {
   return (
@@ -41,7 +40,6 @@ export function RestaurantPage() {
               <Photo src={dish.image} alt={dish.name} className="aspect-square w-full" />
               <h3 className="mt-5 font-display text-3xl group-hover:text-clay">{dish.name}</h3>
               <p className="mt-2 text-sm text-wood/70">{dish.lead}</p>
-              <p className="mt-3 text-sm font-medium">{formatMoney(dish.price)}</p>
             </a>
           ))}
         </div>
