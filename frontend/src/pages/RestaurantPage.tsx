@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom'
 import { Photo } from '../components/Photo'
-import { featuredDishes, images } from '../data/catalog'
+import { featuredDishes, images, site } from '../data/catalog'
 import { formatMoney } from '../lib/format'
 
 export function RestaurantPage() {
@@ -26,12 +25,14 @@ export function RestaurantPage() {
             Сучасна інтерпретація карпатських страв. Чесні продукти, повага до традицій —
             без етнографічної надмірності. Сьогодні пахне хлібом і спокоєм.
           </p>
-          <Link
-            to="/menu"
+          <a
+            href={site.restaurantOrder}
+            target="_blank"
+            rel="noreferrer"
             className="mt-8 inline-block text-[0.75rem] tracking-[0.16em] uppercase underline decoration-wood/30 underline-offset-8"
           >
             Відкрити меню
-          </Link>
+          </a>
         </div>
       </section>
 
@@ -39,12 +40,18 @@ export function RestaurantPage() {
         <h2 className="font-display text-4xl">Знакові страви нашого меню</h2>
         <div className="mt-14 grid gap-12 md:grid-cols-3">
           {featuredDishes.map((dish) => (
-            <Link key={dish.slug} to={`/menu?dish=${dish.slug}`} className="group block">
+            <a
+              key={dish.slug}
+              href={site.restaurantOrder}
+              target="_blank"
+              rel="noreferrer"
+              className="group block"
+            >
               <Photo src={dish.image} alt={dish.name} className="aspect-square w-full" />
               <h3 className="mt-5 font-display text-3xl group-hover:text-clay">{dish.name}</h3>
               <p className="mt-2 text-sm text-wood/70">{dish.lead}</p>
               <p className="mt-3 text-sm font-medium">{formatMoney(dish.price)}</p>
-            </Link>
+            </a>
           ))}
         </div>
       </section>
