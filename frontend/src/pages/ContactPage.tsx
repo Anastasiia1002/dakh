@@ -25,9 +25,6 @@ export function ContactPage() {
       <div>
         <p className="kicker text-[0.68rem] text-clay">Контакти</p>
         <h1 className="mt-3 font-display text-5xl text-clay">Напишіть або зайдіть</h1>
-        <p className="mt-6 text-sm leading-relaxed text-wood/75">
-          Стіл — телефоном. Кімнату можна залишити заявкою на сайті.
-        </p>
         <a href={site.phoneHref} className="mt-10 block font-display text-3xl">
           {site.phones[0]}
         </a>
@@ -42,6 +39,21 @@ export function ContactPage() {
           <br />
           Заїзд з {site.checkIn}, виїзд до {site.checkOut}
         </p>
+        <div className="relative mt-10 overflow-hidden border border-wood/10">
+          <iframe
+            title="DAKH на мапі, Мигове"
+            src={site.map.embed}
+            className="pointer-events-none h-64 w-full md:h-80"
+            loading="lazy"
+          />
+          <a
+            href={site.map.google}
+            target="_blank"
+            rel="noreferrer"
+            className="absolute inset-0"
+            aria-label="Відкрити локацію DAKH у Google Maps"
+          />
+        </div>
       </div>
 
       {sent ? (

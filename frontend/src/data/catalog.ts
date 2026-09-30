@@ -50,6 +50,13 @@ export const site = {
   restaurantOrder: 'https://dakh-myhovo.choiceqr.com/section:menyu/sezonne-menyu',
   restaurantBooking: 'https://dakh-myhovo.choiceqr.com/booking',
   restaurantDelivery: 'https://dakh-myhovo.choiceqr.com/delivery',
+  map: {
+    lat: 48.150948,
+    lng: 25.379971,
+    google: 'https://www.google.com/maps/search/?api=1&query=48.150948,25.379971',
+    embed:
+      'https://www.openstreetmap.org/export/embed.html?bbox=25.359971%2C48.138948%2C25.399971%2C48.162948&layer=mapnik&marker=48.150948%2C25.379971',
+  },
 }
 
 export const images = {
