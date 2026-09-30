@@ -3,7 +3,7 @@ import { images, site } from '../data/catalog'
 import { RestaurantPage } from './RestaurantPage'
 
 const links = [
-  { href: site.restaurantOrder, label: 'Ресторан' },
+  { href: site.restaurantOrder, label: 'Меню' },
   { href: site.restaurantBooking, label: 'Бронювання' },
   { href: site.restaurantDelivery, label: 'Доставка' },
 ]
