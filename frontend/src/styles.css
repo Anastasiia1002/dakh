@@ -102,13 +102,13 @@ em {
 }
 
 .dakh-bird-body {
-  animation: dakh-bird-bob 0.42s ease-in-out infinite;
+  animation: dakh-bird-bob 0.7s ease-in-out infinite;
 }
 
 .dakh-bird-forewing {
   transform-origin: 54% 56%;
   will-change: transform;
-  animation: dakh-wing-beat 0.42s ease-in-out infinite;
+  animation: dakh-wing-beat 0.7s ease-in-out infinite;
 }
 
 @keyframes dakh-bird-route {
@@ -146,11 +146,23 @@ em {
 
 @keyframes dakh-wing-beat {
   0%,
-  100% {
-    transform: rotate(-4deg) scaleY(1);
+  10% {
+    transform: rotate(-6deg) scaleY(1);
   }
-  50% {
-    transform: rotate(34deg) scaleY(0.16);
+  28%,
+  42% {
+    transform: rotate(42deg) scaleY(0.1);
+  }
+  55%,
+  62% {
+    transform: rotate(-6deg) scaleY(1);
+  }
+  78%,
+  90% {
+    transform: rotate(42deg) scaleY(0.1);
+  }
+  100% {
+    transform: rotate(-6deg) scaleY(1);
   }
 }
 
