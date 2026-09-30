@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
+import { asset } from '../lib/asset'
 
 type Tone = 'wood' | 'linen' | 'clay'
 
 const logoSrc: Record<Tone, string> = {
-  wood: '/images/dakh-logo-wood.png',
-  clay: '/images/dakh-logo-wood.png',
-  linen: '/images/dakh-logo.png',
+  wood: asset('images/dakh-logo-wood.png'),
+  clay: asset('images/dakh-logo-wood.png'),
+  linen: asset('images/dakh-logo.png'),
 }
 
 export function DakhLogo({

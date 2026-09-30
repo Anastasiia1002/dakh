@@ -1,5 +1,6 @@
 import { Photo } from '../components/Photo'
 import { images, site } from '../data/catalog'
+import { asset } from '../lib/asset'
 
 export function AboutPage() {
   return (
@@ -16,7 +17,7 @@ export function AboutPage() {
 
       <div className="relative mt-16 grid gap-4 md:grid-cols-2">
         <img
-          src="/images/dakh-logo-wood.png"
+          src={asset('images/dakh-logo-wood.png')}
           alt=""
           className="absolute -right-2 -top-8 h-12 w-auto opacity-70"
         />

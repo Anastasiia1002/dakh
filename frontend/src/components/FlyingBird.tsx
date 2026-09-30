@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { asset } from '../lib/asset'
 
 const SRC_W = 502
 const SRC_H = 360
@@ -87,8 +88,8 @@ export function FlyingBird() {
     }
 
     Promise.all([
-      loadImage('/images/dakh-bird-body.png'),
-      loadImage('/images/dakh-bird-wing.png'),
+      loadImage(asset('images/dakh-bird-body.png')),
+      loadImage(asset('images/dakh-bird-wing.png')),
     ]).then(([body, wing]) => {
       if (cancelled) return
       raf = requestAnimationFrame((stamp) => draw(body, wing, stamp))
