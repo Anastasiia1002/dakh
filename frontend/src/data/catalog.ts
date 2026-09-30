@@ -53,7 +53,6 @@ export const site = {
   map: {
     lat: 48.1509479,
     lng: 25.379971,
-    google: 'https://www.google.com/maps/search/?api=1&query=48.1509479,25.379971',
     directions: 'https://www.google.com/maps/dir/?api=1&destination=48.1509479,25.379971',
     embed:
       'https://www.openstreetmap.org/export/embed.html?bbox=25.359971%2C48.140948%2C25.399971%2C48.160948&layer=mapnik&marker=48.1509479%2C25.379971',
