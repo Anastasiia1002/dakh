@@ -31,7 +31,7 @@ export function ContactPage() {
   }
 
   return (
-    <article className="mx-auto grid max-w-6xl gap-16 px-6 pb-24 pt-32 md:grid-cols-2">
+    <article className="mx-auto flex max-w-xl flex-col gap-16 px-6 pb-24 pt-32">
       <div>
         <p className="kicker text-[0.68rem] text-clay">Контакти</p>
         <h1 className="mt-3 font-display text-5xl text-clay">Як з нами зв’язатися</h1>
@@ -80,7 +80,7 @@ export function ContactPage() {
             <iframe
               title="DAKH, вул. Солонецька, 2-И, с. Мигове"
               src={site.map.embed}
-              className="pointer-events-none h-64 w-full md:h-80"
+              className="pointer-events-none h-64 w-full"
               loading="lazy"
             />
             <a
@@ -103,11 +103,11 @@ export function ContactPage() {
       </div>
 
       {sent ? (
-        <p className="self-start bg-beige px-6 py-8 text-sm leading-relaxed">
+        <p className="bg-beige px-6 py-8 text-sm leading-relaxed">
           Дякуємо. Ми прочитаємо повідомлення й відповімо на вказаний телефон або пошту.
         </p>
       ) : (
-        <form onSubmit={submit} className="grid gap-6 self-start">
+        <form onSubmit={submit} className="grid gap-6">
           <div>
             <p className="kicker text-[0.68rem] text-clay">Повідомлення</p>
             <h2 className="mt-3 font-display text-4xl text-clay">Напишіть нам</h2>
