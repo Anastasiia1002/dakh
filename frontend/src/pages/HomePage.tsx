@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BirdMark, Spot } from '../components/BrandMarks'
+import { Spot } from '../components/BrandMarks'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { images, site, stays } from '../data/catalog'
@@ -15,7 +15,6 @@ export function HomePage() {
           className="absolute inset-0 h-full w-full"
         />
         <div className="absolute inset-0 bg-wood/30" />
-        <BirdMark className="absolute right-[12%] top-[28%] h-10 w-16 text-linen/70" />
         <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24">
           <p className="kicker text-[0.68rem] text-linen/80">DAKH · Мигове</p>
           <h1 className="-rotate-1 font-display text-5xl leading-[1.05] text-linen md:text-7xl">

@@ -1,4 +1,3 @@
-import { BirdMark } from '../components/BrandMarks'
 import { Photo } from '../components/Photo'
 import { images, site } from '../data/catalog'
 
@@ -16,7 +15,11 @@ export function AboutPage() {
       </p>
 
       <div className="relative mt-16 grid gap-4 md:grid-cols-2">
-        <BirdMark className="absolute -right-2 -top-6 h-10 w-16 text-clay/70" />
+        <img
+          src="/images/dakh-logo-wood.png"
+          alt=""
+          className="absolute -right-2 -top-8 h-12 w-auto opacity-70"
+        />
         <Photo src={images.heroHouse} alt="DAKH увечері" tone={false} className="aspect-[4/3] w-full" />
         <Photo src={images.forest} alt="Світло між деревами" className="aspect-[4/3] w-full grayscale" />
       </div>
