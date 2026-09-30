@@ -75,7 +75,12 @@ export function HomePage() {
       </section>
 
       <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-28 md:grid-cols-2">
-        <MapSketch />
+        <Photo
+          src={images.diningRoom}
+          alt="Зал DAKH зі столами й видом у двір"
+          tone={false}
+          className="w-full"
+        />
         <div>
           <p className="kicker text-[0.68rem] text-clay">{site.city}</p>
           <h2 className="mt-3 font-display text-4xl leading-tight">У тихому куточку Карпат</h2>
@@ -91,22 +96,5 @@ export function HomePage() {
         </div>
       </section>
     </>
-  )
-}
-
-function MapSketch() {
-  return (
-    <svg viewBox="0 0 480 320" className="w-full bg-beige text-wood" aria-label="Схема Мигове">
-      <rect width="480" height="320" fill="#e9dcce" />
-      <path d="M20 210 C80 170 160 150 260 168 C340 184 400 150 460 130" fill="none" stroke="#5b382b" strokeOpacity="0.28" />
-      <path d="M40 240 L120 150 L170 190 L260 120 L440 240" fill="none" stroke="#2f3f23" strokeWidth="1.2" />
-      <path d="M210 70 C230 50 250 50 255 70 C240 68 226 74 210 70Z" fill="#5b382b" />
-      <text x="255" y="278" textAnchor="middle" fill="#b25f38" fontSize="18" fontFamily="Marck Script, cursive">
-        dakh
-      </text>
-      <text x="36" y="40" fill="#5b382b" fillOpacity="0.5" fontSize="11">
-        Мигове
-      </text>
-    </svg>
   )
 }
