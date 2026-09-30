@@ -133,7 +133,7 @@ export function Layout() {
           </div>
         </div>
         <div className="mx-auto flex max-w-6xl justify-between gap-4 border-t border-wood/10 px-6 py-5 text-[0.72rem] text-wood/55">
-          <span>Заявки кімнат — у localStorage цього браузера. Стіл у DAKH — телефоном.</span>
+          <span>© {new Date().getFullYear()} DAKH. Усі права захищені.</span>
           <span>
             Заїзд {site.checkIn} · виїзд {site.checkOut}
           </span>
