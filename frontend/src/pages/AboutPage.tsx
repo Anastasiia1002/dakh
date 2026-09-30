@@ -17,7 +17,7 @@ export function AboutPage() {
 
       <div className="relative mt-16 grid gap-4 md:grid-cols-2">
         <BirdMark className="absolute -right-2 -top-6 h-10 w-16 text-clay/70" />
-        <Photo src={images.heroHouse} alt="Двір і дах" className="aspect-[4/3] w-full" />
+        <Photo src={images.heroHouse} alt="DAKH увечері" tone={false} className="aspect-[4/3] w-full" />
         <Photo src={images.forest} alt="Світло між деревами" className="aspect-[4/3] w-full grayscale" />
       </div>
 

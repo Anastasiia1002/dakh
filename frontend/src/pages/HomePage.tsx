@@ -8,7 +8,12 @@ export function HomePage() {
   return (
     <>
       <section className="photo-grain relative min-h-[92vh]">
-        <Photo src={images.heroHouse} alt="Дім серед хвої" className="absolute inset-0 h-full w-full" />
+        <Photo
+          src={images.heroHouse}
+          alt="DAKH увечері"
+          tone={false}
+          className="absolute inset-0 h-full w-full"
+        />
         <div className="absolute inset-0 bg-wood/30" />
         <BirdMark className="absolute right-[12%] top-[28%] h-10 w-16 text-linen/70" />
         <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24">
