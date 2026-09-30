@@ -5,15 +5,6 @@ import { formatMoney } from '../lib/format'
 export function RestaurantPage() {
   return (
     <>
-      <section className="relative min-h-[86vh]">
-        <Photo src={images.dining} alt="Сервірування столу в DAKH" className="absolute inset-0 h-full w-full" />
-        <div className="absolute inset-0 bg-wood/30" />
-        <div className="relative flex min-h-[86vh] flex-col items-center justify-center px-6">
-          <h2 className="font-display text-7xl text-linen md:text-8xl">dakh</h2>
-          <p className="kicker mt-3 text-[0.68rem] text-linen/75">Вище даху тільки небо</p>
-        </div>
-      </section>
-
       <section className="mx-auto grid max-w-6xl items-start gap-12 px-6 py-28 md:grid-cols-2">
         <Photo src={images.chef} alt="Кухар збирає тарілку" className="aspect-[4/5] w-full min-w-0" />
         <div className="min-w-0">

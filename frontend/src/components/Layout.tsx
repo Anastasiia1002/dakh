@@ -21,9 +21,8 @@ function ScrollToTop() {
 export function Layout() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
-  const restaurant = pathname === '/restoran' || pathname === '/menu'
   const overHero =
-    pathname === '/' || restaurant || /^\/gotel\/[^/]+$/.test(pathname)
+    pathname === '/' || pathname === '/menu' || /^\/gotel\/[^/]+$/.test(pathname)
   const tone = overHero ? 'linen' : 'wood'
 
   return (
