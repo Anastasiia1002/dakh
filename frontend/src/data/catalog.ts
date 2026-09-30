@@ -39,8 +39,8 @@ export const site = {
   hotel: 'DAKH',
   restaurant: 'DAKH',
   city: 'Мигове',
-  region: 'Чернівецька область, Буковина',
-  address: 'вул. Солонецька, Мигове',
+  region: 'Чернівецька область',
+  address: 'вул. Солонецька, 2-И, с. Мигове',
   phones: ['+38 (095) 818-00-01', '+38 (096) 818-00-01'],
   phoneHref: 'tel:+380958180001',
   email: 'hello@dakh.ua',
@@ -51,11 +51,13 @@ export const site = {
   restaurantBooking: 'https://dakh-myhovo.choiceqr.com/booking',
   restaurantDelivery: 'https://dakh-myhovo.choiceqr.com/delivery',
   map: {
-    lat: 48.150948,
-    lng: 25.379971,
-    google: 'https://www.google.com/maps/search/?api=1&query=48.150948,25.379971',
+    lat: 48.138947,
+    lng: 25.363922,
+    google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      'вул. Солонецька, 2-И, с. Мигове, Чернівецька область',
+    )}`,
     embed:
-      'https://www.openstreetmap.org/export/embed.html?bbox=25.359971%2C48.138948%2C25.399971%2C48.162948&layer=mapnik&marker=48.150948%2C25.379971',
+      'https://www.openstreetmap.org/export/embed.html?bbox=25.353922%2C48.130947%2C25.373922%2C48.146947&layer=mapnik&marker=48.138947%2C25.363922',
   },
 }
 

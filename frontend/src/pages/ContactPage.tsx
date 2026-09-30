@@ -37,11 +37,13 @@ export function ContactPage() {
         <p className="mt-6 text-sm">
           {site.address}
           <br />
+          {site.region}
+          <br />
           Заїзд з {site.checkIn}, виїзд до {site.checkOut}
         </p>
         <div className="relative mt-10 overflow-hidden border border-wood/10">
           <iframe
-            title="DAKH на мапі, Мигове"
+            title="DAKH, вул. Солонецька, 2-И, с. Мигове"
             src={site.map.embed}
             className="pointer-events-none h-64 w-full md:h-80"
             loading="lazy"
@@ -51,7 +53,7 @@ export function ContactPage() {
             target="_blank"
             rel="noreferrer"
             className="absolute inset-0"
-            aria-label="Відкрити локацію DAKH у Google Maps"
+            aria-label="Відкрити вул. Солонецька, 2-И, с. Мигове в Google Maps"
           />
         </div>
       </div>
