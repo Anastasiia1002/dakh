@@ -115,20 +115,23 @@ export function Layout() {
           </div>
           <div className="text-sm">
             <p className="kicker mb-3 text-[0.68rem] text-wood/55">Контакти</p>
-            <a href={site.phoneHref} className="block py-1">
+            <p className="text-[0.68rem] text-wood/55">Телефон</p>
+            <a href={site.phoneHrefs[0]} className="block py-1">
               {site.phones[0]}
             </a>
-            <a href="tel:+380968180001" className="block py-1">
+            <a href={site.phoneHrefs[1]} className="block py-1">
               {site.phones[1]}
             </a>
+            <p className="mt-3 text-[0.68rem] text-wood/55">Пошта</p>
             <a href={`mailto:${site.email}`} className="block py-1">
               {site.email}
             </a>
-            <p className="mt-3">
+            <p className="mt-3 text-[0.68rem] text-wood/55">Адреса</p>
+            <a href={site.map.directions} target="_blank" rel="noreferrer" className="mt-1 block py-1">
               {site.address}
               <br />
               {site.region}
-            </p>
+            </a>
           </div>
         </div>
         <div className="mx-auto flex max-w-6xl justify-between gap-4 border-t border-wood/10 px-6 py-5 text-[0.72rem] text-wood/55">

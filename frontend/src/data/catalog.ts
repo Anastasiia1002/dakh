@@ -42,7 +42,7 @@ export const site = {
   region: 'Чернівецька область',
   address: 'вул. Солонецька, 2-И, с. Мигове',
   phones: ['+38 (095) 818-00-01', '+38 (096) 818-00-01'],
-  phoneHref: 'tel:+380958180001',
+  phoneHrefs: ['tel:+380958180001', 'tel:+380968180001'],
   email: 'hello@dakh.ua',
   instagram: 'https://instagram.com/',
   checkIn: '14:00',
