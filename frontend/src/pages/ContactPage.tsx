@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { site } from '../data/catalog'
+import { emailError } from '../lib/email'
 import { formatUaMobile, uaMobileError } from '../lib/phone'
 
 type Fields = {
@@ -14,14 +15,9 @@ type Errors = Partial<Record<keyof Fields, string>>
 
 const emptyFields: Fields = { name: '', phone: '', email: '', message: '' }
 
-function isEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)
-}
-
 function validate(values: Fields): Errors {
   const errors: Errors = {}
   const name = values.name.trim()
-  const email = values.email.trim()
   const message = values.message.trim()
 
   if (!name) errors.name = 'Вкажіть ім’я.'
@@ -31,8 +27,8 @@ function validate(values: Fields): Errors {
   const phoneError = uaMobileError(values.phone)
   if (phoneError) errors.phone = phoneError
 
-  if (!email) errors.email = 'Вкажіть пошту.'
-  else if (!isEmail(email)) errors.email = 'Перевірте адресу пошти.'
+  const mailError = emailError(values.email)
+  if (mailError) errors.email = mailError
 
   if (!message) errors.message = 'Напишіть, про що йдеться.'
   else if (message.length < 8) errors.message = 'Трохи більше деталей — хоча б кілька слів.'
@@ -59,15 +55,18 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 function FormField({
   label,
   error,
+  required,
   children,
 }: {
   label: string
   error?: string
+  required?: boolean
   children: ReactNode
 }) {
   return (
     <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
       {label}
+      {required ? <span aria-hidden="true"> *</span> : null}
       {children}
       {error ? (
         <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
@@ -89,11 +88,14 @@ export function ContactPage() {
   const [errors, setErrors] = useState<Errors>({})
   const [attempted, setAttempted] = useState(false)
   const [phoneChecked, setPhoneChecked] = useState(false)
+  const [emailChecked, setEmailChecked] = useState(false)
 
   function update<Key extends keyof Fields>(key: Key, value: string) {
     setValues((current) => {
       const next = { ...current, [key]: value }
-      if (attempted || (key === 'phone' && phoneChecked)) setErrors(validate(next))
+      if (attempted || (key === 'phone' && phoneChecked) || (key === 'email' && emailChecked)) {
+        setErrors(validate(next))
+      }
       return next
     })
   }
@@ -115,6 +117,23 @@ export function ContactPage() {
     }
   }
 
+  function checkEmail() {
+    const trimmed = values.email.trim()
+    setEmailChecked(true)
+    if (trimmed !== values.email) {
+      setValues((current) => ({ ...current, email: trimmed }))
+    }
+    const mailError = emailError(trimmed)
+    if (mailError && (trimmed || attempted)) {
+      setErrors((current) => ({ ...current, email: mailError }))
+      return
+    }
+    setErrors((current) => {
+      const next = validate({ ...values, email: trimmed })
+      return attempted ? next : { ...current, email: undefined }
+    })
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validate(values)
@@ -129,7 +148,7 @@ export function ContactPage() {
     const note = {
       name: values.name.trim(),
       phone: formatUaMobile(values.phone) || values.phone.trim(),
-      email: values.email.trim(),
+      email: values.email.trim().toLowerCase(),
       message: values.message.trim(),
       at: new Date().toISOString(),
     }
@@ -141,6 +160,7 @@ export function ContactPage() {
     setErrors({})
     setAttempted(false)
     setPhoneChecked(false)
+    setEmailChecked(false)
   }
 
   return (
@@ -221,13 +241,15 @@ export function ContactPage() {
             <p className="kicker text-[0.68rem] text-clay">Повідомлення</p>
             <h2 className="mt-3 font-display text-4xl text-clay">Напишіть нам</h2>
             <p className="mt-3 text-sm leading-relaxed text-wood/75">
-              Ім’я, телефон, пошта і кілька слів — про стіл, кімнату чи просто дорогу.
+              Ім’я, телефон і пошта обов’язкові. Далі кілька слів — про стіл, кімнату чи просто дорогу.
             </p>
           </div>
-          <FormField label="Ім’я" error={errors.name}>
+          <FormField label="Ім’я" required error={errors.name}>
             <input
               name="name"
               autoComplete="name"
+              required
+              aria-required="true"
               value={values.name}
               aria-invalid={Boolean(errors.name)}
               onChange={(event) => update('name', event.target.value)}
@@ -235,12 +257,14 @@ export function ContactPage() {
             />
           </FormField>
           <div className="grid gap-6 md:grid-cols-2">
-            <FormField label="Телефон" error={errors.phone}>
+            <FormField label="Телефон" required error={errors.phone}>
               <input
                 name="phone"
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
+                required
+                aria-required="true"
                 placeholder="+38 (095) 818-00-01"
                 value={values.phone}
                 aria-invalid={Boolean(errors.phone)}
@@ -249,15 +273,18 @@ export function ContactPage() {
                 className={fieldClass(errors.phone)}
               />
             </FormField>
-            <FormField label="Пошта" error={errors.email}>
+            <FormField label="Пошта" required error={errors.email}>
               <input
                 name="email"
                 type="email"
                 autoComplete="email"
+                required
+                aria-required="true"
                 placeholder="name@email.com"
                 value={values.email}
                 aria-invalid={Boolean(errors.email)}
                 onChange={(event) => update('email', event.target.value)}
+                onBlur={checkEmail}
                 className={fieldClass(errors.email)}
               />
             </FormField>

@@ -14,7 +14,31 @@ import {
   type BookingDraft,
   type StoredBooking,
 } from '../lib/booking'
+import { emailError } from '../lib/email'
 import { formatDate, formatMoney, nightsBetween } from '../lib/format'
+import { formatUaMobile, uaMobileError } from '../lib/phone'
+
+type GuestErrors = { name?: string; phone?: string; email?: string }
+
+function guestErrors(draft: BookingDraft): GuestErrors {
+  const errors: GuestErrors = {}
+  const name = draft.name.trim()
+  if (!name) errors.name = 'Вкажіть ім’я.'
+  else if (name.length < 2) errors.name = 'Ім’я має мати щонайменше дві літери.'
+  else if (!/\p{L}/u.test(name)) errors.name = 'Ім’я має містити літери.'
+  const phone = uaMobileError(draft.phone)
+  if (phone) errors.phone = phone
+  const mail = emailError(draft.email)
+  if (mail) errors.email = mail
+  return errors
+}
+
+function fieldClass(error?: string) {
+  return [
+    'mt-1 w-full border-0 border-b bg-transparent py-2 outline-none',
+    error ? 'border-clay' : 'border-wood/25',
+  ].join(' ')
+}
 
 function draftFromParams(params: URLSearchParams): BookingDraft {
   const from = params.get('from') || ''
@@ -34,6 +58,7 @@ export function BookingPage() {
   const [draft, setDraft] = useState<BookingDraft>(() => draftFromParams(params))
   const [confirmed, setConfirmed] = useState<StoredBooking | null>(null)
   const [error, setError] = useState('')
+  const [guestErr, setGuestErr] = useState<GuestErrors>({})
   const previous = useMemo(() => loadBookings(), [])
 
   const nights = nightsBetween(draft.checkIn, draft.checkOut)
@@ -66,6 +91,10 @@ export function BookingPage() {
       return merged
     })
     setError('')
+    setGuestErr((current) => {
+      if (!current.name && !current.phone && !current.email) return current
+      return guestErrors({ ...draft, ...next })
+    })
   }
 
   function submit(event: FormEvent) {
@@ -82,8 +111,17 @@ export function BookingPage() {
       setError('Забагато гостей для цієї кімнати.')
       return
     }
+    const details = guestErrors(draft)
+    if (details.name || details.phone || details.email) {
+      setGuestErr(details)
+      setError('Заповніть ім’я, телефон і пошту.')
+      return
+    }
     const booking: StoredBooking = {
       ...draft,
+      name: draft.name.trim(),
+      phone: formatUaMobile(draft.phone) || draft.phone.trim(),
+      email: draft.email.trim().toLowerCase(),
       id: makeBookingId(),
       nights: quote.nights,
       total: quote.total,
@@ -166,7 +204,7 @@ export function BookingPage() {
         />
       </div>
 
-      <form onSubmit={submit} className="mt-12 grid gap-12 md:grid-cols-12">
+      <form noValidate onSubmit={submit} className="mt-12 grid gap-12 md:grid-cols-12">
         <div className="space-y-12 md:col-span-7">
           <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Обрати кімнату</legend>
@@ -202,35 +240,73 @@ export function BookingPage() {
 
           <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Деталі гостя</legend>
+            <p className="mt-2 text-sm text-wood/70">Ім’я, телефон і пошта обов’язкові.</p>
             <div className="mt-6 grid gap-6">
               <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Ім’я
+                Ім’я *
                 <input
                   required
+                  aria-required="true"
+                  autoComplete="name"
                   value={draft.name}
+                  aria-invalid={Boolean(guestErr.name)}
                   onChange={(event) => patch({ name: event.target.value })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                  className={fieldClass(guestErr.name)}
                 />
+                {guestErr.name ? (
+                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
+                    {guestErr.name}
+                  </span>
+                ) : null}
               </label>
               <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Телефон
+                Телефон *
                 <input
                   type="tel"
+                  inputMode="tel"
                   required
+                  aria-required="true"
+                  autoComplete="tel"
+                  placeholder="+38 (095) 818-00-01"
                   value={draft.phone}
+                  aria-invalid={Boolean(guestErr.phone)}
                   onChange={(event) => patch({ phone: event.target.value })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                  onBlur={() => {
+                    const formatted = formatUaMobile(draft.phone)
+                    if (formatted) patch({ phone: formatted })
+                    else setGuestErr((current) => ({ ...current, phone: uaMobileError(draft.phone) }))
+                  }}
+                  className={fieldClass(guestErr.phone)}
                 />
+                {guestErr.phone ? (
+                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
+                    {guestErr.phone}
+                  </span>
+                ) : null}
               </label>
               <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Email
+                Пошта *
                 <input
                   type="email"
                   required
+                  aria-required="true"
+                  autoComplete="email"
+                  placeholder="name@email.com"
                   value={draft.email}
+                  aria-invalid={Boolean(guestErr.email)}
                   onChange={(event) => patch({ email: event.target.value })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                  onBlur={() => {
+                    const trimmed = draft.email.trim()
+                    if (trimmed !== draft.email) patch({ email: trimmed })
+                    setGuestErr((current) => ({ ...current, email: emailError(trimmed) }))
+                  }}
+                  className={fieldClass(guestErr.email)}
                 />
+                {guestErr.email ? (
+                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
+                    {guestErr.email}
+                  </span>
+                ) : null}
               </label>
               <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
                 Коментар
