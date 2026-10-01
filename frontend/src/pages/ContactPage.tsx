@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { site } from '../data/catalog'
+import { formatUaMobile, uaMobileError } from '../lib/phone'
 
 type Fields = {
   name: string
@@ -13,17 +14,6 @@ type Errors = Partial<Record<keyof Fields, string>>
 
 const emptyFields: Fields = { name: '', phone: '', email: '', message: '' }
 
-function digitsOnly(value: string) {
-  return value.replace(/\D/g, '')
-}
-
-function isUkrainianPhone(value: string) {
-  const digits = digitsOnly(value)
-  if (/^380\d{9}$/.test(digits)) return true
-  if (/^0\d{9}$/.test(digits)) return true
-  return false
-}
-
 function isEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)
 }
@@ -31,7 +21,6 @@ function isEmail(value: string) {
 function validate(values: Fields): Errors {
   const errors: Errors = {}
   const name = values.name.trim()
-  const phone = values.phone.trim()
   const email = values.email.trim()
   const message = values.message.trim()
 
@@ -39,10 +28,8 @@ function validate(values: Fields): Errors {
   else if (name.length < 2) errors.name = 'Ім’я має мати щонайменше дві літери.'
   else if (!/\p{L}/u.test(name)) errors.name = 'Ім’я має містити літери.'
 
-  if (!phone) errors.phone = 'Вкажіть телефон.'
-  else if (!isUkrainianPhone(phone)) {
-    errors.phone = 'Вкажіть український номер, наприклад +38 (095) 818-00-01.'
-  }
+  const phoneError = uaMobileError(values.phone)
+  if (phoneError) errors.phone = phoneError
 
   if (!email) errors.email = 'Вкажіть пошту.'
   else if (!isEmail(email)) errors.email = 'Перевірте адресу пошти.'
@@ -101,13 +88,31 @@ export function ContactPage() {
   const [values, setValues] = useState<Fields>(emptyFields)
   const [errors, setErrors] = useState<Errors>({})
   const [attempted, setAttempted] = useState(false)
+  const [phoneChecked, setPhoneChecked] = useState(false)
 
   function update<Key extends keyof Fields>(key: Key, value: string) {
     setValues((current) => {
       const next = { ...current, [key]: value }
-      if (attempted) setErrors(validate(next))
+      if (attempted || (key === 'phone' && phoneChecked)) setErrors(validate(next))
       return next
     })
+  }
+
+  function checkPhone() {
+    const formatted = formatUaMobile(values.phone)
+    setPhoneChecked(true)
+    if (formatted) {
+      setValues((current) => ({ ...current, phone: formatted }))
+      setErrors((current) => {
+        const next = validate({ ...values, phone: formatted })
+        return attempted ? next : { ...current, phone: undefined }
+      })
+      return
+    }
+    const phoneError = uaMobileError(values.phone)
+    if (phoneError && (values.phone.trim() || attempted)) {
+      setErrors((current) => ({ ...current, phone: phoneError }))
+    }
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -123,7 +128,7 @@ export function ContactPage() {
 
     const note = {
       name: values.name.trim(),
-      phone: values.phone.trim(),
+      phone: formatUaMobile(values.phone) || values.phone.trim(),
       email: values.email.trim(),
       message: values.message.trim(),
       at: new Date().toISOString(),
@@ -135,6 +140,7 @@ export function ContactPage() {
     setValues(emptyFields)
     setErrors({})
     setAttempted(false)
+    setPhoneChecked(false)
   }
 
   return (
@@ -239,6 +245,7 @@ export function ContactPage() {
                 value={values.phone}
                 aria-invalid={Boolean(errors.phone)}
                 onChange={(event) => update('phone', event.target.value)}
+                onBlur={checkPhone}
                 className={fieldClass(errors.phone)}
               />
             </FormField>
