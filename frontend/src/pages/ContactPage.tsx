@@ -2,12 +2,92 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { site } from '../data/catalog'
 
+type Fields = {
+  name: string
+  phone: string
+  email: string
+  message: string
+}
+
+type Errors = Partial<Record<keyof Fields, string>>
+
+const emptyFields: Fields = { name: '', phone: '', email: '', message: '' }
+
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, '')
+}
+
+function isUkrainianPhone(value: string) {
+  const digits = digitsOnly(value)
+  if (/^380\d{9}$/.test(digits)) return true
+  if (/^0\d{9}$/.test(digits)) return true
+  return false
+}
+
+function isEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)
+}
+
+function validate(values: Fields): Errors {
+  const errors: Errors = {}
+  const name = values.name.trim()
+  const phone = values.phone.trim()
+  const email = values.email.trim()
+  const message = values.message.trim()
+
+  if (!name) errors.name = 'Вкажіть ім’я.'
+  else if (name.length < 2) errors.name = 'Ім’я має мати щонайменше дві літери.'
+  else if (!/\p{L}/u.test(name)) errors.name = 'Ім’я має містити літери.'
+
+  if (!phone) errors.phone = 'Вкажіть телефон.'
+  else if (!isUkrainianPhone(phone)) {
+    errors.phone = 'Вкажіть український номер, наприклад +38 (095) 818-00-01.'
+  }
+
+  if (!email) errors.email = 'Вкажіть пошту.'
+  else if (!isEmail(email)) errors.email = 'Перевірте адресу пошти.'
+
+  if (!message) errors.message = 'Напишіть, про що йдеться.'
+  else if (message.length < 8) errors.message = 'Трохи більше деталей — хоча б кілька слів.'
+
+  return errors
+}
+
+function fieldClass(error?: string) {
+  return [
+    'mt-1 w-full border-0 border-b bg-transparent py-2 outline-none placeholder:text-wood/35',
+    error ? 'border-clay' : 'border-wood/25',
+  ].join(' ')
+}
+
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="py-5">
       <p className="kicker text-[0.68rem] text-wood/55">{label}</p>
       <div className="mt-2">{children}</div>
     </div>
+  )
+}
+
+function FormField({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: ReactNode
+}) {
+  return (
+    <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+      {label}
+      {children}
+      {error ? (
+        <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
+          {error}
+        </span>
+      ) : null}
+    </label>
   )
 }
 
@@ -18,21 +98,43 @@ const cta =
 
 export function ContactPage() {
   const [sent, setSent] = useState(false)
+  const [values, setValues] = useState<Fields>(emptyFields)
+  const [errors, setErrors] = useState<Errors>({})
+  const [attempted, setAttempted] = useState(false)
+
+  function update<Key extends keyof Fields>(key: Key, value: string) {
+    setValues((current) => {
+      const next = { ...current, [key]: value }
+      if (attempted) setErrors(validate(next))
+      return next
+    })
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const form = new FormData(event.currentTarget)
+    const nextErrors = validate(values)
+    setAttempted(true)
+    setErrors(nextErrors)
+    const first = (['name', 'phone', 'email', 'message'] as const).find((key) => nextErrors[key])
+    if (first) {
+      event.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
+      return
+    }
+
     const note = {
-      name: String(form.get('name') || ''),
-      contact: String(form.get('contact') || ''),
-      message: String(form.get('message') || ''),
+      name: values.name.trim(),
+      phone: values.phone.trim(),
+      email: values.email.trim(),
+      message: values.message.trim(),
       at: new Date().toISOString(),
     }
     const key = 'dakh-messages'
     const prev = JSON.parse(localStorage.getItem(key) || '[]') as unknown[]
     localStorage.setItem(key, JSON.stringify([note, ...prev]))
     setSent(true)
-    event.currentTarget.reset()
+    setValues(emptyFields)
+    setErrors({})
+    setAttempted(false)
   }
 
   return (
@@ -108,44 +210,62 @@ export function ContactPage() {
           Дякуємо. Ми прочитаємо повідомлення й відповімо на вказаний телефон або пошту.
         </p>
       ) : (
-        <form onSubmit={submit} className="mt-20 grid gap-6 border-t border-wood/10 pt-16">
+        <form noValidate onSubmit={submit} className="mt-20 grid gap-6 border-t border-wood/10 pt-16">
           <div className="max-w-2xl">
             <p className="kicker text-[0.68rem] text-clay">Повідомлення</p>
             <h2 className="mt-3 font-display text-4xl text-clay">Напишіть нам</h2>
             <p className="mt-3 text-sm leading-relaxed text-wood/75">
-              Ім’я, як з вами зв’язатися і кілька слів — про стіл, кімнату чи просто дорогу.
+              Ім’я, телефон, пошта і кілька слів — про стіл, кімнату чи просто дорогу.
             </p>
           </div>
+          <FormField label="Ім’я" error={errors.name}>
+            <input
+              name="name"
+              autoComplete="name"
+              value={values.name}
+              aria-invalid={Boolean(errors.name)}
+              onChange={(event) => update('name', event.target.value)}
+              className={fieldClass(errors.name)}
+            />
+          </FormField>
           <div className="grid gap-6 md:grid-cols-2">
-            <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-              Ім’я
+            <FormField label="Телефон" error={errors.phone}>
               <input
-                name="name"
-                autoComplete="name"
-                required
-                className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-              />
-            </label>
-            <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-              Телефон або пошта
-              <input
-                name="contact"
+                name="phone"
+                type="tel"
+                inputMode="tel"
                 autoComplete="tel"
-                required
-                className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                placeholder="+38 (095) 818-00-01"
+                value={values.phone}
+                aria-invalid={Boolean(errors.phone)}
+                onChange={(event) => update('phone', event.target.value)}
+                className={fieldClass(errors.phone)}
               />
-            </label>
+            </FormField>
+            <FormField label="Пошта" error={errors.email}>
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="name@email.com"
+                value={values.email}
+                aria-invalid={Boolean(errors.email)}
+                onChange={(event) => update('email', event.target.value)}
+                className={fieldClass(errors.email)}
+              />
+            </FormField>
           </div>
-          <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-            Що потрібно
+          <FormField label="Що потрібно" error={errors.message}>
             <textarea
               name="message"
               rows={4}
-              required
               placeholder="Наприклад: стіл на п’ятьох у суботу або кімната на дві ночі"
-              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none placeholder:text-wood/35"
+              value={values.message}
+              aria-invalid={Boolean(errors.message)}
+              onChange={(event) => update('message', event.target.value)}
+              className={fieldClass(errors.message)}
             />
-          </label>
+          </FormField>
           <button type="submit" className={`${cta} justify-self-start md:w-auto`}>
             Надіслати
           </button>
