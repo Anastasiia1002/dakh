@@ -13,9 +13,15 @@ const nav = [
 const headerAction =
   'inline-flex items-center justify-center px-4 py-2.5 text-[0.68rem] font-semibold tracking-[0.16em] uppercase md:px-5 md:text-[0.72rem]'
 
-function HeaderActions() {
+function HeaderActions({
+  className = '',
+  onNavigate,
+}: {
+  className?: string
+  onNavigate?: () => void
+}) {
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2 ${className}`}>
       <a
         href={site.phoneHrefs[0]}
         className={`${headerAction} border border-current`}
@@ -23,7 +29,7 @@ function HeaderActions() {
       >
         Подзвонити
       </a>
-      <Link to="/bronuvannya" className={`${headerAction} bg-clay text-linen`}>
+      <Link to="/bronuvannya" onClick={onNavigate} className={`${headerAction} bg-clay text-linen`}>
         Забронювати
       </Link>
     </div>
@@ -55,7 +61,7 @@ export function Layout() {
             : 'sticky top-0 z-30 border-b border-wood/10 bg-linen/95 text-wood'
         }
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 md:gap-6">
           <DakhLogo tone={tone} compact />
           <nav className="hidden items-center gap-8 text-[0.72rem] font-medium tracking-[0.16em] uppercase md:flex">
             {nav.map((item) => (
@@ -70,8 +76,15 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
-            <HeaderActions />
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={site.phoneHrefs[0]}
+              className={`${headerAction} border border-current md:hidden`}
+              aria-label={`Подзвонити ${site.phones[0]}`}
+            >
+              Подзвонити
+            </a>
+            <HeaderActions className="hidden md:flex" />
             <button
               type="button"
               className="md:hidden"
@@ -96,13 +109,7 @@ export function Layout() {
                 {item.label}
               </NavLink>
             ))}
-            <Link
-              to="/bronuvannya"
-              onClick={() => setOpen(false)}
-              className={`mt-4 ${headerAction} bg-clay text-linen`}
-            >
-              Забронювати
-            </Link>
+            <HeaderActions className="mt-4" onNavigate={() => setOpen(false)} />
           </div>
         ) : null}
       </header>
