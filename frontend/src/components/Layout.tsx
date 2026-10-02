@@ -10,6 +10,26 @@ const nav = [
   { to: '/kontakty', label: 'Контакти' },
 ]
 
+const headerAction =
+  'inline-flex items-center justify-center px-4 py-2.5 text-[0.68rem] font-semibold tracking-[0.16em] uppercase md:px-5 md:text-[0.72rem]'
+
+function HeaderActions() {
+  return (
+    <div className="flex items-center gap-2">
+      <a
+        href={site.phoneHrefs[0]}
+        className={`${headerAction} border border-current`}
+        aria-label={`Подзвонити ${site.phones[0]}`}
+      >
+        Подзвонити
+      </a>
+      <Link to="/bronuvannya" className={`${headerAction} bg-clay text-linen`}>
+        Забронювати
+      </Link>
+    </div>
+  )
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
@@ -50,22 +70,19 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
-          <Link
-            to="/bronuvannya"
-            className="hidden bg-clay px-5 py-2.5 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen md:inline-flex"
-          >
-            Забронювати
-          </Link>
-          <button
-            type="button"
-            className="md:hidden"
-            aria-expanded={open}
-            aria-label={open ? 'Закрити меню' : 'Відкрити меню'}
-            onClick={() => setOpen((value) => !value)}
-          >
-            <span className="block h-px w-6 bg-current" />
-            <span className="mt-2 block h-px w-6 bg-current" />
-          </button>
+          <div className="flex items-center gap-2">
+            <HeaderActions />
+            <button
+              type="button"
+              className="md:hidden"
+              aria-expanded={open}
+              aria-label={open ? 'Закрити меню' : 'Відкрити меню'}
+              onClick={() => setOpen((value) => !value)}
+            >
+              <span className="block h-px w-6 bg-current" />
+              <span className="mt-2 block h-px w-6 bg-current" />
+            </button>
+          </div>
         </div>
         {open ? (
           <div className="mx-6 border border-wood/10 bg-linen px-6 py-6 text-wood md:hidden">
@@ -82,7 +99,7 @@ export function Layout() {
             <Link
               to="/bronuvannya"
               onClick={() => setOpen(false)}
-              className="mt-4 inline-flex bg-clay px-5 py-2.5 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
+              className={`mt-4 ${headerAction} bg-clay text-linen`}
             >
               Забронювати
             </Link>
