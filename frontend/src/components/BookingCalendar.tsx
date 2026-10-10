@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Stay } from '../data/catalog'
-import { nightQuote, staysOpenForRange, type StoredBooking } from '../lib/booking'
+import {
+  canUseAsCheckIn,
+  canUseAsCheckOut,
+  guestCountOf,
+  latestCheckOut,
+} from '../lib/publicBooking'
+import { MAX_GUESTS } from '../lib/publicBooking/types'
 import {
   addMonths,
   formatDayMonth,
@@ -18,10 +23,9 @@ type Props = {
   checkOut: string
   adults: number
   kids: number
-  staySlug?: string
-  stays: Stay[]
-  bookings: StoredBooking[]
   align?: 'start' | 'end'
+  nightPrices?: Record<string, string>
+  loading?: boolean
   onChange: (next: {
     checkIn?: string
     checkOut?: string
@@ -35,13 +39,11 @@ export function BookingCalendar({
   checkOut,
   adults,
   kids,
-  staySlug = '',
-  stays,
-  bookings,
   align = 'start',
+  nightPrices = {},
+  loading = false,
   onChange,
 }: Props) {
-  const today = todayIso()
   const now = new Date()
   const root = useRef<HTMLDivElement>(null)
   const [panel, setPanel] = useState<Panel>(null)
@@ -53,6 +55,7 @@ export function BookingCalendar({
 
   const pickingOut = Boolean(checkIn && !checkOut)
   const previewOut = pickingOut ? hover : ''
+  const guestTotal = guestCountOf(adults, kids)
 
   useEffect(() => {
     function onDoc(event: MouseEvent) {
@@ -83,19 +86,9 @@ export function BookingCalendar({
 
   const guestLabel = `${adults} ${adults === 1 ? 'дорослий' : 'дорослих'} · ${kids} ${ukPlural(kids, 'дитина', 'дитини', 'дітей')} · 1 номер`
 
-  function canUseAsCheckIn(iso: string) {
-    if (iso < today) return false
-    return nightQuote(iso, stays, adults, kids, staySlug, bookings).free
-  }
-
-  function canUseAsCheckOut(iso: string) {
-    if (!checkIn || iso <= checkIn) return false
-    return staysOpenForRange(stays, checkIn, iso, adults, kids, staySlug, bookings).length > 0
-  }
-
   function selectDay(iso: string) {
     if (pickingOut) {
-      if (canUseAsCheckOut(iso)) {
+      if (canUseAsCheckOut(checkIn, iso)) {
         onChange({ checkOut: iso })
         setPanel(null)
         setHover('')
@@ -113,7 +106,7 @@ export function BookingCalendar({
   function inRange(iso: string) {
     const end = checkOut || previewOut
     if (!checkIn || !end || end <= checkIn) return false
-    return iso >= checkIn && iso <= end
+    return iso >= checkIn && iso < end
   }
 
   return (
@@ -164,14 +157,8 @@ export function BookingCalendar({
                 checkIn={checkIn}
                 checkOut={checkOut}
                 previewOut={previewOut}
-                stays={stays}
-                staySlug={staySlug}
-                adults={adults}
-                kids={kids}
-                bookings={bookings}
+                nightPrices={nightPrices}
                 pickingOut={pickingOut}
-                canUseAsCheckIn={canUseAsCheckIn}
-                canUseAsCheckOut={canUseAsCheckOut}
                 inRange={inRange}
                 onHover={setHover}
                 onSelect={selectDay}
@@ -184,7 +171,8 @@ export function BookingCalendar({
             ))}
           </div>
           <p className="mt-6 text-[0.72rem] text-wood/50">
-            Приблизні ціни на проживання за 1 ніч (UAH). Зайняті дати позначені «—» і не обираються.
+            Дати з сервера. Минулі дні та перебування довше ніж 30 ночей обрати не можна.
+            {loading ? ' Перевіряємо наявність…' : ''}
           </p>
           <p className="mt-1 text-sm text-wood/70">{dateLabel}</p>
         </div>
@@ -196,18 +184,21 @@ export function BookingCalendar({
             label="Дорослі"
             value={adults}
             min={1}
-            max={8}
+            max={Math.max(1, MAX_GUESTS - kids)}
             onChange={(value) => onChange({ adults: value })}
           />
           <Stepper
             label="Діти"
             value={kids}
             min={0}
-            max={6}
+            max={Math.max(0, MAX_GUESTS - adults)}
             onChange={(value) => onChange({ children: value })}
           />
           <Stepper label="Номери" value={1} min={1} max={1} onChange={() => undefined} />
-          <p className="mt-3 text-[0.72rem] text-wood/50">Одна заявка — одна кімната.</p>
+          <p className="mt-3 text-[0.72rem] text-wood/50">
+            Разом {guestTotal} {ukPlural(guestTotal, 'гість', 'гості', 'гостей')}. Одна заявка — одна
+            кімната.
+          </p>
         </div>
       ) : null}
     </div>
@@ -220,14 +211,8 @@ function MonthGrid({
   checkIn,
   checkOut,
   previewOut,
-  stays,
-  staySlug,
-  adults,
-  kids,
-  bookings,
+  nightPrices,
   pickingOut,
-  canUseAsCheckIn,
-  canUseAsCheckOut,
   inRange,
   onHover,
   onSelect,
@@ -242,14 +227,8 @@ function MonthGrid({
   checkIn: string
   checkOut: string
   previewOut: string
-  stays: Stay[]
-  staySlug: string
-  adults: number
-  kids: number
-  bookings: StoredBooking[]
+  nightPrices: Record<string, string>
   pickingOut: boolean
-  canUseAsCheckIn: (iso: string) => boolean
-  canUseAsCheckOut: (iso: string) => boolean
   inRange: (iso: string) => boolean
   onHover: (iso: string) => void
   onSelect: (iso: string) => void
@@ -260,6 +239,7 @@ function MonthGrid({
   onNext: () => void
 }) {
   const cells = useMemo(() => monthCells(year, monthIndex), [year, monthIndex])
+  const lastOut = checkIn ? latestCheckOut(checkIn) : ''
 
   return (
     <div>
@@ -294,11 +274,14 @@ function MonthGrid({
         ))}
         {cells.map((iso, index) => {
           if (!iso) return <span key={`empty-${index}`} />
-          const quote = nightQuote(iso, stays, adults, kids, staySlug, bookings)
           const past = iso < todayIso()
-          const selectable = pickingOut ? canUseAsCheckOut(iso) || canUseAsCheckIn(iso) : canUseAsCheckIn(iso)
+          const selectable = pickingOut
+            ? canUseAsCheckOut(checkIn, iso) || canUseAsCheckIn(iso)
+            : canUseAsCheckIn(iso)
           const edge = iso === checkIn || iso === checkOut || iso === previewOut
           const mid = inRange(iso) && !edge
+          const price = nightPrices[iso]
+          const beyondStay = Boolean(pickingOut && checkIn && iso > lastOut)
           return (
             <button
               key={iso}
@@ -316,7 +299,7 @@ function MonthGrid({
             >
               <span className="block text-[0.85rem] font-medium leading-none">{Number(iso.slice(8))}</span>
               <span className={`mt-1 block text-[0.62rem] leading-none ${edge ? 'text-linen/80' : 'text-wood/45'}`}>
-                {past || !quote.free || quote.price == null ? '—' : formatPriceK(quote.price)}
+                {past || beyondStay ? '—' : price ? formatPriceK(Number(price)) : ''}
               </span>
             </button>
           )
@@ -393,4 +376,3 @@ function PersonIcon() {
     </svg>
   )
 }
-

@@ -4,6 +4,12 @@ export function formatMoney(value: number) {
   return `${money.format(value)} ₴`
 }
 
+export function formatMoneyAmount(value: string | number) {
+  const amount = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(amount)) return `${value} ₴`
+  return formatMoney(amount)
+}
+
 export function formatDate(iso: string) {
   const date = new Date(`${iso}T12:00:00`)
   return new Intl.DateTimeFormat('uk-UA', {

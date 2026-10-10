@@ -5,8 +5,8 @@ import { BookingCalendar } from '../components/BookingCalendar'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { stayBySlug, stays } from '../data/catalog'
-import { loadBookings, stayAvailable, stayFitsGuests } from '../lib/booking'
 import { formatMoney } from '../lib/format'
+import { guestCountOf, stayIsSearchable, stayNights } from '../lib/publicBooking'
 
 export function RoomPage() {
   const { slug = '' } = useParams()
@@ -17,23 +17,20 @@ export function RoomPage() {
   const [checkOut, setCheckOut] = useState('')
   const [adults, setAdults] = useState(2)
   const [children, setChildren] = useState(0)
-  const bookings = loadBookings()
 
   if (!stay) return <Navigate to="/gotel" replace />
 
   const room = stay
   const similar = stays.filter((item) => item.slug !== room.slug)
+  const canSearch = stayIsSearchable(checkIn, checkOut, guestCountOf(adults, children))
 
   function book() {
-    if (!checkIn || !checkOut) return
-    if (!stayFitsGuests(room, adults, children)) return
-    if (!stayAvailable(room, checkIn, checkOut, bookings)) return
+    if (!canSearch) return
     const params = new URLSearchParams({
       from: checkIn,
       to: checkOut,
       adults: String(adults),
       children: String(children),
-      stay: room.slug,
     })
     navigate(`/bronuvannya?${params.toString()}`)
   }
@@ -84,9 +81,6 @@ export function RoomPage() {
               checkOut={checkOut}
               adults={adults}
               kids={children}
-              staySlug={room.slug}
-              stays={stays}
-              bookings={bookings}
               onChange={(next) => {
                 if (next.checkIn !== undefined) setCheckIn(next.checkIn)
                 if (next.checkOut !== undefined) setCheckOut(next.checkOut)
@@ -98,13 +92,15 @@ export function RoomPage() {
           <button
             type="button"
             onClick={book}
-            disabled={!checkIn || !checkOut || !stayAvailable(room, checkIn, checkOut, bookings)}
+            disabled={!canSearch}
             className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
           >
-            Забронювати
+            Перевірити наявність
           </button>
           <p className="mt-3 text-[0.72rem] text-wood/55">
-            Заявка лишається в localStorage. Оплати онлайн немає.
+            {canSearch
+              ? `Далі сервер перевірить ${stayNights(checkIn, checkOut)} н. Вільні кімнати можуть відрізнятися від цієї сторінки.`
+              : 'Оберіть заїзд і виїзд — наявність порахує сервер, не каталог на сторінці.'}
           </p>
         </aside>
       </section>
