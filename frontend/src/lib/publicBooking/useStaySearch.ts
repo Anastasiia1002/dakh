@@ -1,29 +1,31 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { publicBookingClient } from './client'
-import { isPublicApiConfigured, resolveRatePlanId } from './config'
+import { isPublicApiConfigured } from './config'
 import { errorCopy, isAbortError } from './errors'
-import { availabilityMatchesSearch, quoteMatchesSearch, shouldApplyResponse, stayIsSearchable } from './stay'
+import {
+  availabilityMatchesSearch,
+  findRatePlan,
+  quoteMatchesSearch,
+  shouldApplyResponse,
+  stayIsSearchable,
+} from './stay'
 import type { PublicAvailabilityResponse, PublicAvailabilityRoomType, PublicQuoteResponse } from './types'
 
 type Status = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
 
-export function useStaySearch(checkIn: string, checkOut: string, guestCount: number, roomTypeId: string) {
+export function useStaySearch(
+  checkIn: string,
+  checkOut: string,
+  guestCount: number,
+  roomTypeId: string,
+  ratePlanId: string,
+) {
   const configured = isPublicApiConfigured()
-  const ratePlanId = resolveRatePlanId()
   const searchable = stayIsSearchable(checkIn, checkOut, guestCount)
   const availabilityKey = searchable && configured ? `${checkIn}|${checkOut}|${guestCount}` : ''
-  const quoteKey =
-    searchable && configured && ratePlanId && roomTypeId
-      ? `${availabilityKey}|${roomTypeId}|${ratePlanId}`
-      : ''
 
   const latestAvailabilityKey = useRef(availabilityKey)
-  const latestQuoteKey = useRef(quoteKey)
-
-  useLayoutEffect(() => {
-    latestAvailabilityKey.current = availabilityKey
-    latestQuoteKey.current = quoteKey
-  }, [availabilityKey, quoteKey])
+  const latestQuoteKey = useRef('')
 
   const [availability, setAvailability] = useState<PublicAvailabilityResponse | null>(null)
   const [availabilityReadyKey, setAvailabilityReadyKey] = useState('')
@@ -32,6 +34,25 @@ export function useStaySearch(checkIn: string, checkOut: string, guestCount: num
   const [quote, setQuote] = useState<PublicQuoteResponse | null>(null)
   const [quoteReadyKey, setQuoteReadyKey] = useState('')
   const [quoteError, setQuoteError] = useState('')
+
+  const search = { checkIn, checkOut, guestCount, roomTypeId, ratePlanId }
+
+  const currentAvailability =
+    availabilityReadyKey === availabilityKey && availability && availabilityMatchesSearch(availability, search)
+      ? availability
+      : null
+
+  const selectedRoom: PublicAvailabilityRoomType | undefined = currentAvailability?.roomTypes.find(
+    (room) => room.roomTypeId === roomTypeId,
+  )
+  const selectedPlan = findRatePlan(selectedRoom, ratePlanId)
+  const quoteKey =
+    searchable && configured && selectedPlan ? `${availabilityKey}|${roomTypeId}|${selectedPlan.ratePlanId}` : ''
+
+  useLayoutEffect(() => {
+    latestAvailabilityKey.current = availabilityKey
+    latestQuoteKey.current = quoteKey
+  }, [availabilityKey, quoteKey])
 
   useEffect(() => {
     if (!availabilityKey) return
@@ -57,7 +78,7 @@ export function useStaySearch(checkIn: string, checkOut: string, guestCount: num
   }, [availabilityKey, checkIn, checkOut, guestCount])
 
   useEffect(() => {
-    if (!quoteKey || !ratePlanId) return
+    if (!quoteKey || !selectedPlan) return
 
     const requestedKey = quoteKey
     const controller = new AbortController()
@@ -68,7 +89,7 @@ export function useStaySearch(checkIn: string, checkOut: string, guestCount: num
           checkOut,
           guestCount,
           roomTypeId,
-          ratePlanId,
+          ratePlanId: selectedPlan.ratePlanId,
         },
         { signal: controller.signal },
       )
@@ -86,21 +107,10 @@ export function useStaySearch(checkIn: string, checkOut: string, guestCount: num
       })
 
     return () => controller.abort()
-  }, [checkIn, checkOut, guestCount, quoteKey, ratePlanId, roomTypeId])
-
-  const search = { checkIn, checkOut, guestCount, roomTypeId, ratePlanId }
-
-  const currentAvailability =
-    availabilityReadyKey === availabilityKey && availability && availabilityMatchesSearch(availability, search)
-      ? availability
-      : null
+  }, [checkIn, checkOut, guestCount, quoteKey, roomTypeId, selectedPlan])
 
   const currentQuote =
     quoteReadyKey === quoteKey && quote && quoteMatchesSearch(quote, search) ? quote : null
-
-  const selectedRoom: PublicAvailabilityRoomType | undefined = currentAvailability?.roomTypes.find(
-    (room) => room.roomTypeId === roomTypeId,
-  )
 
   const availabilityStatus: Status = !searchable
     ? 'idle'
@@ -116,17 +126,21 @@ export function useStaySearch(checkIn: string, checkOut: string, guestCount: num
 
   const quoteStatus: Status = !searchable || !roomTypeId
     ? 'idle'
-    : !ratePlanId || !configured
+    : !configured
       ? 'error'
       : !selectedRoom
         ? 'idle'
-        : quoteReadyKey !== quoteKey
-          ? 'loading'
-          : quoteError
-            ? 'error'
-            : currentQuote
-              ? 'ready'
-              : 'idle'
+        : selectedRoom.ratePlans.length === 0
+          ? 'error'
+          : !selectedPlan
+            ? 'idle'
+            : quoteReadyKey !== quoteKey
+              ? 'loading'
+              : quoteError
+                ? 'error'
+                : currentQuote
+                  ? 'ready'
+                  : 'idle'
 
   const nightPrices = useMemo(() => {
     const prices: Record<string, string> = {}
@@ -139,17 +153,18 @@ export function useStaySearch(checkIn: string, checkOut: string, guestCount: num
 
   return {
     configured,
-    ratePlanId,
     searchable,
     availability: currentAvailability,
     availabilityStatus,
     availabilityError: configured ? availabilityError : errorCopy(new Error('PUBLIC_API_NOT_CONFIGURED')),
     selectedRoom,
+    selectedPlan,
     quote: currentQuote,
     quoteStatus,
-    quoteError: !ratePlanId
-      ? 'Тариф ще не налаштовано. Ціну можна порахувати після появи активного rate plan.'
-      : quoteError,
+    quoteError:
+      selectedRoom && selectedRoom.ratePlans.length === 0
+        ? 'На ці дати немає доступного тарифу для цієї кімнати.'
+        : quoteError,
     nightPrices,
   }
 }

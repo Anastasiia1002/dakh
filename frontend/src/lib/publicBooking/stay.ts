@@ -1,5 +1,11 @@
 import { addDays, nightsBetween, todayIso } from '../format'
-import type { PublicAvailabilityResponse, PublicQuoteResponse } from './types'
+import type {
+  PublicAvailabilityRatePlan,
+  PublicAvailabilityResponse,
+  PublicAvailabilityRoomType,
+  PublicQuoteResponse,
+  PublicRateType,
+} from './types'
 import { DATE_PATTERN, MAX_GUESTS, MAX_NIGHTS, MIN_GUESTS, MIN_NIGHTS } from './types'
 
 export type StaySearch = {
@@ -50,6 +56,29 @@ export function latestCheckOut(checkIn: string) {
 
 export function roomKindLabel(kind: 'ROOM' | 'COTTAGE') {
   return kind === 'COTTAGE' ? 'Садиба' : 'Кімната'
+}
+
+export function rateTypeLabel(type: PublicRateType) {
+  if (type === 'NON_REFUNDABLE') return 'Неповернений'
+  if (type === 'SPECIAL') return 'Спеціальний'
+  return 'Стандарт'
+}
+
+export function findRatePlan(
+  room: PublicAvailabilityRoomType | undefined,
+  ratePlanId: string,
+): PublicAvailabilityRatePlan | undefined {
+  return room?.ratePlans.find((plan) => plan.ratePlanId === ratePlanId)
+}
+
+export function soleRatePlanId(room: PublicAvailabilityRoomType) {
+  return room.ratePlans.length === 1 ? (room.ratePlans[0]?.ratePlanId ?? '') : ''
+}
+
+export function ratePlanIdForRoom(room: PublicAvailabilityRoomType | undefined, currentRatePlanId: string) {
+  if (!room) return ''
+  if (findRatePlan(room, currentRatePlanId)) return currentRatePlanId
+  return soleRatePlanId(room)
 }
 
 export function shouldApplyResponse(requestedKey: string, latestKey: string) {

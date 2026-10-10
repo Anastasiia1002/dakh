@@ -7,11 +7,13 @@ import { formatDate, formatMoneyAmount } from '../lib/format'
 import { formatUaMobile, uaMobileError } from '../lib/phone'
 import {
   guestCountOf,
+  rateTypeLabel,
   roomKindLabel,
+  soleRatePlanId,
   stayNights,
   useStaySearch,
 } from '../lib/publicBooking'
-import type { PublicAvailabilityRoomType } from '../lib/publicBooking/types'
+import type { PublicAvailabilityRatePlan, PublicAvailabilityRoomType } from '../lib/publicBooking/types'
 
 type GuestErrors = { name?: string; phone?: string; email?: string }
 
@@ -53,19 +55,27 @@ export function BookingPage() {
   const [guestErr, setGuestErr] = useState<GuestErrors>({})
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
-  const search = useStaySearch(draft.checkIn, draft.checkOut, guestCount, draft.roomTypeId)
+  const search = useStaySearch(
+    draft.checkIn,
+    draft.checkOut,
+    guestCount,
+    draft.roomTypeId,
+    draft.ratePlanId,
+  )
 
   function patch(next: Partial<BookingDraft>) {
     setDraft((current) => {
       const merged = { ...current, ...next }
-      if (
-        next.roomTypeId === undefined &&
-        (next.checkIn !== undefined ||
-          next.checkOut !== undefined ||
-          next.adults !== undefined ||
-          next.children !== undefined)
-      ) {
-        merged.roomTypeId = ''
+      const stayChanged =
+        next.checkIn !== undefined ||
+        next.checkOut !== undefined ||
+        next.adults !== undefined ||
+        next.children !== undefined
+      if (stayChanged) {
+        if (next.roomTypeId === undefined) merged.roomTypeId = ''
+        if (next.ratePlanId === undefined) merged.ratePlanId = ''
+      } else if (next.roomTypeId !== undefined && next.ratePlanId === undefined) {
+        merged.ratePlanId = ''
       }
       return merged
     })
@@ -116,7 +126,22 @@ export function BookingPage() {
               status={search.availabilityStatus}
               error={search.availabilityError}
               searchable={search.searchable}
-              onSelect={(roomTypeId) => patch({ roomTypeId })}
+              onSelect={(room) =>
+                patch({
+                  roomTypeId: room.roomTypeId,
+                  ratePlanId: soleRatePlanId(room),
+                })
+              }
+            />
+          </fieldset>
+
+          <fieldset className="border-0 p-0">
+            <legend className="font-display text-3xl">Обрати тариф</legend>
+            <RatePlanOptions
+              room={search.selectedRoom}
+              selectedId={draft.ratePlanId}
+              availabilityStatus={search.availabilityStatus}
+              onSelect={(ratePlanId) => patch({ ratePlanId })}
             />
           </fieldset>
 
@@ -210,10 +235,10 @@ export function BookingPage() {
             adults={draft.adults}
             kids={draft.children}
             room={search.selectedRoom}
+            plan={search.selectedPlan}
             quote={search.quote}
             quoteStatus={search.quoteStatus}
             quoteError={search.quoteError}
-            ratePlanId={search.ratePlanId}
           />
           <button
             type="submit"
@@ -245,7 +270,7 @@ function RoomOptions({
   status: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
   error: string
   searchable: boolean
-  onSelect: (roomTypeId: string) => void
+  onSelect: (room: PublicAvailabilityRoomType) => void
 }) {
   if (!searchable) {
     return <p className="mt-6 text-sm text-wood/60">Оберіть дати, щоб побачити вільні кімнати.</p>
@@ -282,7 +307,7 @@ function RoomOptions({
             name="roomType"
             value={room.roomTypeId}
             checked={selectedId === room.roomTypeId}
-            onChange={() => onSelect(room.roomTypeId)}
+            onChange={() => onSelect(room)}
             className="sr-only"
           />
           <span className="flex h-20 w-24 items-end bg-beige px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
@@ -304,6 +329,62 @@ function RoomOptions({
   )
 }
 
+function RatePlanOptions({
+  room,
+  selectedId,
+  availabilityStatus,
+  onSelect,
+}: {
+  room?: PublicAvailabilityRoomType
+  selectedId: string
+  availabilityStatus: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+  onSelect: (ratePlanId: string) => void
+}) {
+  if (availabilityStatus === 'loading') {
+    return <p className="mt-6 text-sm text-wood/60">Шукаємо тарифи…</p>
+  }
+  if (!room) {
+    return <p className="mt-6 text-sm text-wood/60">Спочатку оберіть кімнату.</p>
+  }
+  if (room.ratePlans.length === 0) {
+    return (
+      <p className="mt-6 text-sm text-wood/70">
+        Для цієї кімнати на обрані дати немає доступного тарифу. Ціну не рахуємо і заявку надіслати
+        не можна.
+      </p>
+    )
+  }
+
+  return (
+    <div className="mt-6 space-y-4">
+      {room.ratePlans.map((plan) => (
+        <label
+          key={plan.ratePlanId}
+          className={`block cursor-pointer border p-3 ${
+            selectedId === plan.ratePlanId ? 'border-clay' : 'border-wood/15'
+          }`}
+        >
+          <input
+            type="radio"
+            name="ratePlan"
+            value={plan.ratePlanId}
+            checked={selectedId === plan.ratePlanId}
+            onChange={() => onSelect(plan.ratePlanId)}
+            className="sr-only"
+          />
+          <span className="block font-medium">{plan.name}</span>
+          <span className="mt-1 block text-sm text-wood/60">
+            {rateTypeLabel(plan.type)} · попередньо {formatMoneyAmount(plan.totalAmount)}
+          </span>
+        </label>
+      ))}
+      <p className="text-[0.72rem] text-wood/50">
+        Попередня сума з наявності. Підсумкову ціну покаже сервер після розрахунку.
+      </p>
+    </div>
+  )
+}
+
 function QuoteSummary({
   checkIn,
   checkOut,
@@ -312,10 +393,10 @@ function QuoteSummary({
   adults,
   kids,
   room,
+  plan,
   quote,
   quoteStatus,
   quoteError,
-  ratePlanId,
 }: {
   checkIn: string
   checkOut: string
@@ -324,10 +405,10 @@ function QuoteSummary({
   adults: number
   kids: number
   room?: PublicAvailabilityRoomType
+  plan?: PublicAvailabilityRatePlan
   quote: ReturnType<typeof useStaySearch>['quote']
   quoteStatus: ReturnType<typeof useStaySearch>['quoteStatus']
   quoteError: string
-  ratePlanId: string | null
 }) {
   if (!checkIn || !checkOut || nights < 1) {
     return <p className="mt-6 text-sm text-wood/60">Оберіть дати й кімнату.</p>
@@ -335,7 +416,7 @@ function QuoteSummary({
   if (!room) {
     return <p className="mt-6 text-sm text-wood/60">Оберіть кімнату зі списку вільних.</p>
   }
-  if (!ratePlanId) {
+  if (room.ratePlans.length === 0) {
     return (
       <div className="mt-6 text-sm leading-relaxed text-wood/70">
         <p className="font-medium">{room.name}</p>
@@ -344,9 +425,16 @@ function QuoteSummary({
           {guestCount === 1 ? 'гість' : 'гостей'}
         </p>
         <p className="mt-4">
-          Розрахунок ціни потребує активного тарифу. Поки його немає в конфігурації, суму не
-          вигадуємо.
+          На ці дати немає доступного тарифу. Ціну не вигадуємо і бронювання не створюємо.
         </p>
+      </div>
+    )
+  }
+  if (!plan) {
+    return (
+      <div className="mt-6 text-sm leading-relaxed text-wood/70">
+        <p className="font-medium">{room.name}</p>
+        <p className="mt-4">Оберіть тариф, щоб сервер порахував точну суму.</p>
       </div>
     )
   }
@@ -361,12 +449,15 @@ function QuoteSummary({
     )
   }
   if (!quote) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть дати й кімнату.</p>
+    return <p className="mt-6 text-sm text-wood/60">Оберіть дати, кімнату й тариф.</p>
   }
 
   return (
     <div className="mt-6 text-sm leading-relaxed">
       <p className="font-medium">{room.name}</p>
+      <p className="mt-1 text-wood/70">
+        {plan.name} · {rateTypeLabel(plan.type)}
+      </p>
       <p className="mt-2 text-wood/70">
         {formatDate(quote.checkIn)} — {formatDate(quote.checkOut)}
       </p>
@@ -384,7 +475,8 @@ function QuoteSummary({
       </ul>
       <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
       <p className="mt-2 text-[0.72rem] text-wood/55">
-        Це розрахунок сервера, не підтверджене бронювання. Сума в {quote.currency}.
+        Це розрахунок сервера, не попередня сума тарифу і не підтверджене бронювання. Сума в{' '}
+        {quote.currency}.
       </p>
     </div>
   )

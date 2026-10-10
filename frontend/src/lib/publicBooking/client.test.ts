@@ -14,8 +14,26 @@ const availabilityOk = {
       kind: 'ROOM',
       maxGuests: 2,
       availableCount: 1,
-      nightlyStartingPrice: '4800.00',
+      nightlyStartingPrice: '4500.00',
       currency: 'UAH',
+      ratePlans: [
+        {
+          ratePlanId: '22222222-2222-4222-8222-222222222222',
+          name: 'Неповернений',
+          type: 'NON_REFUNDABLE',
+          nightlyStartingPrice: '4500.00',
+          totalAmount: '9000.00',
+          currency: 'UAH',
+        },
+        {
+          ratePlanId: '33333333-3333-4333-8333-333333333333',
+          name: 'Стандарт',
+          type: 'STANDARD',
+          nightlyStartingPrice: '4800.00',
+          totalAmount: '9600.00',
+          currency: 'UAH',
+        },
+      ],
     },
   ],
 }
@@ -69,7 +87,10 @@ describe('PublicBookingClient', () => {
       'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=2',
     )
     assert.equal(result.roomTypes.length, 1)
-    assert.equal(result.roomTypes[0]?.nightlyStartingPrice, '4800.00')
+    assert.equal(result.roomTypes[0]?.nightlyStartingPrice, '4500.00')
+    assert.equal(result.roomTypes[0]?.ratePlans.length, 2)
+    assert.equal(result.roomTypes[0]?.ratePlans[0]?.ratePlanId, '22222222-2222-4222-8222-222222222222')
+    assert.equal(result.roomTypes[0]?.ratePlans[0]?.totalAmount, '9000.00')
   })
 
   it('treats an empty roomTypes array as valid inventory emptiness', async () => {

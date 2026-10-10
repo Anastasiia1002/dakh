@@ -1,14 +1,23 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { addDays, todayIso } from '../format'
-import type { PublicAvailabilityResponse, PublicQuoteResponse } from './types'
+import type {
+  PublicAvailabilityRatePlan,
+  PublicAvailabilityResponse,
+  PublicAvailabilityRoomType,
+  PublicQuoteResponse,
+} from './types'
 import {
   availabilityMatchesSearch,
   canUseAsCheckIn,
   canUseAsCheckOut,
+  findRatePlan,
   guestCountOf,
   quoteMatchesSearch,
+  ratePlanIdForRoom,
+  rateTypeLabel,
   shouldApplyResponse,
+  soleRatePlanId,
   stayIsSearchable,
   stayNights,
 } from './stay'
@@ -92,5 +101,50 @@ describe('stay helpers', () => {
     assert.equal(quoteMatchesSearch(quote, { ...search, ratePlanId: 'other-plan' }), false)
     assert.equal(quoteMatchesSearch(quote, { ...search, ratePlanId: null }), false)
     assert.equal(quoteMatchesSearch(quote, { ...search, checkOut: '2026-12-04' }), false)
+  })
+
+  it('selects a sole plan, keeps an applicable plan, and clears an empty or stale plan', () => {
+    const cheap: PublicAvailabilityRatePlan = {
+      ratePlanId,
+      name: 'Неповернений',
+      type: 'NON_REFUNDABLE',
+      nightlyStartingPrice: '4500.00',
+      totalAmount: '9000.00',
+      currency: 'UAH',
+    }
+    const standard: PublicAvailabilityRatePlan = {
+      ratePlanId: '33333333-3333-4333-8333-333333333333',
+      name: 'Стандарт',
+      type: 'STANDARD',
+      nightlyStartingPrice: '4800.00',
+      totalAmount: '9600.00',
+      currency: 'UAH',
+    }
+    const onePlan: PublicAvailabilityRoomType = {
+      roomTypeId,
+      name: 'Тестова кімната',
+      kind: 'ROOM',
+      maxGuests: 2,
+      availableCount: 1,
+      nightlyStartingPrice: '4500.00',
+      currency: 'UAH',
+      ratePlans: [cheap],
+    }
+    const manyPlans = { ...onePlan, ratePlans: [cheap, standard] }
+    const noPlans = { ...onePlan, nightlyStartingPrice: null, ratePlans: [] }
+
+    assert.equal(soleRatePlanId(onePlan), ratePlanId)
+    assert.equal(soleRatePlanId(manyPlans), '')
+    assert.equal(soleRatePlanId(noPlans), '')
+    assert.equal(ratePlanIdForRoom(onePlan, ''), ratePlanId)
+    assert.equal(ratePlanIdForRoom(manyPlans, ''), '')
+    assert.equal(ratePlanIdForRoom(manyPlans, standard.ratePlanId), standard.ratePlanId)
+    assert.equal(ratePlanIdForRoom(manyPlans, 'missing-plan'), '')
+    assert.equal(ratePlanIdForRoom(noPlans, ratePlanId), '')
+    assert.equal(findRatePlan(manyPlans, standard.ratePlanId)?.name, 'Стандарт')
+    assert.equal(findRatePlan(onePlan, standard.ratePlanId), undefined)
+    assert.equal(rateTypeLabel('NON_REFUNDABLE'), 'Неповернений')
+    assert.equal(rateTypeLabel('STANDARD'), 'Стандарт')
+    assert.equal(rateTypeLabel('SPECIAL'), 'Спеціальний')
   })
 })

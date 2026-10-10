@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl, resolveRatePlanId } from './config'
+import { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 
 describe('public booking config', () => {
   it('prefers the documented public API base URL', () => {
@@ -32,9 +32,8 @@ describe('public booking config', () => {
     assert.equal(isPublicApiConfigured({}), false)
   })
 
-  it('defaults the hotel slug to dakh and does not invent a rate plan id', () => {
+  it('defaults the hotel slug to dakh', () => {
     assert.equal(resolveHotelSlug({}), 'dakh')
     assert.equal(resolveHotelSlug({ VITE_PUBLIC_HOTEL_SLUG: ' DAKH ' }), 'dakh')
-    assert.equal(resolveRatePlanId({}), null)
   })
 })

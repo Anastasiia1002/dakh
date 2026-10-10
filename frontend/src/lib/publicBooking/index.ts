@@ -1,16 +1,20 @@
 export { PublicBookingClient, publicBookingClient } from './client'
 export { useStaySearch } from './useStaySearch'
-export { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl, resolveRatePlanId } from './config'
+export { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 export { PublicApiError, errorCopy, isAbortError, isPublicApiError } from './errors'
 export {
   canUseAsCheckIn,
   canUseAsCheckOut,
+  findRatePlan,
   guestCountOf,
   latestCheckOut,
   availabilityMatchesSearch,
   quoteMatchesSearch,
+  ratePlanIdForRoom,
+  rateTypeLabel,
   roomKindLabel,
   shouldApplyResponse,
+  soleRatePlanId,
   stayIsSearchable,
   stayNights,
 } from './stay'
@@ -19,6 +23,7 @@ export type {
   ConfirmEmailVerificationRequest,
   CreateBookingIntentRequest,
   PublicAvailabilityQuery,
+  PublicAvailabilityRatePlan,
   PublicAvailabilityResponse,
   PublicAvailabilityRoomType,
   PublicBookingConfirmationResponse,
@@ -29,6 +34,7 @@ export type {
   PublicQuoteNight,
   PublicQuoteRequest,
   PublicQuoteResponse,
+  PublicRateType,
   PublicRecoverConfirmationResponse,
   PublicRoomKind,
   RecoverConfirmationRequest,

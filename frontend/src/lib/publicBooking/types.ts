@@ -24,14 +24,29 @@ export interface PublicAvailabilityQuery {
   roomTypeId?: string
 }
 
+export type PublicRateType = 'STANDARD' | 'NON_REFUNDABLE' | 'SPECIAL'
+
+/** Quotable rate plan for the searched stay (Phase 8B.3). */
+export interface PublicAvailabilityRatePlan {
+  ratePlanId: string
+  name: string
+  type: PublicRateType
+  nightlyStartingPrice: string
+  totalAmount: string
+  currency: SupportedCurrency
+}
+
 export interface PublicAvailabilityRoomType {
   roomTypeId: string
   name: string
   kind: PublicRoomKind
   maxGuests: number
   availableCount: number
+  /** Min nightly start across applicable (quotable) plans only; null if none. */
   nightlyStartingPrice: string | null
   currency: SupportedCurrency
+  /** Applicable rate plans for this room type and stay. Sorted cheapest total first. */
+  ratePlans: PublicAvailabilityRatePlan[]
 }
 
 export interface PublicAvailabilityResponse {
