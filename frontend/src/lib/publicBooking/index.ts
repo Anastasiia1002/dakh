@@ -1,7 +1,39 @@
 export { PublicBookingClient, publicBookingClient } from './client'
 export { useStaySearch } from './useStaySearch'
+export { useBookingCheckout } from './useBookingCheckout'
 export { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
-export { PublicApiError, errorCopy, isAbortError, isPublicApiError } from './errors'
+export {
+  PublicApiError,
+  errorCopy,
+  isAbortError,
+  isPublicApiError,
+  quoteFromPriceChanged,
+  retryAfterSeconds,
+} from './errors'
+export {
+  clearStoredConfirmationToken,
+  clearStoredIntent,
+  intentLooksExpired,
+  isConfirmationToken,
+  isOtpCode,
+  isQuoteFresh,
+  newIdempotencyKey,
+  readStoredConfirmationToken,
+  readStoredIntent,
+  writeStoredConfirmationToken,
+  writeStoredIntent,
+} from './checkout'
+export type { CheckoutStep } from './checkout'
+export {
+  guestEmailError,
+  guestFieldErrors,
+  guestFormIsValid,
+  guestPhoneError,
+  personNameError,
+  recoverEmailError,
+  toGuestContact,
+} from './guest'
+export type { GuestFieldErrors } from './guest'
 export {
   canUseAsCheckIn,
   canUseAsCheckOut,

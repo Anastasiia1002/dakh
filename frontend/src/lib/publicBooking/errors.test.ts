@@ -17,6 +17,16 @@ describe('public API errors', () => {
     assert.match(errorCopy(new Error('PUBLIC_API_NOT_CONFIGURED')), /VITE_PUBLIC_API_BASE_URL/)
   })
 
+  it('hides internal server errors from guests', () => {
+    const error = parseApiError(500, {
+      statusCode: 500,
+      error: 'INTERNAL_ERROR',
+      message: 'stack dump',
+    })
+    assert.match(errorCopy(error), /тимчасово недоступний/)
+    assert.doesNotMatch(errorCopy(error), /stack dump/)
+  })
+
   it('recognizes AbortError so stale requests can be ignored', () => {
     const abortError = new Error('The operation was aborted.')
     abortError.name = 'AbortError'

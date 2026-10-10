@@ -1,0 +1,312 @@
+import { useRef, useState } from 'react'
+import { publicBookingClient } from './client'
+import {
+  clearStoredConfirmationToken,
+  clearStoredIntent,
+  intentLooksExpired,
+  isQuoteFresh,
+  newIdempotencyKey,
+  type CheckoutStep,
+  writeStoredConfirmationToken,
+  writeStoredIntent,
+} from './checkout'
+import { errorCopy, isAbortError, isPublicApiError, quoteFromPriceChanged, retryAfterSeconds } from './errors'
+import { toGuestContact } from './guest'
+import type {
+  PublicBookingConfirmationResponse,
+  PublicBookingIntentResponse,
+  PublicOtpRequestResponse,
+  PublicQuoteResponse,
+} from './types'
+
+type GuestInput = {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+}
+
+export function useBookingCheckout() {
+  const [step, setStep] = useState<CheckoutStep>('collect')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [intent, setIntent] = useState<PublicBookingIntentResponse | null>(null)
+  const [otp, setOtp] = useState<PublicOtpRequestResponse | null>(null)
+  const [pendingQuote, setPendingQuote] = useState<PublicQuoteResponse | null>(null)
+  const [priceChangeAt, setPriceChangeAt] = useState<'intent' | 'confirm' | null>(null)
+  const [confirmation, setConfirmation] = useState<PublicBookingConfirmationResponse | null>(null)
+  const [cooldownUntil, setCooldownUntil] = useState(0)
+  const inflight = useRef(false)
+  const idempotencyKey = useRef(newIdempotencyKey())
+
+  function markCooldown(seconds: number) {
+    setCooldownUntil(Date.now() + Math.max(0, seconds) * 1000)
+  }
+
+  function resetAttempt() {
+    idempotencyKey.current = newIdempotencyKey()
+  }
+
+  function resetToCollect() {
+    setStep('collect')
+    setBusy(false)
+    setError('')
+    setIntent(null)
+    setOtp(null)
+    setPendingQuote(null)
+    setPriceChangeAt(null)
+    setConfirmation(null)
+    setCooldownUntil(0)
+    inflight.current = false
+    resetAttempt()
+    clearStoredIntent()
+  }
+
+  async function finishConfirmed(result: PublicBookingConfirmationResponse) {
+    if (result.confirmationToken) writeStoredConfirmationToken(result.confirmationToken)
+    const token = result.confirmationToken
+    if (!token) {
+      setConfirmation(null)
+      setStep('looking_up')
+      setError('Підтвердження є, але доступ до нього не надійшов. Спробуйте відновити лист.')
+      return result
+    }
+    setStep('looking_up')
+    const confirmed = await publicBookingClient.confirmation(token)
+    setConfirmation(confirmed)
+    setStep('confirmed')
+    setError('')
+    return confirmed
+  }
+
+  async function createIntentFromQuote(quote: PublicQuoteResponse, guest: GuestInput) {
+    setStep('creating_intent')
+    setError('')
+    const created = await publicBookingClient.createIntent(
+      {
+        checkIn: quote.checkIn,
+        checkOut: quote.checkOut,
+        guestCount: quote.guestCount,
+        roomTypeId: quote.roomTypeId,
+        ratePlanId: quote.ratePlanId,
+        quoteToken: quote.quoteToken,
+        acceptedTotalAmount: quote.totalAmount,
+        guest: toGuestContact(guest),
+      },
+      { idempotencyKey: idempotencyKey.current },
+    )
+    setIntent(created)
+    writeStoredIntent(created)
+    setPendingQuote(null)
+    setPriceChangeAt(null)
+    setStep('verify')
+    try {
+      const sent = await publicBookingClient.requestEmailVerification(created.intentId)
+      setOtp(sent)
+      markCooldown(sent.cooldownSeconds)
+    } catch (otpError) {
+      if (isAbortError(otpError)) throw otpError
+      setError(errorCopy(otpError))
+      const wait = retryAfterSeconds(otpError)
+      if (wait != null) markCooldown(wait)
+    }
+    return created
+  }
+
+  async function startCheckout(quote: PublicQuoteResponse | null, guest: GuestInput) {
+    if (inflight.current || busy) return
+    if (!isQuoteFresh(quote) || !quote) {
+      setError('Розрахунок застарів. Оберіть дати ще раз.')
+      return
+    }
+    inflight.current = true
+    setBusy(true)
+    try {
+      await createIntentFromQuote(quote, guest)
+    } catch (caught) {
+      if (isAbortError(caught)) return
+      const changed = quoteFromPriceChanged(caught)
+      if (changed) {
+        resetAttempt()
+        setPendingQuote(changed)
+        setPriceChangeAt('intent')
+        setStep('price_changed')
+        setError(errorCopy(caught))
+        return
+      }
+      if (isPublicApiError(caught) && caught.error === 'UNAVAILABLE') {
+        setStep('unavailable')
+        setError(errorCopy(caught))
+        setIntent(null)
+        clearStoredIntent()
+        return
+      }
+      setStep('collect')
+      setError(errorCopy(caught))
+    } finally {
+      inflight.current = false
+      setBusy(false)
+    }
+  }
+
+  async function resendCode() {
+    if (!intent || inflight.current || Date.now() < cooldownUntil) return
+    if (intentLooksExpired(intent.expiresAt)) {
+      setError('Час на підтвердження минув. Почніть бронювання знову.')
+      setStep('collect')
+      return
+    }
+    inflight.current = true
+    setBusy(true)
+    setError('')
+    try {
+      const sent = await publicBookingClient.requestEmailVerification(intent.intentId)
+      setOtp(sent)
+      markCooldown(sent.cooldownSeconds)
+    } catch (caught) {
+      if (isAbortError(caught)) return
+      setError(errorCopy(caught))
+      const wait = retryAfterSeconds(caught)
+      if (wait != null) markCooldown(wait)
+      if (isPublicApiError(caught) && caught.error === 'INTENT_EXPIRED') {
+        setStep('collect')
+        clearStoredIntent()
+      }
+    } finally {
+      inflight.current = false
+      setBusy(false)
+    }
+  }
+
+  async function confirmCode(code: string) {
+    if (!intent || inflight.current || busy) return
+    inflight.current = true
+    setBusy(true)
+    setStep('confirming')
+    setError('')
+    try {
+      const result = await publicBookingClient.confirmEmailVerification(intent.intentId, { code: code.trim() })
+      await finishConfirmed(result)
+    } catch (caught) {
+      if (isAbortError(caught)) return
+      const changed = quoteFromPriceChanged(caught)
+      if (changed) {
+        setPendingQuote(changed)
+        setPriceChangeAt('confirm')
+        setStep('price_changed')
+        setError(errorCopy(caught))
+        return
+      }
+      if (isPublicApiError(caught) && caught.error === 'UNAVAILABLE') {
+        setStep('unavailable')
+        setError(errorCopy(caught))
+        return
+      }
+      setStep('verify')
+      setError(errorCopy(caught))
+    } finally {
+      inflight.current = false
+      setBusy(false)
+    }
+  }
+
+  async function acceptChangedPrice(guest: GuestInput) {
+    if (!pendingQuote || inflight.current || busy) return
+    inflight.current = true
+    setBusy(true)
+    setError('')
+    try {
+      if (priceChangeAt === 'confirm' && intent) {
+        setStep('confirming')
+        const result = await publicBookingClient.confirmEmailVerification(intent.intentId, {
+          acceptedTotalAmount: pendingQuote.totalAmount,
+          quoteToken: pendingQuote.quoteToken,
+        })
+        await finishConfirmed(result)
+        return
+      }
+      resetAttempt()
+      await createIntentFromQuote(pendingQuote, guest)
+    } catch (caught) {
+      if (isAbortError(caught)) return
+      const changed = quoteFromPriceChanged(caught)
+      if (changed) {
+        resetAttempt()
+        setPendingQuote(changed)
+        setStep('price_changed')
+        setError(errorCopy(caught))
+        return
+      }
+      if (isPublicApiError(caught) && caught.error === 'UNAVAILABLE') {
+        setStep('unavailable')
+        setError(errorCopy(caught))
+        return
+      }
+      setError(errorCopy(caught))
+      setStep(priceChangeAt === 'confirm' ? 'price_changed' : 'collect')
+    } finally {
+      inflight.current = false
+      setBusy(false)
+    }
+  }
+
+  async function loadConfirmation(token: string) {
+    setStep('looking_up')
+    setBusy(true)
+    setError('')
+    try {
+      const confirmed = await publicBookingClient.confirmation(token)
+      setConfirmation(confirmed)
+      setStep('confirmed')
+    } catch (caught) {
+      if (isAbortError(caught)) return
+      setConfirmation(null)
+      setStep('looking_up')
+      setError(errorCopy(caught))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function recover(email: string) {
+    if (!intent || inflight.current) return
+    inflight.current = true
+    setBusy(true)
+    setError('')
+    try {
+      await publicBookingClient.recoverConfirmation(intent.intentId, { email: email.trim() })
+      setError('')
+      return true
+    } catch (caught) {
+      if (isAbortError(caught)) return false
+      setError(errorCopy(caught))
+      const wait = retryAfterSeconds(caught)
+      if (wait != null) markCooldown(wait)
+      return false
+    } finally {
+      inflight.current = false
+      setBusy(false)
+    }
+  }
+
+  return {
+    step,
+    busy,
+    error,
+    intent,
+    otp,
+    pendingQuote,
+    priceChangeAt,
+    confirmation,
+    cooldownUntil,
+    startCheckout,
+    resendCode,
+    confirmCode,
+    acceptChangedPrice,
+    declineChangedPrice: resetToCollect,
+    resetToCollect,
+    loadConfirmation,
+    recover,
+    clearConfirmation: clearStoredConfirmationToken,
+  }
+}

@@ -5,7 +5,8 @@ export type BookingDraft = {
   children: number
   roomTypeId: string
   ratePlanId: string
-  name: string
+  firstName: string
+  lastName: string
   phone: string
   email: string
   comment: string
@@ -18,7 +19,8 @@ export const emptyDraft: BookingDraft = {
   children: 0,
   roomTypeId: '',
   ratePlanId: '',
-  name: '',
+  firstName: '',
+  lastName: '',
   phone: '',
   email: '',
   comment: '',

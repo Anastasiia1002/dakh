@@ -184,6 +184,107 @@ describe('PublicBookingClient', () => {
     )
   })
 
+  it('creates an intent with Idempotency-Key and documented guest fields', async () => {
+    const calls: unknown[] = []
+    const fetchMock: typeof fetch = async (input, init) => {
+      calls.push([input, init])
+      return jsonResponse(
+        {
+          intentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          status: 'PENDING_VERIFICATION',
+          emailMasked: 'iv***@example.com',
+          verificationRequired: true,
+          expiresAt: '2026-12-01T13:00:00.000Z',
+        },
+        201,
+      )
+    }
+    const client = new PublicBookingClient({
+      baseUrl: 'http://localhost:3000/api/public/v1',
+      hotelSlug: 'dakh',
+      fetch: fetchMock,
+    })
+    const body = {
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      guestCount: 2,
+      roomTypeId: '11111111-1111-4111-8111-111111111111',
+      ratePlanId: '22222222-2222-4222-8222-222222222222',
+      quoteToken: 'x'.repeat(24),
+      acceptedTotalAmount: '9600.00',
+      guest: { firstName: 'Іван', lastName: 'Коваленко', email: 'ivan@example.com', phone: '+380501112233' },
+    }
+    const result = await client.createIntent(body, { idempotencyKey: 'attempt-1' })
+    const [url, init] = calls[0] as [string, RequestInit]
+    assert.equal(url, 'http://localhost:3000/api/public/v1/hotels/dakh/booking-intents')
+    assert.equal(init.method, 'POST')
+    assert.equal(new Headers(init.headers).get('Idempotency-Key'), 'attempt-1')
+    assert.deepEqual(JSON.parse(String(init.body)), body)
+    assert.equal(result.status, 'PENDING_VERIFICATION')
+  })
+
+  it('requests OTP, confirms a code, looks up confirmation and recovers', async () => {
+    const calls: unknown[] = []
+    const fetchMock: typeof fetch = async (input, init) => {
+      calls.push([String(input), init])
+      const url = String(input)
+      if (url.includes('/email-verification/request')) {
+        return jsonResponse({ sent: true, cooldownSeconds: 60, otpExpiresAt: '2026-12-01T12:10:00.000Z' }, 201)
+      }
+      if (url.includes('/email-verification/confirm')) {
+        return jsonResponse({
+          status: 'CONFIRMED',
+          bookingReference: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          checkIn: '2026-12-01',
+          checkOut: '2026-12-03',
+          guestCount: 2,
+          roomTypeId: '11111111-1111-4111-8111-111111111111',
+          roomTypeName: 'Буковина',
+          totalAmount: '9600.00',
+          currency: 'UAH',
+          confirmationToken: 'c'.repeat(24),
+        })
+      }
+      if (url.includes('/bookings/confirmation/')) {
+        return jsonResponse({
+          status: 'CONFIRMED',
+          bookingReference: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          checkIn: '2026-12-01',
+          checkOut: '2026-12-03',
+          guestCount: 2,
+          roomTypeId: '11111111-1111-4111-8111-111111111111',
+          roomTypeName: 'Буковина',
+          totalAmount: '9600.00',
+          currency: 'UAH',
+        })
+      }
+      return jsonResponse({ sent: true })
+    }
+    const client = new PublicBookingClient({
+      baseUrl: 'http://localhost:3000/api/public/v1',
+      hotelSlug: 'dakh',
+      fetch: fetchMock,
+    })
+    const intentId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const otp = await client.requestEmailVerification(intentId)
+    const confirmed = await client.confirmEmailVerification(intentId, { code: '123456' })
+    const lookup = await client.confirmation('c'.repeat(24))
+    const recovered = await client.recoverConfirmation(intentId, { email: 'ivan@example.com' })
+    assert.equal(otp.sent, true)
+    assert.equal(confirmed.confirmationToken?.length, 24)
+    assert.equal(lookup.bookingReference, confirmed.bookingReference)
+    assert.equal(lookup.confirmationToken, undefined)
+    assert.equal(recovered.sent, true)
+    const requestUrl = calls[0]?.[0]
+    const confirmInit = calls[1]?.[1] as RequestInit | undefined
+    const recoverInit = calls[3]?.[1] as RequestInit | undefined
+    assert.equal(requestUrl, `http://localhost:3000/api/public/v1/booking-intents/${intentId}/email-verification/request`)
+    assert.ok(confirmInit)
+    assert.ok(recoverInit)
+    assert.deepEqual(JSON.parse(String(confirmInit.body)), { code: '123456' })
+    assert.deepEqual(JSON.parse(String(recoverInit.body)), { email: 'ivan@example.com' })
+  })
+
   it('fails closed when the public API base is not configured', async () => {
     const client = new PublicBookingClient({ baseUrl: null, hotelSlug: 'dakh', fetch: async () => new Response() })
     await assert.rejects(

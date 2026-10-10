@@ -1,34 +1,24 @@
-import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../components/BookingCalendar'
 import { emptyDraft, type BookingDraft } from '../lib/booking'
-import { emailError } from '../lib/email'
 import { formatDate, formatMoneyAmount } from '../lib/format'
-import { formatUaMobile, uaMobileError } from '../lib/phone'
+import { formatUaMobile } from '../lib/phone'
 import {
   guestCountOf,
+  guestFieldErrors,
+  guestFormIsValid,
+  isQuoteFresh,
   rateTypeLabel,
   roomKindLabel,
   soleRatePlanId,
   stayNights,
+  useBookingCheckout,
   useStaySearch,
+  type GuestFieldErrors,
 } from '../lib/publicBooking'
+import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
 import type { PublicAvailabilityRatePlan, PublicAvailabilityRoomType } from '../lib/publicBooking/types'
-
-type GuestErrors = { name?: string; phone?: string; email?: string }
-
-function guestErrors(draft: BookingDraft): GuestErrors {
-  const errors: GuestErrors = {}
-  const name = draft.name.trim()
-  if (!name) errors.name = 'Вкажіть ім’я.'
-  else if (name.length < 2) errors.name = 'Ім’я має мати щонайменше дві літери.'
-  else if (!/\p{L}/u.test(name)) errors.name = 'Ім’я має містити літери.'
-  const phone = uaMobileError(draft.phone)
-  if (phone) errors.phone = phone
-  const mail = emailError(draft.email)
-  if (mail) errors.email = mail
-  return errors
-}
 
 function fieldClass(error?: string) {
   return [
@@ -51,8 +41,11 @@ function draftFromParams(params: URLSearchParams): BookingDraft {
 
 export function BookingPage() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const [draft, setDraft] = useState<BookingDraft>(() => draftFromParams(params))
-  const [guestErr, setGuestErr] = useState<GuestErrors>({})
+  const [guestErr, setGuestErr] = useState<GuestFieldErrors>({})
+  const [otpCode, setOtpCode] = useState('')
+  const [now, setNow] = useState(() => Date.now())
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const search = useStaySearch(
@@ -62,15 +55,45 @@ export function BookingPage() {
     draft.roomTypeId,
     draft.ratePlanId,
   )
+  const checkout = useBookingCheckout()
+  const guest = {
+    firstName: draft.firstName,
+    lastName: draft.lastName,
+    phone: draft.phone,
+    email: draft.email,
+  }
+  const quoteReady = isQuoteFresh(search.quote, now)
+  const canSubmit =
+    quoteReady &&
+    guestFormIsValid(guest) &&
+    !checkout.busy &&
+    checkout.step === 'collect' &&
+    search.configured
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 15_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (checkout.step !== 'confirmed') return
+    const token = readStoredConfirmationToken()
+    if (token) navigate(`/bronuvannya/pidtverdzhennya/${encodeURIComponent(token)}`, { replace: true })
+  }, [checkout.step, navigate])
 
   function patch(next: Partial<BookingDraft>) {
+    const stayChanged =
+      next.checkIn !== undefined ||
+      next.checkOut !== undefined ||
+      next.adults !== undefined ||
+      next.children !== undefined
+    const selectionChanged = next.roomTypeId !== undefined || next.ratePlanId !== undefined
+    if ((stayChanged || selectionChanged) && checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+      checkout.resetToCollect()
+      setOtpCode('')
+    }
     setDraft((current) => {
       const merged = { ...current, ...next }
-      const stayChanged =
-        next.checkIn !== undefined ||
-        next.checkOut !== undefined ||
-        next.adults !== undefined ||
-        next.children !== undefined
       if (stayChanged) {
         if (next.roomTypeId === undefined) merged.roomTypeId = ''
         if (next.ratePlanId === undefined) merged.ratePlanId = ''
@@ -80,21 +103,28 @@ export function BookingPage() {
       return merged
     })
     setGuestErr((current) => {
-      if (!current.name && !current.phone && !current.email) return current
-      return guestErrors({ ...draft, ...next })
+      if (!current.firstName && !current.lastName && !current.phone && !current.email) return current
+      return guestFieldErrors({ ...guest, ...next })
     })
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
+    const errors = guestFieldErrors(guest)
+    setGuestErr(errors)
+    if (Object.keys(errors).length || !canSubmit) return
+    await checkout.startCheckout(search.quote, guest)
   }
+
+  const cooldownLeft = Math.max(0, Math.ceil((checkout.cooldownUntil - now) / 1000))
+  const displayQuote = checkout.pendingQuote ?? search.quote
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
       <p className="mt-5 max-w-xl text-sm text-wood/70">
-        Оберіть дати й кількість гостей — вільні кімнати й ціну покаже сервер. Стіл у ресторані —
+        Оберіть дати, кімнату й тариф. Після заявки надішлемо код на пошту. Стіл у ресторані —
         телефоном.
       </p>
 
@@ -148,27 +178,43 @@ export function BookingPage() {
           <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Деталі гостя</legend>
             <p className="mt-2 text-sm text-wood/70">
-              Ім’я, телефон і пошта знадобляться на наступному кроці. Заявку зараз надіслати не
-              можна.
+              Ім’я та прізвище надсилаємо окремо, як просить сервер. Телефон можна не вказувати.
             </p>
-            <div className="mt-6 grid gap-6">
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
               <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
                 Ім’я *
                 <input
-                  autoComplete="name"
-                  value={draft.name}
-                  aria-invalid={Boolean(guestErr.name)}
-                  onChange={(event) => patch({ name: event.target.value })}
-                  className={fieldClass(guestErr.name)}
+                  autoComplete="given-name"
+                  value={draft.firstName}
+                  aria-invalid={Boolean(guestErr.firstName)}
+                  onChange={(event) => patch({ firstName: event.target.value })}
+                  className={fieldClass(guestErr.firstName)}
                 />
-                {guestErr.name ? (
+                {guestErr.firstName ? (
                   <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
-                    {guestErr.name}
+                    {guestErr.firstName}
                   </span>
                 ) : null}
               </label>
               <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Телефон *
+                Прізвище *
+                <input
+                  autoComplete="family-name"
+                  value={draft.lastName}
+                  aria-invalid={Boolean(guestErr.lastName)}
+                  onChange={(event) => patch({ lastName: event.target.value })}
+                  className={fieldClass(guestErr.lastName)}
+                />
+                {guestErr.lastName ? (
+                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
+                    {guestErr.lastName}
+                  </span>
+                ) : null}
+              </label>
+            </div>
+            <div className="mt-6 grid gap-6">
+              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+                Телефон
                 <input
                   type="tel"
                   inputMode="tel"
@@ -178,9 +224,13 @@ export function BookingPage() {
                   aria-invalid={Boolean(guestErr.phone)}
                   onChange={(event) => patch({ phone: event.target.value })}
                   onBlur={() => {
+                    if (!draft.phone.trim()) {
+                      setGuestErr((current) => ({ ...current, phone: undefined }))
+                      return
+                    }
                     const formatted = formatUaMobile(draft.phone)
                     if (formatted) patch({ phone: formatted })
-                    else setGuestErr((current) => ({ ...current, phone: uaMobileError(draft.phone) }))
+                    else setGuestErr((current) => ({ ...current, phone: guestFieldErrors(guest).phone }))
                   }}
                   className={fieldClass(guestErr.phone)}
                 />
@@ -202,7 +252,7 @@ export function BookingPage() {
                   onBlur={() => {
                     const trimmed = draft.email.trim()
                     if (trimmed !== draft.email) patch({ email: trimmed })
-                    setGuestErr((current) => ({ ...current, email: emailError(trimmed) }))
+                    setGuestErr((current) => ({ ...current, email: guestFieldErrors({ ...guest, email: trimmed }).email }))
                   }}
                   className={fieldClass(guestErr.email)}
                 />
@@ -220,6 +270,9 @@ export function BookingPage() {
                   onChange={(event) => patch({ comment: event.target.value })}
                   className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
                 />
+                <span className="mt-2 block text-[0.72rem] font-normal normal-case tracking-normal text-wood/45">
+                  Сервер цей коментар не приймає — поле лише на сторінці.
+                </span>
               </label>
             </div>
           </fieldset>
@@ -236,24 +289,195 @@ export function BookingPage() {
             kids={draft.children}
             room={search.selectedRoom}
             plan={search.selectedPlan}
-            quote={search.quote}
+            quote={displayQuote}
             quoteStatus={search.quoteStatus}
             quoteError={search.quoteError}
           />
-          <button
-            type="submit"
-            disabled
-            className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
-          >
-            Надіслати заявку
-          </button>
-          <p className="mt-4 text-[0.72rem] text-wood/55">
-            Підтвердження бронювання з’явиться після перевірки пошти. Цей крок ще не підключено —
-            заявку в браузері не зберігаємо і бронювання не створюємо.
-          </p>
+
+          {checkout.step === 'price_changed' && checkout.pendingQuote ? (
+            <PriceChangePanel
+              previousTotal={search.quote?.totalAmount}
+              quote={checkout.pendingQuote}
+              busy={checkout.busy}
+              error={checkout.error}
+              onAccept={() => checkout.acceptChangedPrice(guest)}
+              onDecline={() => {
+                checkout.declineChangedPrice()
+                setOtpCode('')
+              }}
+            />
+          ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
+            <OtpPanel
+              maskedEmail={checkout.intent?.emailMasked ?? ''}
+              code={otpCode}
+              busy={checkout.busy}
+              error={checkout.error}
+              cooldownLeft={cooldownLeft}
+              otpExpiresAt={checkout.otp?.otpExpiresAt}
+              onCode={setOtpCode}
+              onConfirm={() => checkout.confirmCode(otpCode)}
+              onResend={() => checkout.resendCode()}
+            />
+          ) : checkout.step === 'unavailable' ? (
+            <div className="mt-6">
+              <p className="text-sm text-clay" role="alert">
+                {checkout.error || 'На ці дати немає вільних кімнат.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => checkout.resetToCollect()}
+                className="mt-6 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+              >
+                Обрати інші дати
+              </button>
+            </div>
+          ) : (
+            <>
+              {checkout.error ? (
+                <p className="mt-6 text-sm text-clay" role="alert">
+                  {checkout.error}
+                </p>
+              ) : null}
+              {!quoteReady && search.quote ? (
+                <p className="mt-4 text-sm text-clay" role="alert">
+                  Розрахунок застарів. Оберіть дати ще раз.
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+              >
+                {checkout.busy && checkout.step === 'creating_intent'
+                  ? 'Надсилаємо…'
+                  : 'Надіслати на перевірку пошти'}
+              </button>
+              <p className="mt-4 text-[0.72rem] text-wood/55">
+                Це ще не бронювання. Підтвердження з’явиться лише після коду з листа і відповіді
+                сервера.
+              </p>
+            </>
+          )}
         </aside>
       </form>
     </section>
+  )
+}
+
+function OtpPanel({
+  maskedEmail,
+  code,
+  busy,
+  error,
+  cooldownLeft,
+  otpExpiresAt,
+  onCode,
+  onConfirm,
+  onResend,
+}: {
+  maskedEmail: string
+  code: string
+  busy: boolean
+  error: string
+  cooldownLeft: number
+  otpExpiresAt?: string
+  onCode: (value: string) => void
+  onConfirm: () => void
+  onResend: () => void
+}) {
+  return (
+    <div className="mt-6">
+      <p className="text-sm text-wood/70">
+        Код надіслано на {maskedEmail || 'вказану пошту'}. Бронювання ще не створено.
+      </p>
+      <label className="mt-6 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        Код з листа
+        <input
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={code}
+          onChange={(event) => onCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+          className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 tracking-[0.24em] outline-none"
+        />
+      </label>
+      {otpExpiresAt ? (
+        <p className="mt-2 text-[0.72rem] text-wood/50">Код дійсний до {new Date(otpExpiresAt).toLocaleTimeString('uk-UA')}</p>
+      ) : null}
+      {error ? (
+        <p className="mt-3 text-sm text-clay" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <button
+        type="button"
+        disabled={busy || code.length !== 6}
+        onClick={onConfirm}
+        className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+      >
+        {busy ? 'Перевіряємо…' : 'Підтвердити код'}
+      </button>
+      <button
+        type="button"
+        disabled={busy || cooldownLeft > 0}
+        onClick={onResend}
+        className="mt-3 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase disabled:opacity-40"
+      >
+        {cooldownLeft > 0 ? `Надіслати знову через ${cooldownLeft} с` : 'Надіслати код знову'}
+      </button>
+    </div>
+  )
+}
+
+function PriceChangePanel({
+  previousTotal,
+  quote,
+  busy,
+  error,
+  onAccept,
+  onDecline,
+}: {
+  previousTotal?: string
+  quote: NonNullable<ReturnType<typeof useBookingCheckout>['pendingQuote']>
+  busy: boolean
+  error: string
+  onAccept: () => void
+  onDecline: () => void
+}) {
+  return (
+    <div className="mt-6">
+      <p className="text-sm text-clay" role="alert">
+        {error || 'Ціна змінилася. Підтвердіть нову суму, якщо згодні.'}
+      </p>
+      {previousTotal && previousTotal !== quote.totalAmount ? (
+        <p className="mt-3 text-sm text-wood/60">Було {formatMoneyAmount(previousTotal)}</p>
+      ) : null}
+      <p className="mt-2 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
+      <ul className="mt-4 space-y-1 text-sm text-wood/70">
+        {quote.nights.map((night) => (
+          <li key={night.date} className="flex justify-between gap-4">
+            <span>{formatDate(night.date)}</span>
+            <span>{formatMoneyAmount(night.price)}</span>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onAccept}
+        className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+      >
+        {busy ? 'Оновлюємо…' : 'Прийняти нову ціну'}
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onDecline}
+        className="mt-3 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+      >
+        Відмовитись
+      </button>
+    </div>
   )
 }
 
@@ -378,9 +602,6 @@ function RatePlanOptions({
           </span>
         </label>
       ))}
-      <p className="text-[0.72rem] text-wood/50">
-        Попередня сума з наявності. Підсумкову ціну покаже сервер після розрахунку.
-      </p>
     </div>
   )
 }
@@ -424,24 +645,16 @@ function QuoteSummary({
           {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
           {guestCount === 1 ? 'гість' : 'гостей'}
         </p>
-        <p className="mt-4">
-          На ці дати немає доступного тарифу. Ціну не вигадуємо і бронювання не створюємо.
-        </p>
       </div>
     )
   }
-  if (!plan) {
-    return (
-      <div className="mt-6 text-sm leading-relaxed text-wood/70">
-        <p className="font-medium">{room.name}</p>
-        <p className="mt-4">Оберіть тариф, щоб сервер порахував точну суму.</p>
-      </div>
-    )
+  if (!plan && !quote) {
+    return <p className="mt-6 text-sm text-wood/60">Оберіть тариф, щоб сервер порахував точну суму.</p>
   }
-  if (quoteStatus === 'loading') {
+  if (quoteStatus === 'loading' && !quote) {
     return <p className="mt-6 text-sm text-wood/60">Рахуємо вартість…</p>
   }
-  if (quoteStatus === 'error') {
+  if (quoteStatus === 'error' && !quote) {
     return (
       <p className="mt-6 text-sm text-clay" role="alert">
         {quoteError}
@@ -455,9 +668,11 @@ function QuoteSummary({
   return (
     <div className="mt-6 text-sm leading-relaxed">
       <p className="font-medium">{room.name}</p>
-      <p className="mt-1 text-wood/70">
-        {plan.name} · {rateTypeLabel(plan.type)}
-      </p>
+      {plan ? (
+        <p className="mt-1 text-wood/70">
+          {plan.name} · {rateTypeLabel(plan.type)}
+        </p>
+      ) : null}
       <p className="mt-2 text-wood/70">
         {formatDate(quote.checkIn)} — {formatDate(quote.checkOut)}
       </p>
@@ -474,10 +689,7 @@ function QuoteSummary({
         ))}
       </ul>
       <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      <p className="mt-2 text-[0.72rem] text-wood/55">
-        Це розрахунок сервера, не попередня сума тарифу і не підтверджене бронювання. Сума в{' '}
-        {quote.currency}.
-      </p>
+      <p className="mt-2 text-[0.72rem] text-wood/55">Сума з сервера, {quote.currency}. Це ще не підтверджене бронювання.</p>
     </div>
   )
 }

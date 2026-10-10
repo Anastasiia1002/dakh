@@ -1,6 +1,18 @@
 import { resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 import { PublicApiError, parseApiError } from './errors'
-import type { PublicAvailabilityQuery, PublicAvailabilityResponse, PublicQuoteRequest, PublicQuoteResponse } from './types'
+import type {
+  ConfirmEmailVerificationRequest,
+  CreateBookingIntentRequest,
+  PublicAvailabilityQuery,
+  PublicAvailabilityResponse,
+  PublicBookingConfirmationResponse,
+  PublicBookingIntentResponse,
+  PublicOtpRequestResponse,
+  PublicQuoteRequest,
+  PublicQuoteResponse,
+  PublicRecoverConfirmationResponse,
+  RecoverConfirmationRequest,
+} from './types'
 
 export type PublicBookingClientOptions = {
   baseUrl?: string | null
@@ -89,6 +101,65 @@ export class PublicBookingClient {
       method: 'POST',
       body: JSON.stringify(body),
     })
+  }
+
+  createIntent(
+    body: CreateBookingIntentRequest,
+    init: RequestInit & { idempotencyKey?: string } = {},
+  ): Promise<PublicBookingIntentResponse> {
+    const { idempotencyKey, ...requestInit } = init
+    const headers = new Headers(requestInit.headers)
+    if (idempotencyKey?.trim()) headers.set('Idempotency-Key', idempotencyKey.trim().slice(0, 128))
+    return this.request<PublicBookingIntentResponse>(this.hotelPath('/booking-intents'), {
+      ...requestInit,
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+  }
+
+  requestEmailVerification(intentId: string, init: RequestInit = {}): Promise<PublicOtpRequestResponse> {
+    return this.request<PublicOtpRequestResponse>(
+      `/booking-intents/${encodeURIComponent(intentId)}/email-verification/request`,
+      { ...init, method: 'POST' },
+    )
+  }
+
+  confirmEmailVerification(
+    intentId: string,
+    body: ConfirmEmailVerificationRequest,
+    init: RequestInit = {},
+  ): Promise<PublicBookingConfirmationResponse> {
+    return this.request<PublicBookingConfirmationResponse>(
+      `/booking-intents/${encodeURIComponent(intentId)}/email-verification/confirm`,
+      {
+        ...init,
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+    )
+  }
+
+  confirmation(token: string, init: RequestInit = {}): Promise<PublicBookingConfirmationResponse> {
+    return this.request<PublicBookingConfirmationResponse>(
+      `/bookings/confirmation/${encodeURIComponent(token)}`,
+      init,
+    )
+  }
+
+  recoverConfirmation(
+    intentId: string,
+    body: RecoverConfirmationRequest,
+    init: RequestInit = {},
+  ): Promise<PublicRecoverConfirmationResponse> {
+    return this.request<PublicRecoverConfirmationResponse>(
+      `/booking-intents/${encodeURIComponent(intentId)}/confirmation/recover`,
+      {
+        ...init,
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+    )
   }
 }
 

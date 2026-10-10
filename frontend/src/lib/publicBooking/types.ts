@@ -152,7 +152,18 @@ export interface RetryAfterDetails {
 
 export const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 export const MONEY_PATTERN = /^\d+(\.\d{1,2})?$/
+export const OTP_PATTERN = /^\d{6}$/
 export const MIN_GUESTS = 1
 export const MAX_GUESTS = 20
 export const MIN_NIGHTS = 1
 export const MAX_NIGHTS = 30
+export const MIN_PERSON_NAME = 1
+export const MAX_PERSON_NAME = 100
+export const MAX_GUEST_EMAIL = 200
+export const MAX_RECOVER_EMAIL = 320
+export const MAX_GUEST_PHONE = 40
+export const MIN_QUOTE_TOKEN = 20
+export const MAX_QUOTE_TOKEN = 4096
+export const MIN_CONFIRMATION_TOKEN = 20
+export const MAX_CONFIRMATION_TOKEN = 128
+export const MAX_IDEMPOTENCY_KEY = 128
