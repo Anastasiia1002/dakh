@@ -1,16 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   canUseAsCheckIn,
   canUseAsCheckOut,
   guestCountOf,
-  latestCheckOut,
 } from '../lib/publicBooking'
+import {
+  canFinishCheckOut,
+  canStartCheckIn,
+  dayAriaLabel,
+  dayStatusCopy,
+  dayVisual,
+  visibleCalendarRange,
+  type CalendarLoadStatus,
+  type DayVisual,
+} from '../lib/publicBooking/calendar'
+import { calendarUsesTwoMonths } from '../lib/publicBooking/roomIdentity'
 import { MAX_GUESTS } from '../lib/publicBooking/types'
+import type { PublicCalendarDay } from '../lib/publicBooking/types'
 import {
   addMonths,
+  formatDate,
   formatDayMonth,
   formatMonthTitle,
-  formatPriceK,
   monthCells,
   todayIso,
   weekdaysMon,
@@ -23,9 +34,19 @@ type Props = {
   checkOut: string
   adults: number
   kids: number
-  align?: 'start' | 'end'
   nightPrices?: Record<string, string>
   loading?: boolean
+  readOnly?: boolean
+  live?: {
+    status: CalendarLoadStatus
+    hotelToday: string | null
+    days: Record<string, PublicCalendarDay>
+    error?: string
+    capacityNote?: string
+  }
+  onVisibleRange?: (range: { from: string; to: string }) => void
+  /** Room-page card anchors the popover to its right edge so it can grow left. */
+  align?: 'start' | 'end'
   onChange: (next: {
     checkIn?: string
     checkOut?: string
@@ -39,14 +60,17 @@ export function BookingCalendar({
   checkOut,
   adults,
   kids,
-  align = 'start',
-  nightPrices = {},
   loading = false,
+  readOnly = false,
+  live,
+  onVisibleRange,
+  align = 'start',
   onChange,
 }: Props) {
   const now = new Date()
   const root = useRef<HTMLDivElement>(null)
   const [panel, setPanel] = useState<Panel>(null)
+  const [place, setPlace] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
   const [hover, setHover] = useState('')
   const [cursor, setCursor] = useState(() => ({
     year: now.getFullYear(),
@@ -77,6 +101,71 @@ export function BookingCalendar({
     cursor.year > now.getFullYear() ||
     (cursor.year === now.getFullYear() && cursor.monthIndex > now.getMonth())
 
+  useEffect(() => {
+    onVisibleRange?.(visibleCalendarRange(cursor.year, cursor.monthIndex))
+  }, [cursor, onVisibleRange])
+
+  useLayoutEffect(() => {
+    if (panel !== 'dates') return
+    function updatePlace() {
+      const el = root.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const margin = 12
+      const vw = window.innerWidth
+      const maxWidth = Math.max(280, vw - margin * 2)
+      // Two months need ~800px. A narrow room card cannot hold that, so the
+      // popover grows left from the card and stays inside the viewport.
+      const preferWide = align === 'end' && vw >= 768
+      const preferred = preferWide
+        ? Math.min(800, maxWidth)
+        : Math.min(Math.max(rect.width, vw < 768 ? 360 : 280), maxWidth)
+      let width = preferred
+      let left = align === 'end' ? rect.right - width : rect.left
+      if (left + width > vw - margin) left = vw - margin - width
+      if (left < margin) left = margin
+      width = Math.min(width, vw - margin - left)
+      const vh = window.innerHeight
+      const ideal = Math.min(620, vh - margin * 2)
+      const below = vh - rect.bottom - margin
+      const above = rect.top - margin
+      let top
+      let maxHeight
+      if (below >= Math.min(ideal, 480)) {
+        maxHeight = Math.min(ideal, below)
+        top = rect.bottom + margin
+      } else if (above >= Math.min(ideal, 480)) {
+        maxHeight = Math.min(ideal, above)
+        top = Math.max(margin, rect.top - margin - maxHeight)
+      } else {
+        maxHeight = ideal
+        top = Math.min(Math.max(margin, rect.bottom + margin), vh - margin - maxHeight)
+      }
+      const next = {
+        top: Math.round(top),
+        left: Math.round(left),
+        width: Math.round(width),
+        maxHeight: Math.round(maxHeight),
+      }
+      setPlace((current) =>
+        current &&
+        current.top === next.top &&
+        current.left === next.left &&
+        current.width === next.width &&
+        current.maxHeight === next.maxHeight
+          ? current
+          : next,
+      )
+    }
+    updatePlace()
+    window.addEventListener('resize', updatePlace)
+    window.addEventListener('scroll', updatePlace, true)
+    return () => {
+      window.removeEventListener('resize', updatePlace)
+      window.removeEventListener('scroll', updatePlace, true)
+    }
+  }, [panel, align])
+
   const dateLabel =
     checkIn && checkOut
       ? `${formatDayMonth(checkIn)} — ${formatDayMonth(checkOut)}`
@@ -86,20 +175,32 @@ export function BookingCalendar({
 
   const guestLabel = `${adults} ${adults === 1 ? 'дорослий' : 'дорослих'} · ${kids} ${ukPlural(kids, 'дитина', 'дитини', 'дітей')} · 1 номер`
 
+  function allowCheckIn(iso: string) {
+    if (readOnly) return false
+    if (live) return canStartCheckIn(live.status, live.hotelToday, live.days, iso)
+    return canUseAsCheckIn(iso)
+  }
+
+  function allowCheckOut(iso: string) {
+    if (readOnly) return false
+    if (live) return canFinishCheckOut(live.status, live.hotelToday, live.days, checkIn, iso)
+    return canUseAsCheckOut(checkIn, iso)
+  }
+
   function selectDay(iso: string) {
     if (pickingOut) {
-      if (canUseAsCheckOut(checkIn, iso)) {
+      if (allowCheckOut(iso)) {
         onChange({ checkOut: iso })
         setPanel(null)
         setHover('')
         return
       }
-      if (canUseAsCheckIn(iso)) {
+      if (allowCheckIn(iso)) {
         onChange({ checkIn: iso, checkOut: '' })
       }
       return
     }
-    if (!canUseAsCheckIn(iso)) return
+    if (!allowCheckIn(iso)) return
     onChange({ checkIn: iso, checkOut: '' })
   }
 
@@ -110,13 +211,13 @@ export function BookingCalendar({
   }
 
   return (
-    <div ref={root} className="relative">
-      <div className="grid overflow-hidden border border-[#c4a35a] bg-linen md:grid-cols-2">
+    <div ref={root} className="@container relative">
+      <div className="grid overflow-hidden border border-[#c4a35a] bg-linen @min-[20rem]:grid-cols-2">
         <button
           type="button"
           aria-expanded={panel === 'dates'}
           onClick={() => setPanel((value) => (value === 'dates' ? null : 'dates'))}
-          className="flex items-center justify-between gap-4 px-5 py-4 text-left md:border-r md:border-[#c4a35a]"
+          className="flex min-h-14 items-center justify-between gap-4 px-5 py-4 text-left @min-[20rem]:border-r @min-[20rem]:border-[#c4a35a]"
         >
           <span>
             <span className="block text-[0.68rem] font-medium tracking-[0.14em] uppercase text-wood/55">
@@ -130,7 +231,7 @@ export function BookingCalendar({
           type="button"
           aria-expanded={panel === 'guests'}
           onClick={() => setPanel((value) => (value === 'guests' ? null : 'guests'))}
-          className="flex items-center justify-between gap-4 border-t border-[#c4a35a] px-5 py-4 text-left md:border-t-0"
+          className="flex min-h-14 items-center justify-between gap-4 border-t border-[#c4a35a] px-5 py-4 text-left @min-[20rem]:border-t-0"
         >
           <span>
             <span className="block text-[0.68rem] font-medium tracking-[0.14em] uppercase text-wood/55">
@@ -142,40 +243,70 @@ export function BookingCalendar({
         </button>
       </div>
 
-      {panel === 'dates' ? (
-        <div
-          className={`absolute z-40 mt-2 w-full min-w-[min(100%,20rem)] border border-wood/10 bg-linen p-5 shadow-[0_16px_40px_rgba(91,56,43,0.12)] md:w-[min(46rem,calc(100vw-3rem))] ${
-            align === 'end' ? 'right-0' : 'left-0'
-          }`}
-        >
-          <div className="grid gap-10 md:grid-cols-2">
-            {months.map((month, index) => (
-              <MonthGrid
-                key={`${month.year}-${month.monthIndex}`}
-                year={month.year}
-                monthIndex={month.monthIndex}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                previewOut={previewOut}
-                nightPrices={nightPrices}
-                pickingOut={pickingOut}
-                inRange={inRange}
-                onHover={setHover}
-                onSelect={selectDay}
-                showPrev={index === 0}
-                showNext={index === 1}
-                canGoBack={canGoBack}
-                onPrev={() => setCursor((value) => addMonths(value.year, value.monthIndex, -1))}
-                onNext={() => setCursor((value) => addMonths(value.year, value.monthIndex, 1))}
-              />
-            ))}
+      {panel === 'dates' && place ? (
+      <div
+        data-calendar
+        className="fixed z-50 overflow-x-hidden overflow-y-auto overscroll-contain border border-wood/10 bg-linen p-4 shadow-[0_16px_40px_rgba(91,56,43,0.12)] sm:p-6"
+        style={{ top: place.top, left: place.left, width: place.width, maxHeight: place.maxHeight }}
+      >
+          <div className={`grid gap-x-10 gap-y-8 ${calendarUsesTwoMonths(place.width) ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <MonthGrid
+              year={months[0].year}
+              monthIndex={months[0].monthIndex}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              previewOut={previewOut}
+              pickingOut={pickingOut}
+              live={live}
+              inRange={inRange}
+              allowCheckIn={allowCheckIn}
+              allowCheckOut={allowCheckOut}
+              onHover={setHover}
+              onSelect={selectDay}
+              showPrev
+              showNext
+              narrowNextOnly={calendarUsesTwoMonths(place.width)}
+              canGoBack={canGoBack}
+              onPrev={() => setCursor((value) => addMonths(value.year, value.monthIndex, -1))}
+              onNext={() => setCursor((value) => addMonths(value.year, value.monthIndex, 1))}
+            />
+            <MonthGrid
+              className={calendarUsesTwoMonths(place.width) ? '' : 'hidden'}
+              year={months[1].year}
+              monthIndex={months[1].monthIndex}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              previewOut={previewOut}
+              pickingOut={pickingOut}
+              live={live}
+              inRange={inRange}
+              allowCheckIn={allowCheckIn}
+              allowCheckOut={allowCheckOut}
+              onHover={setHover}
+              onSelect={selectDay}
+              showPrev={false}
+              showNext
+              canGoBack={canGoBack}
+              onPrev={() => setCursor((value) => addMonths(value.year, value.monthIndex, -1))}
+              onNext={() => setCursor((value) => addMonths(value.year, value.monthIndex, 1))}
+            />
           </div>
-          <p className="mt-6 text-[0.72rem] text-wood/50">
-            Дати з сервера. Минулі дні та перебування довше ніж 30 ночей обрати не можна.
-            {loading ? ' Перевіряємо наявність…' : ''}
-          </p>
+          {live ? (
+            <CalendarLegend
+              status={live.status}
+              error={live.error}
+              capacityNote={live.capacityNote}
+              loadingQuote={loading}
+              detail={hoverDetail(live, hover)}
+            />
+          ) : (
+            <p className="mt-6 text-[0.72rem] text-wood/50">
+              Дати з сервера. Минулі дні та перебування довше ніж 30 ночей обрати не можна.
+              {loading ? ' Перевіряємо наявність…' : ''}
+            </p>
+          )}
           <p className="mt-1 text-sm text-wood/70">{dateLabel}</p>
-        </div>
+      </div>
       ) : null}
 
       {panel === 'guests' ? (
@@ -205,102 +336,153 @@ export function BookingCalendar({
   )
 }
 
+function shiftIso(iso: string, days: number) {
+  const date = new Date(`${iso}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function moveCalendarFocus(current: HTMLButtonElement, days: number) {
+  const iso = current.dataset.date
+  if (!iso) return
+  const next = current.closest('[data-calendar]')?.querySelector<HTMLButtonElement>(`[data-date="${shiftIso(iso, days)}"]`)
+  next?.focus()
+}
+
 function MonthGrid({
   year,
   monthIndex,
   checkIn,
   checkOut,
   previewOut,
-  nightPrices,
   pickingOut,
+  live,
   inRange,
+  allowCheckIn,
+  allowCheckOut,
   onHover,
   onSelect,
   showPrev,
   showNext,
+  narrowNextOnly = false,
   canGoBack,
   onPrev,
   onNext,
+  className = '',
 }: {
   year: number
   monthIndex: number
   checkIn: string
   checkOut: string
   previewOut: string
-  nightPrices: Record<string, string>
   pickingOut: boolean
+  live?: Props['live']
   inRange: (iso: string) => boolean
+  allowCheckIn: (iso: string) => boolean
+  allowCheckOut: (iso: string) => boolean
   onHover: (iso: string) => void
   onSelect: (iso: string) => void
   showPrev: boolean
   showNext: boolean
+  narrowNextOnly?: boolean
   canGoBack: boolean
   onPrev: () => void
   onNext: () => void
+  className?: string
 }) {
   const cells = useMemo(() => monthCells(year, monthIndex), [year, monthIndex])
-  const lastOut = checkIn ? latestCheckOut(checkIn) : ''
+  const rangeEnd = checkOut || previewOut
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
+    <div className={`min-w-0 ${className}`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
         {showPrev ? (
           <button
             type="button"
             aria-label="Попередній місяць"
             disabled={!canGoBack}
             onClick={onPrev}
-            className="px-1 text-lg disabled:opacity-20"
+            className="h-11 w-11 shrink-0 text-lg disabled:opacity-20"
           >
             ‹
           </button>
         ) : (
-          <span className="w-5" />
+          <span className="h-11 w-11 shrink-0" />
         )}
-        <p className="text-sm font-medium">{formatMonthTitle(year, monthIndex)}</p>
+        <p className="min-w-0 flex-1 whitespace-nowrap text-center text-base font-medium">
+          {formatMonthTitle(year, monthIndex)}
+        </p>
         {showNext ? (
-          <button type="button" aria-label="Наступний місяць" onClick={onNext} className="px-1 text-lg">
+          <button
+            type="button"
+            aria-label="Наступний місяць"
+            onClick={onNext}
+            className={`h-11 w-11 shrink-0 text-lg ${narrowNextOnly ? 'invisible' : ''}`}
+          >
             ›
           </button>
         ) : (
-          <span className="w-5" />
+          <span className="h-11 w-11 shrink-0" />
         )}
       </div>
-      <div className="grid grid-cols-7 gap-y-1 text-center">
+      <div className="grid grid-cols-7 text-center">
         {weekdaysMon.map((day) => (
           <span key={day} className="pb-2 text-[0.65rem] uppercase tracking-[0.08em] text-wood/40">
             {day}
           </span>
         ))}
         {cells.map((iso, index) => {
-          if (!iso) return <span key={`empty-${index}`} />
-          const past = iso < todayIso()
-          const selectable = pickingOut
-            ? canUseAsCheckOut(checkIn, iso) || canUseAsCheckIn(iso)
-            : canUseAsCheckIn(iso)
-          const edge = iso === checkIn || iso === checkOut || iso === previewOut
+          if (!iso) return <span key={`empty-${index}`} className="h-14" />
+          const visual: DayVisual | 'open' = live
+            ? dayVisual(live.status, live.hotelToday, live.days, iso)
+            : iso < todayIso()
+              ? 'past'
+              : 'open'
+          const checkoutOnly = Boolean(live && pickingOut && allowCheckOut(iso) && visual !== 'available' && visual !== 'past')
+          const selectable = pickingOut ? allowCheckOut(iso) || allowCheckIn(iso) : allowCheckIn(iso)
+          const isIn = iso === checkIn
+          const isOut = Boolean(rangeEnd) && iso === rangeEnd && iso !== checkIn
+          const edge = isIn || isOut
           const mid = inRange(iso) && !edge
-          const price = nightPrices[iso]
-          const beyondStay = Boolean(pickingOut && checkIn && iso > lastOut)
+          const showBar = Boolean(rangeEnd && rangeEnd > checkIn && (mid || isIn || isOut))
+          const reason = live?.days[iso]?.reason ?? null
+          const explanation =
+            live && visual !== 'open' ? dayStatusCopy(visual, reason) : visual === 'past' ? 'Минула дата' : ''
           return (
             <button
               key={iso}
               type="button"
-              disabled={!selectable}
+              aria-disabled={!selectable}
+              aria-label={
+                live
+                  ? dayAriaLabel(iso, visual === 'open' ? 'unknown' : visual, checkoutOnly, reason)
+                  : `${formatDate(iso)}${visual === 'past' ? ', минула дата' : ''}`
+              }
+              title={explanation && !selectable ? explanation : undefined}
+              aria-pressed={edge || undefined}
+              data-date={iso}
+              data-availability={live ? visual : undefined}
               onMouseEnter={() => onHover(iso)}
               onMouseLeave={() => onHover('')}
               onFocus={() => onHover(iso)}
-              onClick={() => onSelect(iso)}
-              className={`min-h-[3.4rem] px-0.5 py-1 ${
-                edge ? 'bg-clay text-linen' : mid ? 'bg-beige' : ''
-              } ${selectable ? 'hover:bg-beige' : 'cursor-not-allowed text-wood/30'} ${
-                edge ? 'hover:bg-clay' : ''
-              }`}
+              onClick={() => {
+                if (selectable) onSelect(iso)
+              }}
+              onKeyDown={(event) => {
+                const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowDown' ? 7 : event.key === 'ArrowUp' ? -7 : 0
+                if (!step) return
+                event.preventDefault()
+                moveCalendarFocus(event.currentTarget, step)
+              }}
+              className={`relative h-14 min-w-0 touch-manipulation ${selectable ? '' : 'cursor-not-allowed'}`}
             >
-              <span className="block text-[0.85rem] font-medium leading-none">{Number(iso.slice(8))}</span>
-              <span className={`mt-1 block text-[0.62rem] leading-none ${edge ? 'text-linen/80' : 'text-wood/45'}`}>
-                {past || beyondStay ? '—' : price ? formatPriceK(Number(price)) : ''}
-              </span>
+              {showBar ? (
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-y-2 bg-beige/80 ${isIn ? 'left-1/2 right-0' : isOut ? 'right-1/2 left-0' : 'inset-x-0'}`}
+                />
+              ) : null}
+              <span className={numberClass(visual, edge)}>{Number(iso.slice(8))}</span>
             </button>
           )
         })}
@@ -331,7 +513,7 @@ function Stepper({
           aria-label={`Менше: ${label}`}
           disabled={value <= min}
           onClick={() => onChange(value - 1)}
-          className="h-8 w-8 border border-wood/20 disabled:opacity-30"
+          className="h-11 w-11 border border-wood/20 disabled:opacity-30"
         >
           −
         </button>
@@ -341,11 +523,88 @@ function Stepper({
           aria-label={`Більше: ${label}`}
           disabled={value >= max}
           onClick={() => onChange(value + 1)}
-          className="h-8 w-8 border border-wood/20 disabled:opacity-30"
+          className="h-11 w-11 border border-wood/20 disabled:opacity-30"
         >
           +
         </button>
       </div>
+    </div>
+  )
+}
+
+function numberClass(visual: DayVisual | 'open', edge: boolean) {
+  const base = 'pointer-events-none relative z-10 mx-auto flex h-11 w-11 items-center justify-center rounded-full text-[0.95rem] leading-none'
+  if (edge) return `${base} bg-clay font-semibold text-linen`
+  if (visual === 'available' || visual === 'open') return `${base} font-semibold text-wood`
+  if (visual === 'booked') return `${base} font-semibold text-clay/75 line-through decoration-clay decoration-2`
+  if (visual === 'past') return `${base} font-medium text-wood/30`
+  return `${base} font-medium text-wood/40`
+}
+
+function hoverDetail(
+  live: NonNullable<Props['live']>,
+  iso: string,
+) {
+  if (!iso || live.status !== 'ready') return ''
+  const visual = dayVisual(live.status, live.hotelToday, live.days, iso)
+  if (visual === 'available') return ''
+  return dayStatusCopy(visual, live.days[iso]?.reason ?? null)
+}
+
+function CalendarLegend({
+  status,
+  error,
+  capacityNote,
+  loadingQuote,
+  detail,
+}: {
+  status: CalendarLoadStatus
+  error?: string
+  capacityNote?: string
+  loadingQuote: boolean
+  detail: string
+}) {
+  const message =
+    status === 'error'
+      ? error || 'Не вдалося дізнатися наявність. Дати не показано як вільні.'
+      : status === 'loading'
+        ? 'Перевіряємо наявність… Дати ще не можна обирати.'
+        : detail ||
+          capacityNote ||
+          'Темні дати можна обрати. Закреслена ніч зайнята: її не включаємо в проживання, але виїзд можна поставити на ранок, коли номер звільняється.'
+  return (
+    <div className="mt-6">
+      <p className="text-[0.68rem] tracking-[0.14em] uppercase text-wood/50">Легенда</p>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-[0.72rem] text-wood/70">
+        <li className="flex items-center gap-2">
+          <span className="font-semibold text-wood" aria-hidden="true">
+            12
+          </span>
+          Вільно
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="font-semibold text-clay/75 line-through decoration-clay decoration-2" aria-hidden="true">
+            12
+          </span>
+          Немає місць
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="font-medium text-wood/40" aria-hidden="true">
+            12
+          </span>
+          Немає тарифу або кімната не підходить
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="font-medium text-wood/30" aria-hidden="true">
+            12
+          </span>
+          Минулі
+        </li>
+      </ul>
+      <p className="mt-3 text-[0.72rem] text-wood/60" role={status === 'error' ? 'alert' : 'status'}>
+        {message}
+        {loadingQuote && status === 'ready' ? ' Уточнюємо ціну…' : ''}
+      </p>
     </div>
   )
 }
