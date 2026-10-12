@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict'
+import { describe, it } from 'node:test'
+import { catalogNameForRoomTypeSlug, isFixtureLabel, publicPlanTitle, publicRoomLabel } from './display'
+
+const catalog = [
+  { slug: 'bukovyna', name: 'Кімната Буковина' },
+  { slug: 'goryshche', name: 'Горище DAKH' },
+]
+const map = new Map([
+  ['bukovyna', 'e2e-bukovyna'],
+  ['goryshche', 'e2e-goryshche'],
+])
+
+describe('public booking labels', () => {
+  it('uses the catalog name only when one page maps to that room slug', () => {
+    assert.equal(catalogNameForRoomTypeSlug('e2e-bukovyna', catalog, map), 'Кімната Буковина')
+    assert.equal(catalogNameForRoomTypeSlug('e2e-bukovyna', [...catalog, { slug: 'other', name: 'Інша' }], new Map()), null)
+    assert.equal(
+      catalogNameForRoomTypeSlug('e2e-bukovyna', [...catalog, { slug: 'copy', name: 'Копія' }], new Map([
+        ['bukovyna', 'e2e-bukovyna'],
+        ['copy', 'e2e-bukovyna'],
+      ])),
+      null,
+    )
+  })
+
+  it('hides fixture room and rate names without inventing a different room', () => {
+    assert.equal(isFixtureLabel('E2E Bukovyna'), true)
+    assert.equal(isFixtureLabel('Кімната Буковина'), false)
+    assert.equal(publicRoomLabel('E2E Bukovyna', 'ROOM', 'Кімната Буковина'), 'Кімната Буковина')
+    assert.equal(publicRoomLabel('E2E Bukovyna', 'ROOM', null), 'Кімната')
+    assert.equal(publicRoomLabel('Сімейний', 'ROOM', null), 'Сімейний')
+    assert.equal(publicPlanTitle({ name: 'E2E Overlap Prices', type: 'STANDARD' }), 'Стандарт')
+    assert.equal(publicPlanTitle({ name: 'Зі сніданком', type: 'STANDARD' }), 'Зі сніданком')
+  })
+})

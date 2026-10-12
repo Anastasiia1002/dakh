@@ -6,7 +6,9 @@ import {
   intentLooksExpired,
   isQuoteFresh,
   newIdempotencyKey,
+  resumeIntentForStay,
   type CheckoutStep,
+  type StoredStay,
   writeStoredConfirmationToken,
   writeStoredIntent,
 } from './checkout'
@@ -27,18 +29,20 @@ type GuestInput = {
   comment?: string
 }
 
-export function useBookingCheckout() {
-  const [step, setStep] = useState<CheckoutStep>('collect')
+export function useBookingCheckout(stay?: StoredStay) {
+  const resumed = stay?.roomTypeId && stay.checkIn && stay.checkOut ? resumeIntentForStay(stay) : null
+  const [step, setStep] = useState<CheckoutStep>(resumed ? 'verify' : 'collect')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [intent, setIntent] = useState<PublicBookingIntentResponse | null>(null)
+  const [intent, setIntent] = useState<PublicBookingIntentResponse | null>(resumed)
   const [otp, setOtp] = useState<PublicOtpRequestResponse | null>(null)
   const [pendingQuote, setPendingQuote] = useState<PublicQuoteResponse | null>(null)
-  const [priceChangeAt, setPriceChangeAt] = useState<'intent' | 'confirm' | null>(null)
+  const [priceChangeAt, setPriceChangeAt] = useState<'intent' | 'confirm' | 'email' | null>(null)
   const [confirmation, setConfirmation] = useState<PublicBookingConfirmationResponse | null>(null)
   const [cooldownUntil, setCooldownUntil] = useState(0)
   const inflight = useRef(false)
   const idempotencyKey = useRef(newIdempotencyKey())
+  const emailCorrection = useRef('')
 
   function markCooldown(seconds: number) {
     setCooldownUntil(Date.now() + Math.max(0, seconds) * 1000)
@@ -59,6 +63,7 @@ export function useBookingCheckout() {
     setConfirmation(null)
     setCooldownUntil(0)
     inflight.current = false
+    emailCorrection.current = ''
     resetAttempt()
     clearStoredIntent()
   }
@@ -98,8 +103,13 @@ export function useBookingCheckout() {
       { idempotencyKey: idempotencyKey.current },
     )
     setIntent(created)
-    writeStoredIntent(created)
-    setPendingQuote(null)
+    writeStoredIntent(created, {
+      roomTypeId: quote.roomTypeId,
+      checkIn: quote.checkIn,
+      checkOut: quote.checkOut,
+      guestCount: quote.guestCount,
+    })
+    setPendingQuote(quote)
     setPriceChangeAt(null)
     setStep('verify')
     try {
@@ -151,52 +161,65 @@ export function useBookingCheckout() {
     }
   }
 
-  async function correctEmail(email: string) {
-    if (!intent || inflight.current || busy) return
+  async function replaceEmail(
+    email: string,
+    reaccept?: { acceptedTotalAmount: string; quoteToken: string },
+  ) {
+    if (!intent) return
     if (intentLooksExpired(intent.expiresAt)) {
       setError('Час на підтвердження минув. Почніть бронювання знову.')
       setStep('collect')
       clearStoredIntent()
       return
     }
+    const key = newIdempotencyKey()
+    idempotencyKey.current = key
+    emailCorrection.current = email.trim()
+    const created = await publicBookingClient.correctEmail(
+      intent.intentId,
+      {
+        email: email.trim(),
+        acceptedTotalAmount: reaccept?.acceptedTotalAmount,
+        quoteToken: reaccept?.quoteToken,
+      },
+      { idempotencyKey: key },
+    )
+    emailCorrection.current = ''
+    setIntent(created)
+    writeStoredIntent(created)
+    setPriceChangeAt(null)
+    setStep('verify')
+    try {
+      const sent = await publicBookingClient.requestEmailVerification(created.intentId)
+      setOtp(sent)
+      markCooldown(sent.cooldownSeconds)
+    } catch (otpError) {
+      if (isAbortError(otpError)) throw otpError
+      setError(errorCopy(otpError))
+      const wait = retryAfterSeconds(otpError)
+      if (wait != null) markCooldown(wait)
+    }
+  }
+
+  async function correctEmail(email: string) {
+    if (!intent || inflight.current || busy) return
     inflight.current = true
     setBusy(true)
     setError('')
-    const key = newIdempotencyKey()
-    idempotencyKey.current = key
     try {
-      const created = await publicBookingClient.correctEmail(
-        intent.intentId,
-        { email: email.trim() },
-        { idempotencyKey: key },
-      )
-      setIntent(created)
-      writeStoredIntent(created)
-      setPendingQuote(null)
-      setPriceChangeAt(null)
-      setStep('verify')
-      try {
-        const sent = await publicBookingClient.requestEmailVerification(created.intentId)
-        setOtp(sent)
-        markCooldown(sent.cooldownSeconds)
-      } catch (otpError) {
-        if (isAbortError(otpError)) throw otpError
-        setError(errorCopy(otpError))
-        const wait = retryAfterSeconds(otpError)
-        if (wait != null) markCooldown(wait)
-      }
+      await replaceEmail(email)
     } catch (caught) {
       if (isAbortError(caught)) return
       const changed = quoteFromPriceChanged(caught)
       if (changed) {
+        emailCorrection.current = email.trim()
         setPendingQuote(changed)
-        setPriceChangeAt('intent')
+        setPriceChangeAt('email')
         setStep('price_changed')
         setError(errorCopy(caught))
-        clearStoredIntent()
-        setIntent(null)
         return
       }
+      emailCorrection.current = ''
       if (isPublicApiError(caught) && (caught.error === 'UNAVAILABLE' || caught.error === 'INTENT_EXPIRED' || caught.error === 'INTENT_NOT_FOUND')) {
         setStep(caught.error === 'UNAVAILABLE' ? 'unavailable' : 'collect')
         setError(errorCopy(caught))
@@ -288,6 +311,13 @@ export function useBookingCheckout() {
           quoteToken: pendingQuote.quoteToken,
         })
         await finishConfirmed(result)
+        return
+      }
+      if (priceChangeAt === 'email' && emailCorrection.current) {
+        await replaceEmail(emailCorrection.current, {
+          acceptedTotalAmount: pendingQuote.totalAmount,
+          quoteToken: pendingQuote.quoteToken,
+        })
         return
       }
       resetAttempt()

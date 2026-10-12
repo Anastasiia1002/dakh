@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { GuestFieldErrors } from '../../lib/publicBooking'
+import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/display'
 import { rateConditions, rateTypeLabel, roomKindLabel } from '../../lib/publicBooking'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
 import type { BookingDraft } from '../../lib/booking'
@@ -40,7 +41,7 @@ export function OtpPanel({
   onCorrectEmail: (email: string) => void
 }) {
   const [editing, setEditing] = useState(false)
-  const [nextEmail, setNextEmail] = useState(email)
+  const [nextEmail, setNextEmail] = useState(() => (email.includes('*') ? '' : email))
   return (
     <div className="mt-6">
       <p className="text-sm text-wood/70">
@@ -178,6 +179,7 @@ export function RoomOptions({
   error,
   searchable,
   onSelect,
+  roomLabel,
 }: {
   rooms: PublicAvailabilityRoomType[]
   selectedId: string
@@ -185,6 +187,7 @@ export function RoomOptions({
   error: string
   searchable: boolean
   onSelect: (room: PublicAvailabilityRoomType) => void
+  roomLabel?: (room: PublicAvailabilityRoomType) => string
 }) {
   if (!searchable) {
     return <p className="mt-6 text-sm text-wood/60">Оберіть дати, щоб побачити вільні кімнати.</p>
@@ -228,7 +231,7 @@ export function RoomOptions({
             {roomKindLabel(room.kind)}
           </span>
           <span>
-            <span className="block font-medium">{room.name}</span>
+            <span className="block font-medium">{roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}</span>
             <span className="text-sm text-wood/60">
               до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
               {room.availableCount}
@@ -286,7 +289,7 @@ export function RatePlanOptions({
             onChange={() => onSelect(plan.ratePlanId)}
             className="sr-only"
           />
-          <span className="block font-medium">{plan.name}</span>
+          <span className="block font-medium">{publicPlanTitle(plan)}</span>
           <span className="mt-1 block text-sm text-wood/60">
             {rateTypeLabel(plan.type)} · попередньо {formatMoneyAmount(plan.totalAmount)}
           </span>
@@ -310,6 +313,7 @@ export function QuoteSummary({
   quoteError,
   missingRoomCopy = 'Оберіть кімнату зі списку вільних.',
   availabilityStatus,
+  roomLabel,
 }: {
   checkIn: string
   checkOut: string
@@ -324,20 +328,37 @@ export function QuoteSummary({
   quoteError: string
   missingRoomCopy?: string
   availabilityStatus?: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+  roomLabel?: string
 }) {
+  const roomName = room ? publicRoomLabel(room.name, room.kind, roomLabel) : roomLabel
   if (!checkIn || !checkOut || nights < 1) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть заїзд і виїзд.</p>
+    return (
+      <div className="mt-6 text-sm">
+        {roomName ? <p className="font-medium">{roomName}</p> : null}
+        <p className={roomName ? 'mt-2 text-wood/60' : 'text-wood/60'}>Оберіть заїзд і виїзд.</p>
+      </div>
+    )
   }
   if (!room) {
     if (availabilityStatus === 'loading') {
-      return <p className="mt-6 text-sm text-wood/60">Перевіряємо наявність цієї кімнати…</p>
+      return (
+        <div className="mt-6 text-sm">
+          {roomName ? <p className="font-medium">{roomName}</p> : null}
+          <p className="mt-2 text-wood/60">Перевіряємо наявність цієї кімнати…</p>
+        </div>
+      )
     }
-    return <p className="mt-6 text-sm text-wood/60">{missingRoomCopy}</p>
+    return (
+      <div className="mt-6 text-sm">
+        {roomName ? <p className="font-medium">{roomName}</p> : null}
+        <p className="mt-2 text-wood/60">{missingRoomCopy}</p>
+      </div>
+    )
   }
   if (room.ratePlans.length === 0) {
     return (
       <div className="mt-6 text-sm leading-relaxed text-wood/70">
-        <p className="font-medium">{room.name}</p>
+        <p className="font-medium">{roomName}</p>
         <p className="mt-2">
           {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
           {guestCount === 1 ? 'гість' : 'гостей'}
@@ -364,12 +385,10 @@ export function QuoteSummary({
 
   return (
     <div className="mt-6 text-sm leading-relaxed">
-      <p className="font-medium">{room.name}</p>
+      <p className="font-medium">{roomName}</p>
       {plan ? (
         <div className="mt-1 text-wood/70">
-          <p>
-            {plan.name} · {rateTypeLabel(plan.type)}
-          </p>
+          <p>{publicPlanTitle(plan)}</p>
           <p className="mt-1">{rateConditions(plan.type)}</p>
         </div>
       ) : null}

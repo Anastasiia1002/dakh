@@ -139,7 +139,7 @@ export class PublicBookingClient {
 
   correctEmail(
     intentId: string,
-    body: { email: string },
+    body: { email: string; acceptedTotalAmount?: string; quoteToken?: string },
     init: RequestInit & { idempotencyKey?: string } = {},
   ): Promise<PublicBookingIntentResponse> {
     return this.request<PublicBookingIntentResponse>(`/booking-intents/${encodeURIComponent(intentId)}/email`, {

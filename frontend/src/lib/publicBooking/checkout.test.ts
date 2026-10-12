@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isConfirmationToken, isOtpCode, isQuoteFresh } from './checkout'
+import { isConfirmationToken, isOtpCode, isQuoteFresh, storedIntentMatchesStay } from './checkout'
 import { quoteFromPriceChanged, retryAfterSeconds } from './errors'
 import { PublicApiError } from './errors'
 
@@ -51,5 +51,27 @@ describe('checkout helpers', () => {
       ),
       12,
     )
+  })
+
+  it('resumes a pending intent only for the same stay', () => {
+    const stored = {
+      intentId: '11111111-1111-4111-8111-111111111111',
+      emailMasked: 'ox***@example.test',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      roomTypeId: '33333333-3333-4333-8333-333333333331',
+      checkIn: '2026-12-15',
+      checkOut: '2026-12-17',
+      guestCount: 2,
+    }
+    const stay = {
+      roomTypeId: stored.roomTypeId,
+      checkIn: stored.checkIn,
+      checkOut: stored.checkOut,
+      guestCount: 2,
+    }
+    assert.equal(storedIntentMatchesStay(stored, stay), true)
+    assert.equal(storedIntentMatchesStay(stored, { ...stay, checkOut: '2026-12-18' }), false)
+    assert.equal(storedIntentMatchesStay({ ...stored, roomTypeId: undefined }, stay), false)
+    assert.equal(storedIntentMatchesStay({ ...stored, expiresAt: '2000-01-01T00:00:00.000Z' }, stay), false)
   })
 })

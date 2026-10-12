@@ -15,6 +15,17 @@ export type StoredCheckout = {
   intentId: string
   emailMasked: string
   expiresAt: string
+  roomTypeId?: string
+  checkIn?: string
+  checkOut?: string
+  guestCount?: number
+}
+
+export type StoredStay = {
+  roomTypeId: string
+  checkIn: string
+  checkOut: string
+  guestCount: number
 }
 
 const INTENT_SESSION_KEY = 'dakh-booking-intent'
@@ -52,19 +63,58 @@ export function readStoredIntent(): StoredCheckout | null {
   try {
     const parsed = JSON.parse(raw) as StoredCheckout
     if (!parsed.intentId || !parsed.emailMasked || !parsed.expiresAt) return null
+    if (parsed.guestCount != null && !Number.isInteger(parsed.guestCount)) return null
     return parsed
   } catch {
     return null
   }
 }
 
-export function writeStoredIntent(intent: PublicBookingIntentResponse) {
+export function storedIntentMatchesStay(stored: StoredCheckout | null, stay: StoredStay) {
+  if (!stored?.roomTypeId || !stored.checkIn || !stored.checkOut || stored.guestCount == null) return false
+  if (intentLooksExpired(stored.expiresAt)) return false
+  return (
+    stored.roomTypeId === stay.roomTypeId &&
+    stored.checkIn === stay.checkIn &&
+    stored.checkOut === stay.checkOut &&
+    stored.guestCount === stay.guestCount
+  )
+}
+
+export function resumeIntentForStay(stay: StoredStay): PublicBookingIntentResponse | null {
+  const stored = readStoredIntent()
+  if (!storedIntentMatchesStay(stored, stay) || !stored) return null
+  return {
+    intentId: stored.intentId,
+    status: 'PENDING_VERIFICATION',
+    emailMasked: stored.emailMasked,
+    verificationRequired: true,
+    expiresAt: stored.expiresAt,
+  }
+}
+
+export function writeStoredIntent(intent: PublicBookingIntentResponse, stay?: StoredStay) {
+  const previous = readStoredIntent()
+  const bound =
+    stay ??
+    (previous?.roomTypeId && previous.checkIn && previous.checkOut && previous.guestCount != null
+      ? {
+          roomTypeId: previous.roomTypeId,
+          checkIn: previous.checkIn,
+          checkOut: previous.checkOut,
+          guestCount: previous.guestCount,
+        }
+      : undefined)
   sessionStore()?.setItem(
     INTENT_SESSION_KEY,
     JSON.stringify({
       intentId: intent.intentId,
       emailMasked: intent.emailMasked,
       expiresAt: intent.expiresAt,
+      roomTypeId: bound?.roomTypeId,
+      checkIn: bound?.checkIn,
+      checkOut: bound?.checkOut,
+      guestCount: bound?.guestCount,
     } satisfies StoredCheckout),
   )
 }
