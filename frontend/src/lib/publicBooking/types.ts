@@ -56,6 +56,42 @@ export interface PublicAvailabilityResponse {
   roomTypes: PublicAvailabilityRoomType[]
 }
 
+export type PublicCalendarDayStatus = 'available' | 'booked' | 'restricted' | 'closed'
+
+export type PublicCalendarReason = 'booking' | 'block' | 'occupancy' | 'rate' | 'inactive' | null
+
+export interface PublicCalendarQuery {
+  from: string
+  to: string
+  guestCount?: number
+  roomTypeId?: string
+}
+
+export interface PublicCalendarDay {
+  date: string
+  status: PublicCalendarDayStatus
+  availableCount: number
+  reason: PublicCalendarReason
+}
+
+export interface PublicCalendarRoomType {
+  roomTypeId: string
+  slug: string
+  name: string
+  kind: PublicRoomKind
+  maxGuests: number
+  days: PublicCalendarDay[]
+}
+
+export interface PublicCalendarResponse {
+  from: string
+  to: string
+  hotelToday: string
+  currency: SupportedCurrency
+  guestCount: number | null
+  roomTypes: PublicCalendarRoomType[]
+}
+
 export interface PublicQuoteRequest {
   checkIn: string
   checkOut: string
@@ -87,7 +123,7 @@ export interface PublicGuestContact {
   firstName: string
   lastName: string
   email: string
-  phone?: string
+  phone: string
 }
 
 export interface CreateBookingIntentRequest {
@@ -99,6 +135,7 @@ export interface CreateBookingIntentRequest {
   quoteToken: string
   acceptedTotalAmount: string
   guest: PublicGuestContact
+  guestComment?: string
 }
 
 export interface PublicBookingIntentResponse {

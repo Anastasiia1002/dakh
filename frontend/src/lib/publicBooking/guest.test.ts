@@ -25,26 +25,47 @@ describe('guest contact', () => {
         phone: '',
         email: 'ivan@example.com',
       }),
-      true,
+      false,
     )
   })
 
-  it('omits empty phone and keeps a provided number', () => {
+  it('requires a valid phone and normalizes Ukrainian and international numbers', () => {
+    assert.match(guestFieldErrors({
+      firstName: 'Іван',
+      lastName: 'Коваленко',
+      phone: '',
+      email: 'ivan@example.com',
+    }).phone ?? '', /телефон/)
+    assert.ok(guestFieldErrors({
+      firstName: 'Іван',
+      lastName: 'Коваленко',
+      phone: '123',
+      email: 'ivan@example.com',
+    }).phone)
     assert.equal(
       toGuestContact({
         firstName: 'Іван',
         lastName: 'Коваленко',
-        phone: '',
+        phone: '0958180001',
         email: 'ivan@example.com',
       }).phone,
-      undefined,
+      '+380958180001',
     )
-    const withPhone = toGuestContact({
+    assert.equal(
+      toGuestContact({
+        firstName: 'Іван',
+        lastName: 'Коваленко',
+        phone: '+1 415 555 2671',
+        email: 'ivan@example.com',
+      }).phone,
+      '+14155552671',
+    )
+    assert.match(guestFieldErrors({
       firstName: 'Іван',
       lastName: 'Коваленко',
-      phone: '0958180001',
+      phone: '+380501112233',
       email: 'ivan@example.com',
-    })
-    assert.equal(withPhone.phone, '+38 (095) 818-00-01')
+      comment: 'x'.repeat(1001),
+    }).comment ?? '', /1000/)
   })
 })

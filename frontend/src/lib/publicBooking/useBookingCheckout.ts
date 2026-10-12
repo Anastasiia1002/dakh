@@ -11,7 +11,7 @@ import {
   writeStoredIntent,
 } from './checkout'
 import { errorCopy, isAbortError, isPublicApiError, quoteFromPriceChanged, retryAfterSeconds } from './errors'
-import { toGuestContact } from './guest'
+import { guestCommentForIntent, toGuestContact } from './guest'
 import type {
   PublicBookingConfirmationResponse,
   PublicBookingIntentResponse,
@@ -24,6 +24,7 @@ type GuestInput = {
   lastName: string
   phone: string
   email: string
+  comment?: string
 }
 
 export function useBookingCheckout() {
@@ -92,6 +93,7 @@ export function useBookingCheckout() {
         quoteToken: quote.quoteToken,
         acceptedTotalAmount: quote.totalAmount,
         guest: toGuestContact(guest),
+        guestComment: guestCommentForIntent(guest.comment ?? ''),
       },
       { idempotencyKey: idempotencyKey.current },
     )
@@ -142,6 +144,69 @@ export function useBookingCheckout() {
         return
       }
       setStep('collect')
+      setError(errorCopy(caught))
+    } finally {
+      inflight.current = false
+      setBusy(false)
+    }
+  }
+
+  async function correctEmail(email: string) {
+    if (!intent || inflight.current || busy) return
+    if (intentLooksExpired(intent.expiresAt)) {
+      setError('Час на підтвердження минув. Почніть бронювання знову.')
+      setStep('collect')
+      clearStoredIntent()
+      return
+    }
+    inflight.current = true
+    setBusy(true)
+    setError('')
+    const key = newIdempotencyKey()
+    idempotencyKey.current = key
+    try {
+      const created = await publicBookingClient.correctEmail(
+        intent.intentId,
+        { email: email.trim() },
+        { idempotencyKey: key },
+      )
+      setIntent(created)
+      writeStoredIntent(created)
+      setPendingQuote(null)
+      setPriceChangeAt(null)
+      setStep('verify')
+      try {
+        const sent = await publicBookingClient.requestEmailVerification(created.intentId)
+        setOtp(sent)
+        markCooldown(sent.cooldownSeconds)
+      } catch (otpError) {
+        if (isAbortError(otpError)) throw otpError
+        setError(errorCopy(otpError))
+        const wait = retryAfterSeconds(otpError)
+        if (wait != null) markCooldown(wait)
+      }
+    } catch (caught) {
+      if (isAbortError(caught)) return
+      const changed = quoteFromPriceChanged(caught)
+      if (changed) {
+        setPendingQuote(changed)
+        setPriceChangeAt('intent')
+        setStep('price_changed')
+        setError(errorCopy(caught))
+        clearStoredIntent()
+        setIntent(null)
+        return
+      }
+      if (isPublicApiError(caught) && (caught.error === 'UNAVAILABLE' || caught.error === 'INTENT_EXPIRED' || caught.error === 'INTENT_NOT_FOUND')) {
+        setStep(caught.error === 'UNAVAILABLE' ? 'unavailable' : 'collect')
+        setError(errorCopy(caught))
+        if (caught.error !== 'UNAVAILABLE') {
+          setIntent(null)
+          clearStoredIntent()
+        }
+        return
+      }
+      setStep('verify')
       setError(errorCopy(caught))
     } finally {
       inflight.current = false
@@ -300,6 +365,7 @@ export function useBookingCheckout() {
     confirmation,
     cooldownUntil,
     startCheckout,
+    correctEmail,
     resendCode,
     confirmCode,
     acceptChangedPrice,

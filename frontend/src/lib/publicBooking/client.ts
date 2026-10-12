@@ -5,6 +5,8 @@ import type {
   CreateBookingIntentRequest,
   PublicAvailabilityQuery,
   PublicAvailabilityResponse,
+  PublicCalendarQuery,
+  PublicCalendarResponse,
   PublicBookingConfirmationResponse,
   PublicBookingIntentResponse,
   PublicOtpRequestResponse,
@@ -95,6 +97,16 @@ export class PublicBookingClient {
     return this.request<PublicAvailabilityResponse>(`${this.hotelPath('/availability')}?${params}`, init)
   }
 
+  calendar(query: PublicCalendarQuery, init: RequestInit = {}): Promise<PublicCalendarResponse> {
+    const params = new URLSearchParams({
+      from: query.from,
+      to: query.to,
+    })
+    if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
+    if (query.roomTypeId) params.set('roomTypeId', query.roomTypeId)
+    return this.request<PublicCalendarResponse>(`${this.hotelPath('/availability/calendar')}?${params}`, init)
+  }
+
   quote(body: PublicQuoteRequest, init: RequestInit = {}): Promise<PublicQuoteResponse> {
     return this.request<PublicQuoteResponse>(this.hotelPath('/quotes'), {
       ...init,
@@ -123,6 +135,18 @@ export class PublicBookingClient {
       `/booking-intents/${encodeURIComponent(intentId)}/email-verification/request`,
       { ...init, method: 'POST' },
     )
+  }
+
+  correctEmail(
+    intentId: string,
+    body: { email: string },
+    init: RequestInit & { idempotencyKey?: string } = {},
+  ): Promise<PublicBookingIntentResponse> {
+    return this.request<PublicBookingIntentResponse>(`/booking-intents/${encodeURIComponent(intentId)}/email`, {
+      ...init,
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
   }
 
   confirmEmailVerification(

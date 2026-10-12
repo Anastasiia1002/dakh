@@ -1,31 +1,29 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../components/BookingCalendar'
+import {
+  GuestFields,
+  OtpPanel,
+  PriceChangePanel,
+  QuoteSummary,
+  RoomOptions,
+} from '../components/booking/CheckoutPanels'
 import { emptyDraft, type BookingDraft } from '../lib/booking'
-import { formatDate, formatMoneyAmount } from '../lib/format'
-import { formatUaMobile } from '../lib/phone'
+import { formatBookingPhone } from '../lib/phone'
 import {
   guestCountOf,
   guestFieldErrors,
   guestFormIsValid,
   isQuoteFresh,
-  rateTypeLabel,
-  roomKindLabel,
-  soleRatePlanId,
+  selectedRatePlanId,
   stayNights,
+  useAvailabilityCalendar,
   useBookingCheckout,
   useStaySearch,
   type GuestFieldErrors,
 } from '../lib/publicBooking'
+import { reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
-import type { PublicAvailabilityRatePlan, PublicAvailabilityRoomType } from '../lib/publicBooking/types'
-
-function fieldClass(error?: string) {
-  return [
-    'mt-1 w-full border-0 border-b bg-transparent py-2 outline-none',
-    error ? 'border-clay' : 'border-wood/25',
-  ].join(' ')
-}
 
 function draftFromParams(params: URLSearchParams): BookingDraft {
   const from = params.get('from') || ''
@@ -48,6 +46,11 @@ export function BookingPage() {
   const [now, setNow] = useState(() => Date.now())
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
+  const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
+  const onVisibleRange = useCallback((range: { from: string; to: string }) => {
+    setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
+  }, [])
+  const calendar = useAvailabilityCalendar(calendarRange, guestCount, draft.roomTypeId)
   const search = useStaySearch(
     draft.checkIn,
     draft.checkOut,
@@ -61,6 +64,7 @@ export function BookingPage() {
     lastName: draft.lastName,
     phone: draft.phone,
     email: draft.email,
+    comment: draft.comment,
   }
   const quoteReady = isQuoteFresh(search.quote, now)
   const canSubmit =
@@ -70,10 +74,37 @@ export function BookingPage() {
     checkout.step === 'collect' &&
     search.configured
 
+  const nextRate = selectedRatePlanId(search.selectedRoom)
+  if (draft.roomTypeId && nextRate !== draft.ratePlanId) {
+    setDraft((current) => ({ ...current, ratePlanId: nextRate }))
+  }
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15_000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    const next = reconcileStay({
+      status: calendar.status,
+      hotelToday: calendar.hotelToday,
+      days: calendar.days,
+      checkIn: draft.checkIn,
+      checkOut: draft.checkOut,
+    })
+    if (next.checkIn === draft.checkIn && next.checkOut === draft.checkOut) return
+    if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+      checkout.resetToCollect()
+      setOtpCode('')
+    }
+    setDraft((current) => ({
+      ...current,
+      checkIn: next.checkIn,
+      checkOut: next.checkOut,
+      roomTypeId: next.checkIn ? current.roomTypeId : '',
+      ratePlanId: next.checkOut ? current.ratePlanId : '',
+    }))
+  }, [calendar.days, calendar.hotelToday, calendar.status, checkout, draft.checkIn, draft.checkOut])
 
   useEffect(() => {
     if (checkout.step !== 'confirmed') return
@@ -124,8 +155,8 @@ export function BookingPage() {
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
       <p className="mt-5 max-w-xl text-sm text-wood/70">
-        Оберіть дати, кімнату й тариф. Після заявки надішлемо код на пошту. Стіл у ресторані —
-        телефоном.
+        Оберіть дати й кімнату. Тариф підберемо за найнижчою сумою і покажемо умови. Після заявки
+        надішлемо код на пошту.
       </p>
 
       <p className="mt-10 text-sm text-wood/60">
@@ -142,6 +173,14 @@ export function BookingPage() {
           kids={draft.children}
           nightPrices={search.nightPrices}
           loading={search.availabilityStatus === 'loading' || search.quoteStatus === 'loading'}
+          live={{
+            status: calendar.status,
+            hotelToday: calendar.hotelToday,
+            days: calendar.days,
+            error: calendar.error,
+            capacityNote: calendar.capacityNote,
+          }}
+          onVisibleRange={onVisibleRange}
           onChange={patch}
         />
       </div>
@@ -159,122 +198,36 @@ export function BookingPage() {
               onSelect={(room) =>
                 patch({
                   roomTypeId: room.roomTypeId,
-                  ratePlanId: soleRatePlanId(room),
+                  ratePlanId: selectedRatePlanId(room),
                 })
               }
             />
           </fieldset>
 
           <fieldset className="border-0 p-0">
-            <legend className="font-display text-3xl">Обрати тариф</legend>
-            <RatePlanOptions
-              room={search.selectedRoom}
-              selectedId={draft.ratePlanId}
-              availabilityStatus={search.availabilityStatus}
-              onSelect={(ratePlanId) => patch({ ratePlanId })}
-            />
-          </fieldset>
-
-          <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Деталі гостя</legend>
-            <p className="mt-2 text-sm text-wood/70">
-              Ім’я та прізвище надсилаємо окремо, як просить сервер. Телефон можна не вказувати.
-            </p>
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Ім’я *
-                <input
-                  autoComplete="given-name"
-                  value={draft.firstName}
-                  aria-invalid={Boolean(guestErr.firstName)}
-                  onChange={(event) => patch({ firstName: event.target.value })}
-                  className={fieldClass(guestErr.firstName)}
-                />
-                {guestErr.firstName ? (
-                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
-                    {guestErr.firstName}
-                  </span>
-                ) : null}
-              </label>
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Прізвище *
-                <input
-                  autoComplete="family-name"
-                  value={draft.lastName}
-                  aria-invalid={Boolean(guestErr.lastName)}
-                  onChange={(event) => patch({ lastName: event.target.value })}
-                  className={fieldClass(guestErr.lastName)}
-                />
-                {guestErr.lastName ? (
-                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
-                    {guestErr.lastName}
-                  </span>
-                ) : null}
-              </label>
-            </div>
-            <div className="mt-6 grid gap-6">
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Телефон
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="+38 (095) 818-00-01"
-                  value={draft.phone}
-                  aria-invalid={Boolean(guestErr.phone)}
-                  onChange={(event) => patch({ phone: event.target.value })}
-                  onBlur={() => {
-                    if (!draft.phone.trim()) {
-                      setGuestErr((current) => ({ ...current, phone: undefined }))
-                      return
-                    }
-                    const formatted = formatUaMobile(draft.phone)
-                    if (formatted) patch({ phone: formatted })
-                    else setGuestErr((current) => ({ ...current, phone: guestFieldErrors(guest).phone }))
-                  }}
-                  className={fieldClass(guestErr.phone)}
-                />
-                {guestErr.phone ? (
-                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
-                    {guestErr.phone}
-                  </span>
-                ) : null}
-              </label>
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Пошта *
-                <input
-                  type="email"
-                  autoComplete="email"
-                  placeholder="name@email.com"
-                  value={draft.email}
-                  aria-invalid={Boolean(guestErr.email)}
-                  onChange={(event) => patch({ email: event.target.value })}
-                  onBlur={() => {
-                    const trimmed = draft.email.trim()
-                    if (trimmed !== draft.email) patch({ email: trimmed })
-                    setGuestErr((current) => ({ ...current, email: guestFieldErrors({ ...guest, email: trimmed }).email }))
-                  }}
-                  className={fieldClass(guestErr.email)}
-                />
-                {guestErr.email ? (
-                  <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
-                    {guestErr.email}
-                  </span>
-                ) : null}
-              </label>
-              <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-                Коментар
-                <textarea
-                  rows={3}
-                  value={draft.comment}
-                  onChange={(event) => patch({ comment: event.target.value })}
-                  className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
-                />
-                <span className="mt-2 block text-[0.72rem] font-normal normal-case tracking-normal text-wood/45">
-                  Сервер цей коментар не приймає — поле лише на сторінці.
-                </span>
-              </label>
-            </div>
+            <GuestFields
+              draft={draft}
+              errors={guestErr}
+              onChange={patch}
+              onPhoneBlur={() => {
+                if (!draft.phone.trim()) {
+                  setGuestErr((current) => ({ ...current, phone: undefined }))
+                  return
+                }
+                const formatted = formatBookingPhone(draft.phone)
+                if (formatted) patch({ phone: formatted })
+                else setGuestErr((current) => ({ ...current, phone: guestFieldErrors(guest).phone }))
+              }}
+              onEmailBlur={() => {
+                const trimmed = draft.email.trim()
+                if (trimmed !== draft.email) patch({ email: trimmed })
+                setGuestErr((current) => ({
+                  ...current,
+                  email: guestFieldErrors({ ...guest, email: trimmed }).email,
+                }))
+              }}
+            />
           </fieldset>
         </div>
 
@@ -308,7 +261,7 @@ export function BookingPage() {
             />
           ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
             <OtpPanel
-              maskedEmail={checkout.intent?.emailMasked ?? ''}
+              email={draft.email.trim()}
               code={otpCode}
               busy={checkout.busy}
               error={checkout.error}
@@ -317,6 +270,11 @@ export function BookingPage() {
               onCode={setOtpCode}
               onConfirm={() => checkout.confirmCode(otpCode)}
               onResend={() => checkout.resendCode()}
+              onCorrectEmail={(email) => {
+                patch({ email })
+                setOtpCode('')
+                void checkout.correctEmail(email)
+              }}
             />
           ) : checkout.step === 'unavailable' ? (
             <div className="mt-6">
@@ -361,335 +319,5 @@ export function BookingPage() {
         </aside>
       </form>
     </section>
-  )
-}
-
-function OtpPanel({
-  maskedEmail,
-  code,
-  busy,
-  error,
-  cooldownLeft,
-  otpExpiresAt,
-  onCode,
-  onConfirm,
-  onResend,
-}: {
-  maskedEmail: string
-  code: string
-  busy: boolean
-  error: string
-  cooldownLeft: number
-  otpExpiresAt?: string
-  onCode: (value: string) => void
-  onConfirm: () => void
-  onResend: () => void
-}) {
-  return (
-    <div className="mt-6">
-      <p className="text-sm text-wood/70">
-        Код надіслано на {maskedEmail || 'вказану пошту'}. Бронювання ще не створено.
-      </p>
-      <label className="mt-6 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
-        Код з листа
-        <input
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          value={code}
-          onChange={(event) => onCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 tracking-[0.24em] outline-none"
-        />
-      </label>
-      {otpExpiresAt ? (
-        <p className="mt-2 text-[0.72rem] text-wood/50">Код дійсний до {new Date(otpExpiresAt).toLocaleTimeString('uk-UA')}</p>
-      ) : null}
-      {error ? (
-        <p className="mt-3 text-sm text-clay" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <button
-        type="button"
-        disabled={busy || code.length !== 6}
-        onClick={onConfirm}
-        className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
-      >
-        {busy ? 'Перевіряємо…' : 'Підтвердити код'}
-      </button>
-      <button
-        type="button"
-        disabled={busy || cooldownLeft > 0}
-        onClick={onResend}
-        className="mt-3 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase disabled:opacity-40"
-      >
-        {cooldownLeft > 0 ? `Надіслати знову через ${cooldownLeft} с` : 'Надіслати код знову'}
-      </button>
-    </div>
-  )
-}
-
-function PriceChangePanel({
-  previousTotal,
-  quote,
-  busy,
-  error,
-  onAccept,
-  onDecline,
-}: {
-  previousTotal?: string
-  quote: NonNullable<ReturnType<typeof useBookingCheckout>['pendingQuote']>
-  busy: boolean
-  error: string
-  onAccept: () => void
-  onDecline: () => void
-}) {
-  return (
-    <div className="mt-6">
-      <p className="text-sm text-clay" role="alert">
-        {error || 'Ціна змінилася. Підтвердіть нову суму, якщо згодні.'}
-      </p>
-      {previousTotal && previousTotal !== quote.totalAmount ? (
-        <p className="mt-3 text-sm text-wood/60">Було {formatMoneyAmount(previousTotal)}</p>
-      ) : null}
-      <p className="mt-2 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      <ul className="mt-4 space-y-1 text-sm text-wood/70">
-        {quote.nights.map((night) => (
-          <li key={night.date} className="flex justify-between gap-4">
-            <span>{formatDate(night.date)}</span>
-            <span>{formatMoneyAmount(night.price)}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onAccept}
-        className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
-      >
-        {busy ? 'Оновлюємо…' : 'Прийняти нову ціну'}
-      </button>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onDecline}
-        className="mt-3 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
-      >
-        Відмовитись
-      </button>
-    </div>
-  )
-}
-
-function RoomOptions({
-  rooms,
-  selectedId,
-  status,
-  error,
-  searchable,
-  onSelect,
-}: {
-  rooms: PublicAvailabilityRoomType[]
-  selectedId: string
-  status: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
-  error: string
-  searchable: boolean
-  onSelect: (room: PublicAvailabilityRoomType) => void
-}) {
-  if (!searchable) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть дати, щоб побачити вільні кімнати.</p>
-  }
-  if (status === 'loading') {
-    return <p className="mt-6 text-sm text-wood/60">Шукаємо вільні кімнати…</p>
-  }
-  if (status === 'error') {
-    return (
-      <p className="mt-6 text-sm text-clay" role="alert">
-        {error}
-      </p>
-    )
-  }
-  if (status === 'empty') {
-    return (
-      <p className="mt-6 text-sm text-wood/70">
-        На ці дати немає вільних кімнат. Спробуйте інші дати або зменшіть кількість гостей.
-      </p>
-    )
-  }
-
-  return (
-    <div className="mt-6 space-y-4">
-      {rooms.map((room) => (
-        <label
-          key={room.roomTypeId}
-          className={`grid cursor-pointer grid-cols-[96px_1fr] items-center gap-4 border p-3 ${
-            selectedId === room.roomTypeId ? 'border-clay' : 'border-wood/15'
-          }`}
-        >
-          <input
-            type="radio"
-            name="roomType"
-            value={room.roomTypeId}
-            checked={selectedId === room.roomTypeId}
-            onChange={() => onSelect(room)}
-            className="sr-only"
-          />
-          <span className="flex h-20 w-24 items-end bg-beige px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
-            {roomKindLabel(room.kind)}
-          </span>
-          <span>
-            <span className="block font-medium">{room.name}</span>
-            <span className="text-sm text-wood/60">
-              до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
-              {room.availableCount}
-              {room.nightlyStartingPrice
-                ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
-                : ''}
-            </span>
-          </span>
-        </label>
-      ))}
-    </div>
-  )
-}
-
-function RatePlanOptions({
-  room,
-  selectedId,
-  availabilityStatus,
-  onSelect,
-}: {
-  room?: PublicAvailabilityRoomType
-  selectedId: string
-  availabilityStatus: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
-  onSelect: (ratePlanId: string) => void
-}) {
-  if (availabilityStatus === 'loading') {
-    return <p className="mt-6 text-sm text-wood/60">Шукаємо тарифи…</p>
-  }
-  if (!room) {
-    return <p className="mt-6 text-sm text-wood/60">Спочатку оберіть кімнату.</p>
-  }
-  if (room.ratePlans.length === 0) {
-    return (
-      <p className="mt-6 text-sm text-wood/70">
-        Для цієї кімнати на обрані дати немає доступного тарифу. Ціну не рахуємо і заявку надіслати
-        не можна.
-      </p>
-    )
-  }
-
-  return (
-    <div className="mt-6 space-y-4">
-      {room.ratePlans.map((plan) => (
-        <label
-          key={plan.ratePlanId}
-          className={`block cursor-pointer border p-3 ${
-            selectedId === plan.ratePlanId ? 'border-clay' : 'border-wood/15'
-          }`}
-        >
-          <input
-            type="radio"
-            name="ratePlan"
-            value={plan.ratePlanId}
-            checked={selectedId === plan.ratePlanId}
-            onChange={() => onSelect(plan.ratePlanId)}
-            className="sr-only"
-          />
-          <span className="block font-medium">{plan.name}</span>
-          <span className="mt-1 block text-sm text-wood/60">
-            {rateTypeLabel(plan.type)} · попередньо {formatMoneyAmount(plan.totalAmount)}
-          </span>
-        </label>
-      ))}
-    </div>
-  )
-}
-
-function QuoteSummary({
-  checkIn,
-  checkOut,
-  nights,
-  guestCount,
-  adults,
-  kids,
-  room,
-  plan,
-  quote,
-  quoteStatus,
-  quoteError,
-}: {
-  checkIn: string
-  checkOut: string
-  nights: number
-  guestCount: number
-  adults: number
-  kids: number
-  room?: PublicAvailabilityRoomType
-  plan?: PublicAvailabilityRatePlan
-  quote: ReturnType<typeof useStaySearch>['quote']
-  quoteStatus: ReturnType<typeof useStaySearch>['quoteStatus']
-  quoteError: string
-}) {
-  if (!checkIn || !checkOut || nights < 1) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть дати й кімнату.</p>
-  }
-  if (!room) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть кімнату зі списку вільних.</p>
-  }
-  if (room.ratePlans.length === 0) {
-    return (
-      <div className="mt-6 text-sm leading-relaxed text-wood/70">
-        <p className="font-medium">{room.name}</p>
-        <p className="mt-2">
-          {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
-          {guestCount === 1 ? 'гість' : 'гостей'}
-        </p>
-      </div>
-    )
-  }
-  if (!plan && !quote) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть тариф, щоб сервер порахував точну суму.</p>
-  }
-  if (quoteStatus === 'loading' && !quote) {
-    return <p className="mt-6 text-sm text-wood/60">Рахуємо вартість…</p>
-  }
-  if (quoteStatus === 'error' && !quote) {
-    return (
-      <p className="mt-6 text-sm text-clay" role="alert">
-        {quoteError}
-      </p>
-    )
-  }
-  if (!quote) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть дати, кімнату й тариф.</p>
-  }
-
-  return (
-    <div className="mt-6 text-sm leading-relaxed">
-      <p className="font-medium">{room.name}</p>
-      {plan ? (
-        <p className="mt-1 text-wood/70">
-          {plan.name} · {rateTypeLabel(plan.type)}
-        </p>
-      ) : null}
-      <p className="mt-2 text-wood/70">
-        {formatDate(quote.checkIn)} — {formatDate(quote.checkOut)}
-      </p>
-      <p className="mt-1 text-wood/70">
-        {adults} дорослих
-        {kids ? `, ${kids} дітей` : ''} · {quote.nights.length} н.
-      </p>
-      <ul className="mt-4 space-y-1 text-wood/70">
-        {quote.nights.map((night) => (
-          <li key={night.date} className="flex justify-between gap-4">
-            <span>{formatDate(night.date)}</span>
-            <span>{formatMoneyAmount(night.price)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      <p className="mt-2 text-[0.72rem] text-wood/55">Сума з сервера, {quote.currency}. Це ще не підтверджене бронювання.</p>
-    </div>
   )
 }

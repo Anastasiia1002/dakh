@@ -14,8 +14,10 @@ import {
   findRatePlan,
   guestCountOf,
   quoteMatchesSearch,
+  rateConditions,
   ratePlanIdForRoom,
   rateTypeLabel,
+  selectEligibleRatePlan,
   shouldApplyResponse,
   soleRatePlanId,
   stayIsSearchable,
@@ -137,9 +139,10 @@ describe('stay helpers', () => {
     assert.equal(soleRatePlanId(manyPlans), '')
     assert.equal(soleRatePlanId(noPlans), '')
     assert.equal(ratePlanIdForRoom(onePlan, ''), ratePlanId)
-    assert.equal(ratePlanIdForRoom(manyPlans, ''), '')
-    assert.equal(ratePlanIdForRoom(manyPlans, standard.ratePlanId), standard.ratePlanId)
-    assert.equal(ratePlanIdForRoom(manyPlans, 'missing-plan'), '')
+    assert.equal(ratePlanIdForRoom(manyPlans, ''), ratePlanId)
+    assert.equal(ratePlanIdForRoom(manyPlans, standard.ratePlanId), ratePlanId)
+    assert.equal(selectEligibleRatePlan([standard, cheap])?.ratePlanId, ratePlanId)
+    assert.equal(rateConditions('NON_REFUNDABLE'), 'Неповернений тариф: у разі скасування оплата не повертається.')
     assert.equal(ratePlanIdForRoom(noPlans, ratePlanId), '')
     assert.equal(findRatePlan(manyPlans, standard.ratePlanId)?.name, 'Стандарт')
     assert.equal(findRatePlan(onePlan, standard.ratePlanId), undefined)

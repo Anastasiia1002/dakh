@@ -1,5 +1,6 @@
 export { PublicBookingClient, publicBookingClient } from './client'
 export { useStaySearch } from './useStaySearch'
+export { useAvailabilityCalendar } from './useAvailabilityCalendar'
 export { useBookingCheckout } from './useBookingCheckout'
 export { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 export {
@@ -25,6 +26,7 @@ export {
 } from './checkout'
 export type { CheckoutStep } from './checkout'
 export {
+  guestCommentForIntent,
   guestEmailError,
   guestFieldErrors,
   guestFormIsValid,
@@ -42,8 +44,11 @@ export {
   latestCheckOut,
   availabilityMatchesSearch,
   quoteMatchesSearch,
+  rateConditions,
   ratePlanIdForRoom,
   rateTypeLabel,
+  selectEligibleRatePlan,
+  selectedRatePlanId,
   roomKindLabel,
   shouldApplyResponse,
   soleRatePlanId,

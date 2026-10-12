@@ -75,10 +75,34 @@ export function soleRatePlanId(room: PublicAvailabilityRoomType) {
   return room.ratePlans.length === 1 ? (room.ratePlans[0]?.ratePlanId ?? '') : ''
 }
 
-export function ratePlanIdForRoom(room: PublicAvailabilityRoomType | undefined, currentRatePlanId: string) {
-  if (!room) return ''
-  if (findRatePlan(room, currentRatePlanId)) return currentRatePlanId
-  return soleRatePlanId(room)
+export function compareRateTotals(left: string, right: string) {
+  const a = Number(left)
+  const b = Number(right)
+  if (a === b) return 0
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return left.localeCompare(right)
+  return a < b ? -1 : 1
+}
+
+/** Lowest payable total, then stable plan id. */
+export function selectEligibleRatePlan<T extends { ratePlanId: string; totalAmount: string }>(plans: readonly T[]) {
+  if (plans.length === 0) return null
+  return [...plans].sort(
+    (left, right) => compareRateTotals(left.totalAmount, right.totalAmount) || left.ratePlanId.localeCompare(right.ratePlanId),
+  )[0] ?? null
+}
+
+export function selectedRatePlanId(room: PublicAvailabilityRoomType | undefined) {
+  return selectEligibleRatePlan(room?.ratePlans ?? [])?.ratePlanId ?? ''
+}
+
+export function rateConditions(type: PublicRateType) {
+  if (type === 'NON_REFUNDABLE') return 'Неповернений тариф: у разі скасування оплата не повертається.'
+  if (type === 'SPECIAL') return 'Особливі умови цього тарифу. Перевірте їх перед підтвердженням.'
+  return 'Стандартні умови скасування готелю.'
+}
+
+export function ratePlanIdForRoom(room: PublicAvailabilityRoomType | undefined, _currentRatePlanId: string) {
+  return selectedRatePlanId(room)
 }
 
 export function shouldApplyResponse(requestedKey: string, latestKey: string) {

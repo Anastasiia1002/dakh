@@ -93,6 +93,36 @@ describe('PublicBookingClient', () => {
     assert.equal(result.roomTypes[0]?.ratePlans[0]?.totalAmount, '9000.00')
   })
 
+  it('requests the calendar as one bounded range', async () => {
+    const calls: string[] = []
+    const fetchMock: typeof fetch = async (input) => {
+      calls.push(String(input))
+      return jsonResponse({
+        from: '2026-12-01',
+        to: '2027-02-01',
+        hotelToday: '2026-10-11',
+        currency: 'UAH',
+        guestCount: 2,
+        roomTypes: [],
+      })
+    }
+    const client = new PublicBookingClient({
+      baseUrl: 'http://localhost:3000/api/public/v1',
+      hotelSlug: 'dakh-e2e-primary',
+      fetch: fetchMock,
+    })
+    await client.calendar({
+      from: '2026-12-01',
+      to: '2027-02-01',
+      guestCount: 2,
+      roomTypeId: '11111111-1111-4111-8111-111111111111',
+    })
+    assert.equal(
+      calls[0],
+      'http://localhost:3000/api/public/v1/hotels/dakh-e2e-primary/availability/calendar?from=2026-12-01&to=2027-02-01&guestCount=2&roomTypeId=11111111-1111-4111-8111-111111111111',
+    )
+  })
+
   it('treats an empty roomTypes array as valid inventory emptiness', async () => {
     const fetchMock: typeof fetch = async () =>
       jsonResponse({ checkIn: '2026-12-01', checkOut: '2026-12-03', currency: 'UAH', roomTypes: [] })

@@ -1,13 +1,16 @@
 import { emailError } from '../email'
-import { formatUaMobile, uaMobileError } from '../phone'
+import { bookingPhoneE164, bookingPhoneError } from '../phone'
 import type { PublicGuestContact } from './types'
-import { MAX_GUEST_EMAIL, MAX_GUEST_PHONE, MAX_PERSON_NAME, MAX_RECOVER_EMAIL, MIN_PERSON_NAME } from './types'
+import { MAX_GUEST_EMAIL, MAX_PERSON_NAME, MAX_RECOVER_EMAIL, MIN_PERSON_NAME } from './types'
+
+export const MAX_GUEST_COMMENT = 1000
 
 export type GuestFieldErrors = {
   firstName?: string
   lastName?: string
   phone?: string
   email?: string
+  comment?: string
 }
 
 export function personNameError(value: string, label: string) {
@@ -27,10 +30,13 @@ export function guestEmailError(value: string) {
 }
 
 export function guestPhoneError(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
-  if (trimmed.length > MAX_GUEST_PHONE) return `Телефон не може бути довший за ${MAX_GUEST_PHONE} символів.`
-  return uaMobileError(trimmed)
+  return bookingPhoneError(value)
+}
+
+export function guestCommentError(value: string) {
+  const text = value.trim()
+  if (text.length > MAX_GUEST_COMMENT) return `Коментар не може бути довший за ${MAX_GUEST_COMMENT} символів.`
+  return undefined
 }
 
 export function guestFieldErrors(guest: {
@@ -38,6 +44,7 @@ export function guestFieldErrors(guest: {
   lastName: string
   phone: string
   email: string
+  comment?: string
 }): GuestFieldErrors {
   const errors: GuestFieldErrors = {}
   const firstName = personNameError(guest.firstName, 'ім’я')
@@ -48,6 +55,8 @@ export function guestFieldErrors(guest: {
   if (phone) errors.phone = phone
   const email = guestEmailError(guest.email)
   if (email) errors.email = email
+  const comment = guestCommentError(guest.comment ?? '')
+  if (comment) errors.comment = comment
   return errors
 }
 
@@ -63,6 +72,7 @@ export function guestFormIsValid(guest: {
   lastName: string
   phone: string
   email: string
+  comment?: string
 }) {
   return Object.keys(guestFieldErrors(guest)).length === 0
 }
@@ -73,13 +83,16 @@ export function toGuestContact(guest: {
   phone: string
   email: string
 }): PublicGuestContact {
-  const phone = guest.phone.trim()
-  const formatted = phone ? formatUaMobile(phone) : null
-  const contact: PublicGuestContact = {
+  const phone = bookingPhoneE164(guest.phone)
+  return {
     firstName: guest.firstName.trim(),
     lastName: guest.lastName.trim(),
     email: guest.email.trim(),
+    phone: phone ?? guest.phone.trim(),
   }
-  if (formatted || phone) contact.phone = formatted || phone
-  return contact
+}
+
+export function guestCommentForIntent(comment: string) {
+  const text = comment.trim()
+  return text ? text : undefined
 }
