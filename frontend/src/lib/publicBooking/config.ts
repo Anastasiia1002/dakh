@@ -1,10 +1,7 @@
 import { parseRoomSlugMap } from './roomIdentity'
+import { productionApiBaseUrlError, resolvePublicApiBaseUrlFromValues } from './productionApiUrl'
 
-const PUBLIC_PREFIX = '/api/public/v1'
-
-function trimSlash(value: string) {
-  return value.replace(/\/+$/, '')
-}
+export { productionApiBaseUrlError }
 
 /**
  * Public API origin + prefix.
@@ -23,15 +20,7 @@ function readEnv() {
 export function resolvePublicApiBaseUrl(
   env: Pick<ImportMetaEnv, 'VITE_PUBLIC_API_BASE_URL' | 'VITE_API_BASE_URL'> = readEnv(),
 ): string | null {
-  const explicit = env.VITE_PUBLIC_API_BASE_URL?.trim()
-  if (explicit) return trimSlash(explicit)
-
-  const origin = env.VITE_API_BASE_URL?.trim()
-  if (!origin) return null
-
-  const normalized = trimSlash(origin)
-  if (normalized.endsWith(PUBLIC_PREFIX)) return normalized
-  return `${normalized}${PUBLIC_PREFIX}`
+  return resolvePublicApiBaseUrlFromValues(env)
 }
 
 export function resolveHotelSlug(env: Pick<ImportMetaEnv, 'VITE_PUBLIC_HOTEL_SLUG'> = readEnv()): string {

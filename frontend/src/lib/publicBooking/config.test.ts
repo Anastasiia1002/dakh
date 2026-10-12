@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
+import {
+  isPublicApiConfigured,
+  productionApiBaseUrlError,
+  resolveHotelSlug,
+  resolvePublicApiBaseUrl,
+} from './config'
 
 describe('public booking config', () => {
   it('prefers the documented public API base URL', () => {
@@ -30,6 +35,14 @@ describe('public booking config', () => {
   it('reports missing configuration instead of defaulting to localhost', () => {
     assert.equal(resolvePublicApiBaseUrl({}), null)
     assert.equal(isPublicApiConfigured({}), false)
+  })
+
+  it('rejects a missing, localhost, or non-https API URL for a production build', () => {
+    assert.match(productionApiBaseUrlError(null) ?? '', /required/)
+    assert.match(productionApiBaseUrlError('http://localhost:3000/api/public/v1') ?? '', /https/)
+    assert.match(productionApiBaseUrlError('https://127.0.0.1/api/public/v1') ?? '', /localhost/)
+    assert.match(productionApiBaseUrlError('https://api.example.com/health') ?? '', /api\/public\/v1/)
+    assert.equal(productionApiBaseUrlError('https://api.example.com/api/public/v1'), null)
   })
 
   it('defaults the hotel slug to dakh', () => {
