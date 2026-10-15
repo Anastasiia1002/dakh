@@ -3,7 +3,7 @@
 Сайт готелю і ресторану DAKH.
 
 - Палітра: Earth Brown `#5b382b`, Clay Rust `#b25f38`, Linen `#f7f5e9`, Soft Beige `#e9dcce`, Forest `#2f3f23` (не для тексту)
-- Типографіка: Hajdamaka (слот `public/fonts/Hajdamaka.woff2`) / Marck Script + Montserrat
+- Типографіка: Marck Script + Montserrat
 - Бронювання кімнат — `localStorage` (`dakh-bookings`). Стіл у ресторані на сайті не бронюється
 - Табу в копі: преміальний, люкс, найкращий, унікальний, must visit
 

@@ -1,20 +1,12 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: Hajdamaka;
-  src: url("/dakh/fonts/Hajdamaka.woff2") format("woff2");
-  font-display: swap;
-  font-weight: 400;
-  font-style: normal;
-}
-
 @theme {
   --color-wood: #5b382b;
   --color-clay: #b25f38;
   --color-linen: #f7f5e9;
   --color-beige: #e9dcce;
   --color-forest: #2f3f23;
-  --font-display: Hajdamaka, "Marck Script", cursive;
+  --font-display: "Marck Script", cursive;
   --font-sans: Montserrat, "Segoe UI", sans-serif;
 }
 

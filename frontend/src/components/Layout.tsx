@@ -3,8 +3,11 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
 import { DakhLogo } from './BrandMarks'
 
+const bookingEnabled = import.meta.env.VITE_BOOKING_ENABLED === 'true'
+
 const nav = [
-  { to: '/gotel', label: 'Готель' },
+  { to: '/hotel', label: 'Готель' },
+  { to: '/sunny-park', label: 'Будинки' },
   { to: '/menu', label: 'Ресторан' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },
@@ -29,9 +32,11 @@ function HeaderActions({
       >
         Подзвонити
       </a>
-      <Link to="/bronuvannya" onClick={onNavigate} className={`${headerAction} bg-clay text-linen`}>
-        Забронювати
-      </Link>
+      {bookingEnabled ? (
+        <Link to="/bronuvannya" onClick={onNavigate} className={`${headerAction} bg-clay text-linen`}>
+          Забронювати
+        </Link>
+      ) : null}
     </div>
   )
 }
@@ -48,7 +53,7 @@ export function Layout() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
   const overHero =
-    pathname === '/' || pathname === '/menu' || /^\/gotel\/[^/]+$/.test(pathname)
+    pathname === '/' || pathname === '/menu' || /^\/(hotel|sunny-park)\/[^/]+$/.test(pathname)
   const tone = overHero ? 'linen' : 'wood'
 
   return (
@@ -133,9 +138,11 @@ export function Layout() {
                 {item.label}
               </Link>
             ))}
-            <Link to="/bronuvannya" className="block py-1">
-              Бронювання кімнати
-            </Link>
+            {bookingEnabled ? (
+              <Link to="/bronuvannya" className="block py-1">
+                Бронювання кімнати
+              </Link>
+            ) : null}
           </div>
           <div className="text-sm">
             <p className="kicker mb-3 text-[0.68rem] text-wood/55">Контакти</p>

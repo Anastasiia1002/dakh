@@ -19,7 +19,7 @@ const emptyEnv: Pick<
 
 /** Shown wherever a checkout action used to be. A UI safeguard, not an API authorization check. */
 export const BOOKING_DISABLED_COPY =
-  'Онлайн-бронювання зараз вимкнене. Дати й наявність можна перевірити, але заявку, розрахунок і лист із кодом ми не створюємо.'
+  'Онлайн-бронювання зараз вимкнене. Заявку, розрахунок і лист із кодом ми не створюємо.'
 
 function readEnv() {
   return import.meta.env ?? emptyEnv
