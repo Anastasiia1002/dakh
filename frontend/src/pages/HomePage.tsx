@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Spot } from '../components/BrandMarks'
+import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
-import { images, site, stays } from '../data/catalog'
+import { accommodationBase } from '../lib/catalog/routes'
+import { useAccommodationList } from '../lib/catalog/useAccommodations'
+import { images, site } from '../data/catalog'
+import type { PublicHotelSlug } from '../lib/publicBooking/types'
 
 export function HomePage() {
   return (
@@ -45,17 +49,18 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <p className="kicker text-[0.68rem] text-wood/55">Готель</p>
-        <h2 className="mt-3 max-w-xl font-display text-4xl leading-tight text-wood">
-          Простір, сповнений світла й текстур
-        </h2>
-        <div className="mt-14 grid gap-14 md:grid-cols-3">
-          {stays.map((stay) => (
-            <RoomCard key={stay.slug} stay={stay} />
-          ))}
-        </div>
-      </section>
+      <HomeCatalog
+        hotel="dakh"
+        kicker="Готель DAKH"
+        title="Номери"
+        empty="Зараз немає опублікованих номерів."
+      />
+      <HomeCatalog
+        hotel="sunny-park"
+        kicker="Sunny Park"
+        title="Будинки"
+        empty="Зараз немає опублікованих будинків."
+      />
 
       <section className="photo-grain relative min-h-[70vh]">
         <Photo src={images.borscht} alt="Миска борщу" className="absolute inset-0 h-full w-full" />
@@ -94,5 +99,43 @@ export function HomePage() {
         </div>
       </section>
     </>
+  )
+}
+
+function HomeCatalog({
+  hotel,
+  kicker,
+  title,
+  empty,
+}: {
+  hotel: PublicHotelSlug
+  kicker: string
+  title: string
+  empty: string
+}) {
+  const catalog = useAccommodationList(hotel)
+
+  return (
+    <section className="mx-auto max-w-6xl px-6 pb-24">
+      <p className="kicker text-[0.68rem] text-wood/55">{kicker}</p>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <h2 className="max-w-xl font-display text-4xl leading-tight text-wood">{title}</h2>
+        <Link
+          to={accommodationBase(hotel)}
+          className="text-[0.72rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+        >
+          Усі
+        </Link>
+      </div>
+      {catalog.status === 'ready' ? (
+        <div className="mt-14 grid gap-14 md:grid-cols-3">
+          {catalog.items.map((item) => (
+            <RoomCard key={item.id} accommodation={item} />
+          ))}
+        </div>
+      ) : (
+        <CatalogState status={catalog.status} error={catalog.error} onRetry={catalog.retry} emptyCopy={empty} />
+      )}
+    </section>
   )
 }

@@ -8,6 +8,38 @@ export type PublicBookingIntentStatus =
 
 export type PublicRoomKind = 'ROOM' | 'COTTAGE'
 
+/** Hotels exposed by the public accommodation catalog. */
+export type PublicHotelSlug = 'dakh' | 'sunny-park'
+
+/** One photo from the public catalog. No pricing or availability data. */
+export interface PublicAccommodationImage {
+  url: string
+  alt: string
+  sortOrder: number
+}
+
+/**
+ * Public accommodation record.
+ * Fields match GET /hotels/:hotelSlug/accommodations and the detail response.
+ */
+export interface PublicAccommodation {
+  id: string
+  slug: string
+  name: string
+  kind: PublicRoomKind
+  description: string
+  maxGuests: number
+  images: PublicAccommodationImage[]
+  cover: PublicAccommodationImage
+  hotelSlug: PublicHotelSlug
+}
+
+/** GET /hotels/:hotelSlug/accommodations */
+export interface PublicAccommodationListResponse {
+  hotelSlug: PublicHotelSlug
+  accommodations: PublicAccommodation[]
+}
+
 export type SupportedCurrency = 'UAH'
 
 export interface ApiErrorBody {

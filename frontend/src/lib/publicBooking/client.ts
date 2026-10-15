@@ -1,6 +1,10 @@
+import { isPublicHotelSlug, parseAccommodationDetail, parseAccommodationList } from './accommodation'
 import { isBookingEnabled, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 import { PublicApiError, parseApiError } from './errors'
 import type {
+  PublicAccommodation,
+  PublicAccommodationListResponse,
+  PublicHotelSlug,
   ConfirmEmailVerificationRequest,
   CreateBookingIntentRequest,
   PublicAvailabilityQuery,
@@ -207,6 +211,61 @@ export class PublicBookingClient {
         body: JSON.stringify(body),
       },
     )
+  }
+
+  /**
+   * Public catalog list. Waits for a slow origin instead of treating it as an empty hotel.
+   * Caller cancellation still arrives through `init.signal`.
+   */
+  listAccommodations(hotelSlug: PublicHotelSlug, init: RequestInit = {}): Promise<PublicAccommodationListResponse> {
+    return this.readCatalog(
+      hotelSlug,
+      `/hotels/${encodeURIComponent(hotelSlug)}/accommodations`,
+      init,
+      (payload) => parseAccommodationList(payload, hotelSlug),
+    )
+  }
+
+  /** One public accommodation. The live detail response is the record itself, not a wrapper. */
+  getAccommodation(
+    hotelSlug: PublicHotelSlug,
+    slug: string,
+    init: RequestInit = {},
+  ): Promise<PublicAccommodation> {
+    const accommodationSlug = slug.trim()
+    if (!accommodationSlug) {
+      return Promise.reject(
+        new PublicApiError({
+          statusCode: 400,
+          error: 'VALIDATION_ERROR',
+          message: 'Некоректна відповідь сервера.',
+        }),
+      )
+    }
+    return this.readCatalog(
+      hotelSlug,
+      `/hotels/${encodeURIComponent(hotelSlug)}/accommodations/${encodeURIComponent(accommodationSlug)}`,
+      init,
+      (payload) => parseAccommodationDetail(payload, hotelSlug),
+    )
+  }
+
+  private readCatalog<T>(
+    hotelSlug: PublicHotelSlug,
+    path: string,
+    init: RequestInit,
+    parse: (payload: unknown) => T,
+  ): Promise<T> {
+    if (!isPublicHotelSlug(hotelSlug)) {
+      return Promise.reject(
+        new PublicApiError({
+          statusCode: 404,
+          error: 'HOTEL_NOT_FOUND',
+          message: 'Готель недоступний для бронювання.',
+        }),
+      )
+    }
+    return this.request<unknown>(path, { signal: init.signal, method: 'GET' }).then(parse)
   }
 }
 

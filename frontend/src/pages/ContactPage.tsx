@@ -4,6 +4,8 @@ import { site } from '../data/catalog'
 import { emailError } from '../lib/email'
 import { formatUaMobile, uaMobileError } from '../lib/phone'
 
+const bookingEnabled = import.meta.env.VITE_BOOKING_ENABLED === 'true'
+
 type Fields = {
   name: string
   phone: string
@@ -195,9 +197,11 @@ export function ContactPage() {
             </Row>
           </div>
 
-          <Link to="/bronuvannya" className={`${cta} mt-8 md:mt-auto`}>
-            Забронювати кімнату
-          </Link>
+          {bookingEnabled ? (
+            <Link to="/bronuvannya" className={`${cta} mt-8 md:mt-auto`}>
+              Забронювати кімнату
+            </Link>
+          ) : null}
         </section>
 
         <section className="flex flex-col" aria-label="Адреса і як доїхати">
