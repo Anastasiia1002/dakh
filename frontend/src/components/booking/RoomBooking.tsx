@@ -10,7 +10,7 @@ import {
   stayNights,
   useStaySearch,
 } from '../../lib/publicBooking'
-import { resolveHotelSlug } from '../../lib/publicBooking/config'
+import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../../lib/publicBooking/config'
 import { reconcileStay } from '../../lib/publicBooking/calendar'
 import { saveBookingHandoff, handoffToSearch, loadBookingHandoff, type BookingHandoff } from '../../lib/publicBooking/handoff'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
@@ -94,6 +94,7 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
 
   function continueToCheckout(event: FormEvent) {
     event.preventDefault()
+    if (!isBookingEnabled()) return
     if (!quoteReady || !search.quote || !calendar.roomTypeId || !search.configured) return
     const handoff: BookingHandoff = {
       hotelSlug: resolveHotelSlug(),
@@ -117,7 +118,8 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
     )
   }
 
-  const canContinue = quoteReady && Boolean(calendar.roomTypeId) && search.configured
+  const bookingEnabled = isBookingEnabled()
+  const canContinue = bookingEnabled && quoteReady && Boolean(calendar.roomTypeId) && search.configured
 
   return (
     <aside className="h-fit w-full min-w-0 self-start bg-beige p-6">
@@ -157,20 +159,29 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
           quoteStatus={search.quoteStatus}
           quoteError={search.quoteError}
           availabilityStatus={search.availabilityStatus}
+          availabilityError={search.availabilityError}
           roomLabel={stayName}
           missingRoomCopy="На ці дати ця кімната недоступна. Іншу кімнату не підставляємо."
         />
-        <button
-          type="submit"
-          disabled={!canContinue}
-          className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
-        >
-          Забронювати
-        </button>
-        <p className="mt-4 text-[0.72rem] text-wood/55">
-          Далі на сторінці бронювання зберемо контакти. Кімната, дати й гості залишаються тими, що ви
-          обрали. Ціну ще раз підтвердить сервер.
-        </p>
+        {bookingEnabled ? (
+          <>
+            <button
+              type="submit"
+              disabled={!canContinue}
+              className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+            >
+              Забронювати
+            </button>
+            <p className="mt-4 text-[0.72rem] text-wood/55">
+              Далі на сторінці бронювання зберемо контакти. Кімната, дати й гості залишаються тими, що ви
+              обрали. Ціну ще раз підтвердить сервер.
+            </p>
+          </>
+        ) : (
+          <p className="mt-8 text-sm leading-relaxed text-wood/70" role="status">
+            {BOOKING_DISABLED_COPY}
+          </p>
+        )}
       </form>
     </aside>
   )

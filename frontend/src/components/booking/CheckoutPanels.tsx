@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import type { GuestFieldErrors } from '../../lib/publicBooking'
+import {
+  authoritativeStayTotal,
+  rateConditions,
+  rateTypeLabel,
+  roomKindLabel,
+  selectEligibleRatePlan,
+} from '../../lib/publicBooking'
+import { isBookingEnabled } from '../../lib/publicBooking/config'
 import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/display'
-import { rateConditions, rateTypeLabel, roomKindLabel } from '../../lib/publicBooking'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
 import type { BookingDraft } from '../../lib/booking'
 import type {
@@ -235,8 +242,12 @@ export function RoomOptions({
             <span className="text-sm text-wood/60">
               до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
               {room.availableCount}
-              {room.nightlyStartingPrice
-                ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
+              {room.availableCount > 0 &&
+              room.nightlyStartingPrice &&
+              room.ratePlans.some((plan) => authoritativeStayTotal(plan))
+                ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба${
+                    isBookingEnabled() ? '' : ', тестова ціна'
+                  }`
                 : ''}
             </span>
           </span>
@@ -291,7 +302,10 @@ export function RatePlanOptions({
           />
           <span className="block font-medium">{publicPlanTitle(plan)}</span>
           <span className="mt-1 block text-sm text-wood/60">
-            {rateTypeLabel(plan.type)} · попередньо {formatMoneyAmount(plan.totalAmount)}
+            {rateTypeLabel(plan.type)}
+            {authoritativeStayTotal(plan)
+              ? ` · ${isBookingEnabled() ? 'попередньо' : 'тестова ціна'} ${formatMoneyAmount(plan.totalAmount)}`
+              : ' · суму не показуємо'}
           </span>
         </label>
       ))}
@@ -313,6 +327,7 @@ export function QuoteSummary({
   quoteError,
   missingRoomCopy = 'Оберіть кімнату зі списку вільних.',
   availabilityStatus,
+  availabilityError = '',
   roomLabel,
 }: {
   checkIn: string
@@ -328,6 +343,7 @@ export function QuoteSummary({
   quoteError: string
   missingRoomCopy?: string
   availabilityStatus?: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+  availabilityError?: string
   roomLabel?: string
 }) {
   const roomName = room ? publicRoomLabel(room.name, room.kind, roomLabel) : roomLabel
@@ -348,6 +364,20 @@ export function QuoteSummary({
         </div>
       )
     }
+    if (availabilityStatus === 'error') {
+      return (
+        <p className="mt-6 text-sm text-clay" role="alert">
+          {availabilityError || 'Не вдалося зв’язатися з сервером бронювання.'}
+        </p>
+      )
+    }
+    if (availabilityStatus === 'empty') {
+      return (
+        <p className="mt-6 text-sm text-wood/70">
+          На ці дати немає вільних кімнат. Спробуйте інші дати або зменшіть кількість гостей.
+        </p>
+      )
+    }
     return (
       <div className="mt-6 text-sm">
         {roomName ? <p className="font-medium">{roomName}</p> : null}
@@ -355,13 +385,55 @@ export function QuoteSummary({
       </div>
     )
   }
-  if (room.ratePlans.length === 0) {
+  if (room.availableCount < 1 || room.ratePlans.length === 0) {
     return (
       <div className="mt-6 text-sm leading-relaxed text-wood/70">
         <p className="font-medium">{roomName}</p>
         <p className="mt-2">
           {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
           {guestCount === 1 ? 'гість' : 'гостей'}
+        </p>
+        <p className="mt-2">
+          {room.availableCount < 1
+            ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
+            : 'На ці дати немає повного тарифу. Суму не показуємо і забронювати не можна.'}
+        </p>
+      </div>
+    )
+  }
+  if (!isBookingEnabled()) {
+    const priced =
+      (plan && authoritativeStayTotal(plan) ? plan : null) ??
+      selectEligibleRatePlan(room.ratePlans.filter((item) => authoritativeStayTotal(item)))
+    const total = authoritativeStayTotal(priced)
+    if (!priced || !total) {
+      return (
+        <div className="mt-6 text-sm leading-relaxed text-wood/70">
+          <p className="font-medium">{roomName}</p>
+          <p className="mt-2">
+            {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
+            {guestCount === 1 ? 'гість' : 'гостей'}
+          </p>
+          <p className="mt-2">На ці дати немає повної суми за проживання. Тестову ціну не показуємо.</p>
+        </div>
+      )
+    }
+    return (
+      <div className="mt-6 text-sm leading-relaxed">
+        <p className="font-medium">{roomName}</p>
+        <p className="mt-1 text-wood/70">{publicPlanTitle(priced)}</p>
+        <p className="mt-1 text-wood/70">{rateConditions(priced.type)}</p>
+        <p className="mt-2 text-wood/70">
+          {formatDate(checkIn)} — {formatDate(checkOut)}
+        </p>
+        <p className="mt-1 text-wood/70">
+          {adults} дорослих
+          {kids ? `, ${kids} дітей` : ''} · {nights} н. · вільних {room.availableCount}
+        </p>
+        <p className="mt-6 font-display text-3xl">{formatMoneyAmount(total)}</p>
+        <p className="mt-2 text-[0.72rem] text-wood/55">
+          Тестова ціна за обрані дати, {priced.currency}. Це сума з сервера, не орієнтир каталогу і не підтверджене
+          бронювання.
         </p>
       </div>
     )

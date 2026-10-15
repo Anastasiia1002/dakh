@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { catalogNameForRoomTypeSlug, isFixtureLabel, publicPlanTitle, publicRoomLabel } from './display'
+import {
+  catalogNameForRoomTypeSlug,
+  isFixtureLabel,
+  isHiddenInventoryLabel,
+  publicPlanTitle,
+  publicRoomLabel,
+} from './display'
 
 const catalog = [
   { slug: 'bukovyna', name: 'Кімната Буковина' },
@@ -32,5 +38,14 @@ describe('public booking labels', () => {
     assert.equal(publicRoomLabel('Сімейний', 'ROOM', null), 'Сімейний')
     assert.equal(publicPlanTitle({ name: 'E2E Overlap Prices', type: 'STANDARD' }), 'Стандарт')
     assert.equal(publicPlanTitle({ name: 'Зі сніданком', type: 'STANDARD' }), 'Зі сніданком')
+  })
+
+  it('hides TEST DATA room and tariff labels without matching them to another catalog room', () => {
+    assert.equal(isHiddenInventoryLabel('TEST DATA Буковина'), true)
+    assert.equal(isHiddenInventoryLabel('test data Тестовий тариф'), true)
+    assert.equal(isHiddenInventoryLabel('Кімната Буковина'), false)
+    assert.equal(publicRoomLabel('TEST DATA Буковина', 'ROOM', 'Кімната Буковина'), 'Кімната Буковина')
+    assert.equal(publicRoomLabel('TEST DATA Горище', 'ROOM', null), 'Кімната')
+    assert.equal(publicPlanTitle({ name: 'TEST DATA Тестовий тариф', type: 'STANDARD' }), 'Стандарт')
   })
 })

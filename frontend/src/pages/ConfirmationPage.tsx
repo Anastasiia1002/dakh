@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { formatDate, formatMoneyAmount } from '../lib/format'
 import { publicBookingClient, recoverEmailError } from '../lib/publicBooking'
-import { isFixtureLabel } from '../lib/publicBooking/display'
+import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/config'
+import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
 import {
@@ -28,10 +29,11 @@ export function ConfirmationPage() {
     : token
       ? 'Посилання на підтвердження недійсне.'
       : 'Підтвердження не знайдено. Успіх не показуємо з локальних даних.'
-  const loading = Boolean(validToken) && !resolved
+  const bookingEnabled = isBookingEnabled()
+  const loading = bookingEnabled && Boolean(validToken) && !resolved
 
   useEffect(() => {
-    if (!validToken) return
+    if (!bookingEnabled || !validToken) return
     let cancelled = false
     publicBookingClient
       .confirmation(validToken)
@@ -50,10 +52,11 @@ export function ConfirmationPage() {
     return () => {
       cancelled = true
     }
-  }, [validToken])
+  }, [bookingEnabled, validToken])
 
   async function recover(event: FormEvent) {
     event.preventDefault()
+    if (!isBookingEnabled()) return
     const mailError = recoverEmailError(recoverEmail)
     if (mailError) {
       setRecoverHint(mailError)
@@ -80,14 +83,20 @@ export function ConfirmationPage() {
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-tight text-clay">Підтвердження</h1>
 
-      {loading ? <p className="mt-10 text-sm text-wood/60">Шукаємо підтвердження на сервері…</p> : null}
+      {!bookingEnabled ? (
+        <p className="mt-10 max-w-xl text-sm leading-relaxed text-wood/70" role="status">
+          {BOOKING_DISABLED_COPY}
+        </p>
+      ) : null}
 
-      {!loading && confirmation ? (
+      {bookingEnabled && loading ? <p className="mt-10 text-sm text-wood/60">Шукаємо підтвердження на сервері…</p> : null}
+
+      {bookingEnabled && !loading && confirmation ? (
         <div className="mt-10 bg-beige p-6">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">Підтверджено</p>
           <p className="mt-4 font-display text-4xl">
             {readRoomDisplayName(confirmation.roomTypeId) ??
-              (isFixtureLabel(confirmation.roomTypeName) ? 'Кімната' : confirmation.roomTypeName)}
+              (isHiddenInventoryLabel(confirmation.roomTypeName) ? 'Кімната' : confirmation.roomTypeName)}
           </p>
           <p className="mt-4 text-sm text-wood/70">
             {formatDate(confirmation.checkIn)} — {formatDate(confirmation.checkOut)} · {confirmation.guestCount}{' '}
@@ -102,7 +111,7 @@ export function ConfirmationPage() {
         </div>
       ) : null}
 
-      {!loading && !confirmation ? (
+      {bookingEnabled && !loading && !confirmation ? (
         <div className="mt-10">
           <p className="text-sm text-clay" role="alert">
             {error || 'Підтвердження не знайдено. Успіх не показуємо з локальних даних.'}

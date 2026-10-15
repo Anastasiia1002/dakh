@@ -45,6 +45,19 @@ describe('room identity', () => {
     )
   })
 
+  it('matches the verified catalog slug and ignores a TEST DATA name', () => {
+    const staging = [
+      { roomTypeId: 'goryshche-id', slug: 'goryshche', name: 'TEST DATA Буковина' },
+      { roomTypeId: 'bukovyna-id', slug: 'bukovyna', name: 'TEST DATA Горище' },
+      { roomTypeId: 'plats-id', slug: 'plats', name: 'TEST DATA Плац' },
+    ]
+    assert.equal(findRoomTypeBySlug(staging, 'bukovyna')?.roomTypeId, 'bukovyna-id')
+    assert.equal(findRoomTypeBySlug(staging, 'goryshche')?.roomTypeId, 'goryshche-id')
+    assert.equal(findRoomTypeBySlug(staging, 'plats')?.roomTypeId, 'plats-id')
+    assert.equal(findRoomTypeBySlug(staging, 'TEST DATA Буковина'), null)
+    assert.equal(findRoomTypeBySlug(staging, 'TEST DATA Горище'), null)
+  })
+
   it('shows two months only when the calendar is wide enough', () => {
     assert.equal(calendarUsesTwoMonths(TWO_MONTH_MIN_PX - 1), false)
     assert.equal(calendarUsesTwoMonths(390), false)

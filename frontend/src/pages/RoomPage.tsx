@@ -6,6 +6,7 @@ import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { stayBySlug, stays } from '../data/catalog'
 import { formatMoney } from '../lib/format'
+import { isPublicApiConfigured } from '../lib/publicBooking/config'
 
 export function RoomPage() {
   const { slug = '' } = useParams()
@@ -39,6 +40,11 @@ export function RoomPage() {
           <p className="mt-4 text-lg font-medium">
             {formatMoney(room.priceFrom)} <span className="text-sm font-normal text-wood/60">/ доба, орієнтир каталогу</span>
           </p>
+          {isPublicApiConfigured() ? (
+            <p className="mt-2 max-w-xl text-sm text-wood/60">
+              Це не сума за обрані дати. У картці дат показана тестова ціна сервера.
+            </p>
+          ) : null}
           <p className="mt-3 text-sm text-wood/70">
             {room.area} м² · до {room.guests}
             {room.extraKids ? ' + діти' : ''} · {room.rooms} кімн.

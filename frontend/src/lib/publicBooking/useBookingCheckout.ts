@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { publicBookingClient } from './client'
+import { BOOKING_DISABLED_COPY, isBookingEnabled } from './config'
 import {
   clearStoredConfirmationToken,
   clearStoredIntent,
@@ -30,7 +31,8 @@ type GuestInput = {
 }
 
 export function useBookingCheckout(stay?: StoredStay) {
-  const resumed = stay?.roomTypeId && stay.checkIn && stay.checkOut ? resumeIntentForStay(stay) : null
+  const resumed =
+    isBookingEnabled() && stay?.roomTypeId && stay.checkIn && stay.checkOut ? resumeIntentForStay(stay) : null
   const [step, setStep] = useState<CheckoutStep>(resumed ? 'verify' : 'collect')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -43,6 +45,12 @@ export function useBookingCheckout(stay?: StoredStay) {
   const inflight = useRef(false)
   const idempotencyKey = useRef(newIdempotencyKey())
   const emailCorrection = useRef('')
+
+  function writesClosed() {
+    if (isBookingEnabled()) return false
+    setError(BOOKING_DISABLED_COPY)
+    return true
+  }
 
   function markCooldown(seconds: number) {
     setCooldownUntil(Date.now() + Math.max(0, seconds) * 1000)
@@ -69,6 +77,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function finishConfirmed(result: PublicBookingConfirmationResponse) {
+    if (writesClosed()) return result
     if (result.confirmationToken) writeStoredConfirmationToken(result.confirmationToken)
     const token = result.confirmationToken
     if (!token) {
@@ -86,6 +95,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function createIntentFromQuote(quote: PublicQuoteResponse, guest: GuestInput) {
+    if (writesClosed()) return null
     setStep('creating_intent')
     setError('')
     const created = await publicBookingClient.createIntent(
@@ -126,6 +136,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function startCheckout(quote: PublicQuoteResponse | null, guest: GuestInput) {
+    if (writesClosed()) return
     if (inflight.current || busy) return
     if (!isQuoteFresh(quote) || !quote) {
       setError('Розрахунок застарів. Оберіть дати ще раз.')
@@ -165,7 +176,7 @@ export function useBookingCheckout(stay?: StoredStay) {
     email: string,
     reaccept?: { acceptedTotalAmount: string; quoteToken: string },
   ) {
-    if (!intent) return
+    if (writesClosed() || !intent) return
     if (intentLooksExpired(intent.expiresAt)) {
       setError('Час на підтвердження минув. Почніть бронювання знову.')
       setStep('collect')
@@ -202,6 +213,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function correctEmail(email: string) {
+    if (writesClosed()) return
     if (!intent || inflight.current || busy) return
     inflight.current = true
     setBusy(true)
@@ -238,6 +250,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function resendCode() {
+    if (writesClosed()) return
     if (!intent || inflight.current || Date.now() < cooldownUntil) return
     if (intentLooksExpired(intent.expiresAt)) {
       setError('Час на підтвердження минув. Почніть бронювання знову.')
@@ -267,6 +280,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function confirmCode(code: string) {
+    if (writesClosed()) return
     if (!intent || inflight.current || busy) return
     inflight.current = true
     setBusy(true)
@@ -299,6 +313,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function acceptChangedPrice(guest: GuestInput) {
+    if (writesClosed()) return
     if (!pendingQuote || inflight.current || busy) return
     inflight.current = true
     setBusy(true)
@@ -346,6 +361,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function loadConfirmation(token: string) {
+    if (writesClosed()) return
     setStep('looking_up')
     setBusy(true)
     setError('')
@@ -364,6 +380,7 @@ export function useBookingCheckout(stay?: StoredStay) {
   }
 
   async function recover(email: string) {
+    if (writesClosed()) return false
     if (!intent || inflight.current) return
     inflight.current = true
     setBusy(true)

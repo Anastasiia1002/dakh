@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  isBookingEnabled,
   isPublicApiConfigured,
   productionApiBaseUrlError,
   resolveHotelSlug,
@@ -43,6 +44,17 @@ describe('public booking config', () => {
     assert.match(productionApiBaseUrlError('https://127.0.0.1/api/public/v1') ?? '', /localhost/)
     assert.match(productionApiBaseUrlError('https://api.example.com/health') ?? '', /api\/public\/v1/)
     assert.equal(productionApiBaseUrlError('https://api.example.com/api/public/v1'), null)
+  })
+
+  it('enables booking only for the exact string true', () => {
+    assert.equal(isBookingEnabled({}), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: undefined }), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: '' }), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: 'false' }), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: 'TRUE' }), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: '1' }), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: ' true' }), false)
+    assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: 'true' }), true)
   })
 
   it('defaults the hotel slug to dakh', () => {

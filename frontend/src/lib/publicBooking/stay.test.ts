@@ -9,6 +9,8 @@ import type {
 } from './types'
 import {
   availabilityMatchesSearch,
+  availabilitySearchStatus,
+  authoritativeStayTotal,
   canUseAsCheckIn,
   canUseAsCheckOut,
   findRatePlan,
@@ -19,6 +21,7 @@ import {
   rateTypeLabel,
   selectEligibleRatePlan,
   shouldApplyResponse,
+  shouldRequestQuote,
   soleRatePlanId,
   stayIsSearchable,
   stayNights,
@@ -149,5 +152,40 @@ describe('stay helpers', () => {
     assert.equal(rateTypeLabel('NON_REFUNDABLE'), 'Неповернений')
     assert.equal(rateTypeLabel('STANDARD'), 'Стандарт')
     assert.equal(rateTypeLabel('SPECIAL'), 'Спеціальний')
+  })
+
+  it('uses the rate-plan total and does not invent one from a nightly starting price', () => {
+    assert.equal(authoritativeStayTotal({ totalAmount: '200.00', currency: 'UAH' }), '200.00')
+    assert.equal(authoritativeStayTotal({ totalAmount: '100', currency: 'UAH' }), null)
+    assert.equal(authoritativeStayTotal({ totalAmount: '200.00', currency: 'EUR' }), null)
+    assert.equal(authoritativeStayTotal(null), null)
+    assert.equal(selectEligibleRatePlan([]), null)
+  })
+
+  it('treats an empty availability list as emptiness and a failed request as an error', () => {
+    assert.equal(
+      availabilitySearchStatus({ searchable: true, configured: true, settled: true, error: '', roomCount: 0 }),
+      'empty',
+    )
+    assert.equal(
+      availabilitySearchStatus({
+        searchable: true,
+        configured: true,
+        settled: true,
+        error: 'Не вдалося зв’язатися з сервером бронювання.',
+        roomCount: 0,
+      }),
+      'error',
+    )
+    assert.equal(
+      availabilitySearchStatus({ searchable: true, configured: true, settled: false, error: '', roomCount: 0 }),
+      'loading',
+    )
+  })
+
+  it('does not request a quote unless booking is explicitly enabled', () => {
+    assert.equal(shouldRequestQuote(false, '2026-12-15|2026-12-17|2|room|plan'), false)
+    assert.equal(shouldRequestQuote(true, ''), false)
+    assert.equal(shouldRequestQuote(true, '2026-12-15|2026-12-17|2|room|plan'), true)
   })
 })

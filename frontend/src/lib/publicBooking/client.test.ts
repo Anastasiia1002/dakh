@@ -146,6 +146,7 @@ describe('PublicBookingClient', () => {
       baseUrl: 'http://localhost:3000/api/public/v1',
       hotelSlug: 'dakh',
       fetch: fetchMock,
+      writesEnabled: true,
     })
 
     const body = {
@@ -177,6 +178,7 @@ describe('PublicBookingClient', () => {
       baseUrl: 'http://localhost:3000/api/public/v1',
       hotelSlug: 'dakh',
       fetch: fetchMock,
+      writesEnabled: true,
     })
 
     await assert.rejects(
@@ -233,6 +235,7 @@ describe('PublicBookingClient', () => {
       baseUrl: 'http://localhost:3000/api/public/v1',
       hotelSlug: 'dakh',
       fetch: fetchMock,
+      writesEnabled: true,
     })
     const body = {
       checkIn: '2026-12-01',
@@ -294,6 +297,7 @@ describe('PublicBookingClient', () => {
       baseUrl: 'http://localhost:3000/api/public/v1',
       hotelSlug: 'dakh',
       fetch: fetchMock,
+      writesEnabled: true,
     })
     const intentId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     const otp = await client.requestEmailVerification(intentId)
@@ -313,6 +317,48 @@ describe('PublicBookingClient', () => {
     assert.ok(recoverInit)
     assert.deepEqual(JSON.parse(String(confirmInit.body)), { code: '123456' })
     assert.deepEqual(JSON.parse(String(recoverInit.body)), { email: 'ivan@example.com' })
+  })
+
+  it('keeps quote, intent, OTP and confirmation requests off unless writes are enabled', async () => {
+    let calls = 0
+    const client = new PublicBookingClient({
+      baseUrl: 'http://localhost:3000/api/public/v1',
+      hotelSlug: 'dakh',
+      fetch: async () => {
+        calls += 1
+        return jsonResponse(availabilityOk)
+      },
+    })
+    const quoteBody = {
+      checkIn: '2026-12-15',
+      checkOut: '2026-12-17',
+      guestCount: 2,
+      roomTypeId: '11111111-1111-4111-8111-111111111111',
+      ratePlanId: '22222222-2222-4222-8222-222222222222',
+    }
+    const intentBody = {
+      ...quoteBody,
+      quoteToken: 'x'.repeat(24),
+      acceptedTotalAmount: '200.00',
+      guest: { firstName: 'Олена', lastName: 'Мельник', email: 'olena@example.test', phone: '+380953334455' },
+    }
+    const refused = (error: unknown) => {
+      assert.ok(error instanceof Error)
+      assert.equal(error.message, 'BOOKING_DISABLED')
+      return true
+    }
+    await assert.rejects(() => client.quote(quoteBody), refused)
+    await assert.rejects(() => client.createIntent(intentBody), refused)
+    await assert.rejects(() => client.requestEmailVerification('intent'), refused)
+    await assert.rejects(() => client.correctEmail('intent', { email: 'olena@example.test' }), refused)
+    await assert.rejects(() => client.confirmEmailVerification('intent', { code: '123456' }), refused)
+    await assert.rejects(() => client.confirmation('c'.repeat(24)), refused)
+    await assert.rejects(() => client.recoverConfirmation('intent', { email: 'olena@example.test' }), refused)
+    assert.equal(calls, 0)
+
+    const read = await client.availability({ checkIn: '2026-12-15', checkOut: '2026-12-17', guestCount: 2 })
+    assert.equal(read.currency, 'UAH')
+    assert.equal(calls, 1)
   })
 
   it('fails closed when the public API base is not configured', async () => {

@@ -1,3 +1,4 @@
+import { BOOKING_DISABLED_COPY } from './config'
 import type { ApiErrorBody, PublicQuoteResponse } from './types'
 import { MIN_QUOTE_TOKEN } from './types'
 
@@ -73,6 +74,9 @@ export function errorCopy(error: unknown): string {
   }
   if (error instanceof Error && error.message === 'PUBLIC_API_NOT_CONFIGURED') {
     return 'Бронювання ще не підключене до сервера. Додайте VITE_PUBLIC_API_BASE_URL.'
+  }
+  if (error instanceof Error && error.message === 'BOOKING_DISABLED') {
+    return BOOKING_DISABLED_COPY
   }
   return 'Не вдалося зв’язатися з сервером бронювання.'
 }

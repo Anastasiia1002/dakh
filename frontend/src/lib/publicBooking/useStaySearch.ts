@@ -1,12 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { publicBookingClient } from './client'
-import { isPublicApiConfigured } from './config'
+import { isBookingEnabled, isPublicApiConfigured } from './config'
 import { errorCopy, isAbortError } from './errors'
 import {
   availabilityMatchesSearch,
+  availabilitySearchStatus,
   findRatePlan,
   quoteMatchesSearch,
   shouldApplyResponse,
+  shouldRequestQuote,
   stayIsSearchable,
 } from './stay'
 import type { PublicAvailabilityResponse, PublicAvailabilityRoomType, PublicQuoteResponse } from './types'
@@ -21,6 +23,7 @@ export function useStaySearch(
   ratePlanId: string,
 ) {
   const configured = isPublicApiConfigured()
+  const bookingEnabled = isBookingEnabled()
   const searchable = stayIsSearchable(checkIn, checkOut, guestCount)
   const availabilityKey = searchable && configured ? `${checkIn}|${checkOut}|${guestCount}` : ''
 
@@ -78,7 +81,7 @@ export function useStaySearch(
   }, [availabilityKey, checkIn, checkOut, guestCount])
 
   useEffect(() => {
-    if (!quoteKey || !selectedPlan) return
+    if (!shouldRequestQuote(bookingEnabled, quoteKey) || !selectedPlan) return
 
     const requestedKey = quoteKey
     const controller = new AbortController()
@@ -107,24 +110,20 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [checkIn, checkOut, guestCount, quoteKey, roomTypeId, selectedPlan])
+  }, [bookingEnabled, checkIn, checkOut, guestCount, quoteKey, roomTypeId, selectedPlan])
 
   const currentQuote =
     quoteReadyKey === quoteKey && quote && quoteMatchesSearch(quote, search) ? quote : null
 
-  const availabilityStatus: Status = !searchable
-    ? 'idle'
-    : !configured
-      ? 'error'
-      : availabilityReadyKey !== availabilityKey
-        ? 'loading'
-        : availabilityError
-          ? 'error'
-          : currentAvailability?.roomTypes.length
-            ? 'ready'
-            : 'empty'
+  const availabilityStatus: Status = availabilitySearchStatus({
+    searchable,
+    configured,
+    settled: availabilityReadyKey === availabilityKey,
+    error: availabilityError,
+    roomCount: currentAvailability?.roomTypes.length ?? 0,
+  })
 
-  const quoteStatus: Status = !searchable || !roomTypeId
+  const quoteStatus: Status = !bookingEnabled || !searchable || !roomTypeId
     ? 'idle'
     : !configured
       ? 'error'

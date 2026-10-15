@@ -26,7 +26,7 @@ import {
 } from '../lib/publicBooking'
 import { reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
-import { readRoomSlugMap, resolveHotelSlug } from '../lib/publicBooking/config'
+import { BOOKING_DISABLED_COPY, isBookingEnabled, readRoomSlugMap, resolveHotelSlug } from '../lib/publicBooking/config'
 import { catalogNameForRoomTypeSlug, publicRoomLabel } from '../lib/publicBooking/display'
 import {
   clearBookingHandoff,
@@ -111,6 +111,7 @@ export function BookingPage() {
     email: draft.email,
     comment: draft.comment,
   }
+  const bookingEnabled = isBookingEnabled()
   const quoteReady = isQuoteFresh(search.quote, now)
   const roomMissing =
     locked &&
@@ -119,6 +120,7 @@ export function BookingPage() {
     (search.availabilityStatus === 'ready' || search.availabilityStatus === 'empty' || search.availabilityStatus === 'error') &&
     !search.selectedRoom
   const canSubmit =
+    bookingEnabled &&
     quoteReady &&
     guestFormIsValid(guest) &&
     !checkout.busy &&
@@ -222,6 +224,7 @@ export function BookingPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (!isBookingEnabled()) return
     const errors = guestFieldErrors(guest)
     setGuestErr(errors)
     if (Object.keys(errors).length || !canSubmit) return
@@ -262,14 +265,18 @@ export function BookingPage() {
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
       <p className="mt-5 max-w-xl text-sm text-wood/70">
-        {locked
-          ? 'Кімнату вже обрано. Дати й кількість гостей можна змінити тут, потім залишіть контакти. Ціну підтверджує сервер.'
-          : 'Оберіть дати й кімнату. Тариф підберемо за найнижчою сумою і покажемо умови. Після заявки надішлемо код на пошту.'}
+        {bookingEnabled
+          ? locked
+            ? 'Кімнату вже обрано. Дати й кількість гостей можна змінити тут, потім залишіть контакти. Ціну підтверджує сервер.'
+            : 'Оберіть дати й кімнату. Тариф підберемо за найнижчою сумою і покажемо умови. Після заявки надішлемо код на пошту.'
+          : 'Оберіть дати й кімнату, щоб побачити наявність і тестову ціну сервера. Заявку зараз не створюємо.'}
       </p>
 
       <p className="mt-10 text-sm text-wood/60">
         {search.searchable
-          ? 'Наявність і ціна — з актуального інвентаря готелю, не з демонстраційного каталогу.'
+          ? bookingEnabled
+            ? 'Наявність і ціна — з актуального інвентаря готелю, не з демонстраційного каталогу.'
+            : 'Наявність і тестова ціна — з сервера. Орієнтир каталогу на картках кімнат до цих дат не застосовується.'
           : 'Спочатку оберіть заїзд і виїзд. Максимум 30 ночей.'}
       </p>
 
@@ -336,6 +343,7 @@ export function BookingPage() {
             </div>
           ) : null}
 
+          {bookingEnabled ? (
           <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Деталі гостя</legend>
             <GuestFields
@@ -361,11 +369,12 @@ export function BookingPage() {
               }}
             />
           </fieldset>
+          ) : null}
         </div>
 
         <aside className="h-fit bg-beige p-6 md:sticky md:top-8 md:col-span-5">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
-          {handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
+          {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
               Попередня сума {formatMoneyAmount(handoff.preview.totalAmount)} ще перевіряється на сервері.
             </p>
@@ -383,6 +392,7 @@ export function BookingPage() {
             quoteStatus={roomRejected ? 'idle' : checkingIdentity ? 'loading' : search.quoteStatus}
             quoteError={search.quoteError}
             availabilityStatus={checkingIdentity ? 'loading' : search.availabilityStatus}
+            availabilityError={search.availabilityError}
             roomLabel={requestedRoomLabel || undefined}
             missingRoomCopy={
               locked
@@ -391,7 +401,11 @@ export function BookingPage() {
             }
           />
 
-          {checkout.step === 'price_changed' && checkout.pendingQuote ? (
+          {!bookingEnabled ? (
+            <p className="mt-8 text-sm leading-relaxed text-wood/70" role="status">
+              {BOOKING_DISABLED_COPY}
+            </p>
+          ) : checkout.step === 'price_changed' && checkout.pendingQuote ? (
             <PriceChangePanel
               previousTotal={search.quote?.totalAmount}
               quote={checkout.pendingQuote}

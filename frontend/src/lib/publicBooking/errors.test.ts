@@ -13,6 +13,12 @@ describe('public API errors', () => {
     assert.equal(errorCopy(error), 'На ці дати немає вільних кімнат')
   })
 
+  it('explains a disabled booking action without claiming the API itself is blocked', () => {
+    const copy = errorCopy(new Error('BOOKING_DISABLED'))
+    assert.match(copy, /вимкнене/)
+    assert.doesNotMatch(copy, /забороняє|авторизац/i)
+  })
+
   it('explains a missing frontend API origin without inventing a server field', () => {
     assert.match(errorCopy(new Error('PUBLIC_API_NOT_CONFIGURED')), /VITE_PUBLIC_API_BASE_URL/)
   })

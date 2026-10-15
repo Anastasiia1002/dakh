@@ -6,6 +6,12 @@ export function isFixtureLabel(name: string) {
   return /^e2e(?:\s|$)/i.test(name.trim())
 }
 
+/** Staging and fixture inventory names are not visitor-facing copy. */
+export function isHiddenInventoryLabel(name: string) {
+  const trimmed = name.trim()
+  return isFixtureLabel(trimmed) || /^test data(?:\s|$)/i.test(trimmed)
+}
+
 export function catalogNameForRoomTypeSlug(
   roomTypeSlug: string,
   catalog: readonly { slug: string; name: string }[],
@@ -19,11 +25,11 @@ export function catalogNameForRoomTypeSlug(
 
 export function publicRoomLabel(apiName: string, kind: PublicRoomKind, verifiedCatalogName?: string | null) {
   if (verifiedCatalogName) return verifiedCatalogName
-  if (isFixtureLabel(apiName)) return roomKindLabel(kind)
+  if (isHiddenInventoryLabel(apiName)) return roomKindLabel(kind)
   return apiName
 }
 
 export function publicPlanTitle(plan: { name: string; type: PublicRateType }) {
-  if (isFixtureLabel(plan.name)) return rateTypeLabel(plan.type)
+  if (isHiddenInventoryLabel(plan.name)) return rateTypeLabel(plan.type)
   return plan.name
 }

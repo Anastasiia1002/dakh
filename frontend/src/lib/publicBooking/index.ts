@@ -2,7 +2,7 @@ export { PublicBookingClient, publicBookingClient } from './client'
 export { useStaySearch } from './useStaySearch'
 export { useAvailabilityCalendar } from './useAvailabilityCalendar'
 export { useBookingCheckout } from './useBookingCheckout'
-export { isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
+export { BOOKING_DISABLED_COPY, isBookingEnabled, isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 export {
   PublicApiError,
   errorCopy,
@@ -43,7 +43,10 @@ export {
   guestCountOf,
   latestCheckOut,
   availabilityMatchesSearch,
+  availabilitySearchStatus,
+  authoritativeStayTotal,
   quoteMatchesSearch,
+  shouldRequestQuote,
   rateConditions,
   ratePlanIdForRoom,
   rateTypeLabel,
