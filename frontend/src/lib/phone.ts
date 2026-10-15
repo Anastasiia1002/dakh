@@ -1,3 +1,5 @@
+import { parsePhoneNumberFromString } from 'libphonenumber-js'
+
 const MOBILE_NDC =
   /^(39|50|63|66|67|68|73|75|77|89|91|92|93|94|95|96|97|98|99)$/
 
@@ -26,6 +28,38 @@ export function formatUaMobile(value: string) {
   const national = uaMobileNational(value)
   if (!national || !isUaMobile(value)) return null
   return `+38 (0${national.slice(0, 2)}) ${national.slice(2, 5)}-${national.slice(5, 7)}-${national.slice(7, 9)}`
+}
+
+/** Booking phone: Ukraine by default, any valid international number with a country code. */
+export function parseBookingPhone(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const parsed = parsePhoneNumberFromString(trimmed, 'UA')
+  if (!parsed?.isValid()) return null
+  return parsed
+}
+
+export function bookingPhoneE164(value: string) {
+  return parseBookingPhone(value)?.number ?? null
+}
+
+export function formatBookingPhone(value: string) {
+  return parseBookingPhone(value)?.formatInternational() ?? null
+}
+
+export function bookingPhoneError(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return 'Вкажіть номер телефону.'
+  if (trimmed.length > 32) return 'Номер занадто довгий.'
+  const parsed = parsePhoneNumberFromString(trimmed, 'UA')
+  if (!parsed) return 'Не вдалося розпізнати номер. Для України достатньо 095…, для інших країн почніть з +.'
+  if (!parsed.isValid()) {
+    if (!trimmed.startsWith('+') || parsed.country === 'UA') {
+      return 'Перевірте номер. Для України, наприклад, +380 95 818 00 01.'
+    }
+    return 'Номер недійсний. Перевірте код країни та кількість цифр.'
+  }
+  return undefined
 }
 
 export function uaMobileError(value: string) {
