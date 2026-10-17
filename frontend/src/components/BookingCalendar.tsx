@@ -325,10 +325,10 @@ export function BookingCalendar({
             max={Math.max(0, MAX_GUESTS - adults)}
             onChange={(value) => onChange({ children: value })}
           />
-          <Stepper label="Номери" value={1} min={1} max={1} onChange={() => undefined} />
+          <Stepper label="Помешкання" value={1} min={1} max={1} onChange={() => undefined} />
           <p className="mt-3 text-[0.72rem] text-wood/50">
-            Разом {guestTotal} {ukPlural(guestTotal, 'гість', 'гості', 'гостей')}. Одна заявка — одна
-            кімната.
+            Разом {guestTotal} {ukPlural(guestTotal, 'гість', 'гості', 'гостей')}. Одна заявка — одне
+            помешкання.
           </p>
         </div>
       ) : null}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { publicBookingClient } from '../publicBooking/client'
 import { isAbortError, isPublicApiError } from '../publicBooking/errors'
-import type { PublicAccommodation, PublicHotelSlug } from '../publicBooking/types'
+import type { PublicAccommodation } from '../publicBooking/types'
+import { invalidateCatalogCache, loadAccommodationList } from './cache'
+import { apiHotelSlug, type AccommodationCategory } from './categories'
 
 export type CatalogStatus = 'loading' | 'ready' | 'empty' | 'error'
 
@@ -13,7 +14,8 @@ export function catalogErrorCopy(error: unknown): string {
   return 'Не вдалося завантажити каталог. Якщо сервер щойно прокидається, спробуйте ще раз.'
 }
 
-export function useAccommodationList(hotelSlug: PublicHotelSlug) {
+export function useAccommodationList(category: AccommodationCategory) {
+  const hotelSlug = apiHotelSlug(category)
   const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState<CatalogStatus>('loading')
   const [items, setItems] = useState<PublicAccommodation[]>([])
@@ -21,10 +23,9 @@ export function useAccommodationList(hotelSlug: PublicHotelSlug) {
 
   useEffect(() => {
     const controller = new AbortController()
-    setStatus('loading')
+    setStatus((current) => (current === 'ready' ? current : 'loading'))
     setError('')
-    publicBookingClient
-      .listAccommodations(hotelSlug, { signal: controller.signal })
+    loadAccommodationList(hotelSlug, controller.signal, attempt > 0)
       .then((result) => {
         if (controller.signal.aborted) return
         setItems(result.accommodations)
@@ -43,41 +44,29 @@ export function useAccommodationList(hotelSlug: PublicHotelSlug) {
     status,
     items,
     error,
-    retry: () => setAttempt((value) => value + 1),
+    retry: () => {
+      invalidateCatalogCache(hotelSlug)
+      setAttempt((value) => value + 1)
+    },
   }
 }
 
-export function useAccommodation(hotelSlug: PublicHotelSlug, slug: string) {
-  const [attempt, setAttempt] = useState(0)
-  const [status, setStatus] = useState<CatalogStatus>('loading')
-  const [item, setItem] = useState<PublicAccommodation | null>(null)
-  const [error, setError] = useState('')
+export function useAccommodation(category: AccommodationCategory, apiSlug: string) {
+  const hotelSlug = apiHotelSlug(category)
+  const list = useAccommodationList(category)
+  const item = list.items.find((entry) => entry.slug === apiSlug) ?? null
 
-  useEffect(() => {
-    const controller = new AbortController()
-    setStatus('loading')
-    setItem(null)
-    setError('')
-    publicBookingClient
-      .getAccommodation(hotelSlug, slug, { signal: controller.signal })
-      .then((result) => {
-        if (controller.signal.aborted) return
-        setItem(result)
-        setStatus('ready')
-      })
-      .catch((caught: unknown) => {
-        if (controller.signal.aborted || isAbortError(caught)) return
-        setItem(null)
-        setError(catalogErrorCopy(caught))
-        setStatus('error')
-      })
-    return () => controller.abort()
-  }, [hotelSlug, slug, attempt])
+  let status: CatalogStatus = list.status
+  if (list.status === 'ready' && !item) status = 'empty'
+  if (!apiSlug) status = 'empty'
 
   return {
     status,
-    item,
-    error,
-    retry: () => setAttempt((value) => value + 1),
+    item: status === 'ready' ? item : null,
+    error: list.error,
+    retry: () => {
+      invalidateCatalogCache(hotelSlug)
+      list.retry()
+    },
   }
 }

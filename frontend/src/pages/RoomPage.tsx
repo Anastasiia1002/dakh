@@ -1,52 +1,65 @@
-import { useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { lazy, Suspense, useState } from 'react'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { capacityLabel, galleryImages, kindLabel, publicDescription, publicTitle } from '../lib/catalog/display'
-import { accommodationBase, fictionalDetailRedirect } from '../lib/catalog/routes'
+import {
+  apiHotelSlug,
+  categoryBase,
+  toApiAccommodationSlug,
+  toPublicAccommodationSlug,
+  type AccommodationCategory,
+} from '../lib/catalog/categories'
+import { catalogRedirect } from '../lib/catalog/routes'
 import { useAccommodation, useAccommodationList } from '../lib/catalog/useAccommodations'
-import type { PublicAccommodation, PublicHotelSlug } from '../lib/publicBooking/types'
+import type { PublicAccommodation } from '../lib/publicBooking/types'
 
-export function RoomPage({ hotel }: { hotel: PublicHotelSlug }) {
+const ActiveRoomBooking =
+  import.meta.env?.VITE_BOOKING_ENABLED === 'true'
+    ? lazy(() => import('../components/booking/RoomBooking').then((module) => ({ default: module.RoomBooking })))
+    : null
+
+export function RoomPage({ category }: { category: AccommodationCategory }) {
   const { slug = '' } = useParams()
-  const listPath = accommodationBase(hotel)
-  const decoded = decodeURIComponent(slug)
-
-  const redirect = fictionalDetailRedirect(hotel, decoded)
+  const location = useLocation()
+  const redirect = catalogRedirect(location.pathname)
   if (redirect) return <Navigate to={redirect} replace />
 
-  return <AccommodationDetail hotel={hotel} slug={decoded} listPath={listPath} />
+  const decoded = decodeURIComponent(slug)
+  const apiSlug = toApiAccommodationSlug(category, decoded)
+  if (!apiSlug) return <Navigate to={categoryBase(category)} replace />
+
+  return <AccommodationDetail category={category} apiSlug={apiSlug} />
 }
 
-function AccommodationDetail({
-  hotel,
-  slug,
-  listPath,
-}: {
-  hotel: PublicHotelSlug
-  slug: string
-  listPath: string
-}) {
-  const detail = useAccommodation(hotel, slug)
-  const related = useAccommodationList(hotel)
+function AccommodationDetail({ category, apiSlug }: { category: AccommodationCategory; apiSlug: string }) {
+  const detail = useAccommodation(category, apiSlug)
+  const related = useAccommodationList(category)
   const [active, setActive] = useState(0)
   const room = detail.item
   const images = room ? galleryImages(room) : []
   const selected = images[active] ?? images[0]
-  const others = related.items.filter((item) => item.slug !== slug)
+  const others = related.items.filter((item) => item.slug !== apiSlug)
+  const listPath = categoryBase(category)
 
   return (
     <article>
       {detail.status === 'ready' && room && selected ? (
         <>
-          <Photo src={selected.url} alt={selected.alt || publicTitle(room.name, room.maxGuests)} className="h-[70vh] w-full" />
+          <Photo
+            src={selected.url}
+            alt={selected.alt || publicTitle(room.name, room.maxGuests)}
+            priority
+            className="h-[70vh] w-full"
+          />
           <div className="mx-auto grid max-w-6xl grid-cols-3 gap-2 px-6 pt-3 sm:grid-cols-5">
             {images.map((image, index) => (
               <button key={`${image.url}-${image.sortOrder}`} type="button" onClick={() => setActive(index)} className="block">
                 <Photo
                   src={image.url}
                   alt=""
+                  priority={index === active}
                   className={`aspect-[4/3] w-full ${index === active ? 'ring-1 ring-clay' : 'opacity-70'}`}
                 />
               </button>
@@ -57,11 +70,22 @@ function AccommodationDetail({
         <div className="h-[40vh] bg-beige" />
       )}
 
-      <section className="mx-auto max-w-3xl px-6 py-16">
+      <section className="mx-auto max-w-6xl px-6 py-16">
         {detail.status === 'ready' && room ? (
-          <>
+          <div className="grid items-start gap-16 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <AccommodationCopy room={room} />
-          </>
+            {ActiveRoomBooking ? (
+              <Suspense fallback={<p className="text-sm text-wood/60">Завантажуємо дати…</p>}>
+                <ActiveRoomBooking
+                  category={category}
+                  apiSlug={room.slug}
+                  publicSlug={toPublicAccommodationSlug(category, room.slug)}
+                  displayName={publicTitle(room.name, room.maxGuests)}
+                  hotelSlug={apiHotelSlug(category)}
+                />
+              </Suspense>
+            ) : null}
+          </div>
         ) : (
           <CatalogState
             status={detail.status === 'ready' ? 'empty' : detail.status}
@@ -88,7 +112,7 @@ function AccommodationDetail({
           to={listPath}
           className="inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
         >
-          {hotel === 'dakh' ? 'Усі номери' : 'Усі будинки'}
+          {category === 'rooms' ? 'Усі кімнати' : 'Усі будинки'}
         </Link>
       </div>
     </article>

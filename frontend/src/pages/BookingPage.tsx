@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { BOOKING_DISABLED_COPY } from '../lib/publicBooking/config'
 
 const ActiveBooking =
-  import.meta.env.VITE_BOOKING_ENABLED === 'true'
+  import.meta.env?.VITE_BOOKING_ENABLED === 'true'
     ? lazy(() => import('./BookingFlow').then((module) => ({ default: module.BookingFlow })))
     : null
 
@@ -17,10 +17,10 @@ export function BookingPage() {
           {BOOKING_DISABLED_COPY}
         </p>
         <Link
-          to="/hotel"
+          to="/rooms"
           className="mt-10 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
         >
-          До номерів
+          До кімнат
         </Link>
       </section>
     )

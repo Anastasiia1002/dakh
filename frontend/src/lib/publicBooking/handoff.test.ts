@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { handoffFromSearch, parseBookingHandoff, resolveBookingHandoff } from './handoff'
+import { handoffFromSearch, handoffToSearch, parseBookingHandoff, resolveBookingHandoff } from './handoff'
 
 const roomTypeId = '11111111-1111-4111-8111-111111111111'
 const ratePlanId = '22222222-2222-4222-8222-222222222222'
@@ -71,6 +71,35 @@ describe('booking handoff', () => {
     const resolved = resolveBookingHandoff({ state: null, params, stored: handoff })
     assert.equal(resolved?.ratePlanId, ratePlanId)
     assert.equal(resolved?.preview?.totalAmount, '400.00')
+  })
+
+  it('keeps both categories on the booking URL without the legacy hotel slug', () => {
+    const rooms = handoffToSearch({
+      ...handoff,
+      hotelSlug: 'dakh',
+      catalogSlug: 'dakh-room-14-1',
+      roomTypeSlug: 'dakh-room-14-1',
+    })
+    const houses = handoffToSearch({
+      ...handoff,
+      hotelSlug: 'sunny-park',
+      catalogSlug: 'house-7',
+      roomTypeSlug: 'sunny-park-7',
+    })
+    assert.equal(rooms.get('category'), 'rooms')
+    assert.equal(rooms.get('room'), 'dakh-room-14-1')
+    assert.equal(rooms.get('hotel'), null)
+    assert.equal(houses.get('category'), 'houses')
+    assert.equal(houses.get('room'), 'house-7')
+    assert.equal(houses.get('hotel'), null)
+    assert.equal(houses.get('type'), null)
+    assert.equal(houses.toString().includes('sunny-park'), false)
+
+    const restored = handoffFromSearch(houses)
+    assert.equal(restored?.hotelSlug, 'sunny-park')
+    assert.equal(restored?.catalogSlug, 'house-7')
+    assert.equal(restored?.roomTypeSlug, 'sunny-park-7')
+    assert.equal(restored?.roomTypeId, roomTypeId)
   })
 
   it('ignores stored context on a direct visit without room parameters', () => {

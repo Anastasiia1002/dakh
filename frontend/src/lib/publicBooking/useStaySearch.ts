@@ -21,11 +21,12 @@ export function useStaySearch(
   guestCount: number,
   roomTypeId: string,
   ratePlanId: string,
+  hotelSlug?: string,
 ) {
   const configured = isPublicApiConfigured()
   const bookingEnabled = isBookingEnabled()
   const searchable = stayIsSearchable(checkIn, checkOut, guestCount)
-  const availabilityKey = searchable && configured ? `${checkIn}|${checkOut}|${guestCount}` : ''
+  const availabilityKey = searchable && configured ? `${hotelSlug ?? ''}|${checkIn}|${checkOut}|${guestCount}` : ''
 
   const latestAvailabilityKey = useRef(availabilityKey)
   const latestQuoteKey = useRef('')
@@ -63,7 +64,7 @@ export function useStaySearch(
     const requestedKey = availabilityKey
     const controller = new AbortController()
     publicBookingClient
-      .availability({ checkIn, checkOut, guestCount }, { signal: controller.signal })
+      .availability({ checkIn, checkOut, guestCount }, { signal: controller.signal }, hotelSlug)
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestAvailabilityKey.current)) return
         setAvailability(response)
@@ -78,7 +79,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [availabilityKey, checkIn, checkOut, guestCount])
+  }, [availabilityKey, checkIn, checkOut, guestCount, hotelSlug])
 
   useEffect(() => {
     if (!shouldRequestQuote(bookingEnabled, quoteKey) || !selectedPlan) return
@@ -95,6 +96,7 @@ export function useStaySearch(
           ratePlanId: selectedPlan.ratePlanId,
         },
         { signal: controller.signal },
+        hotelSlug,
       )
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestQuoteKey.current)) return
@@ -110,7 +112,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [bookingEnabled, checkIn, checkOut, guestCount, quoteKey, roomTypeId, selectedPlan])
+  }, [bookingEnabled, checkIn, checkOut, guestCount, hotelSlug, quoteKey, roomTypeId, selectedPlan])
 
   const currentQuote =
     quoteReadyKey === quoteKey && quote && quoteMatchesSearch(quote, search) ? quote : null

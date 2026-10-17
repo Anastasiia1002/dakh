@@ -4,7 +4,7 @@ import { site } from '../data/catalog'
 import { emailError } from '../lib/email'
 import { formatUaMobile, uaMobileError } from '../lib/phone'
 
-const bookingEnabled = import.meta.env.VITE_BOOKING_ENABLED === 'true'
+const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
 type Fields = {
   name: string

@@ -30,7 +30,7 @@ type GuestInput = {
   comment?: string
 }
 
-export function useBookingCheckout(stay?: StoredStay) {
+export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
   const resumed =
     isBookingEnabled() && stay?.roomTypeId && stay.checkIn && stay.checkOut ? resumeIntentForStay(stay) : null
   const [step, setStep] = useState<CheckoutStep>(resumed ? 'verify' : 'collect')
@@ -111,6 +111,7 @@ export function useBookingCheckout(stay?: StoredStay) {
         guestComment: guestCommentForIntent(guest.comment ?? ''),
       },
       { idempotencyKey: idempotencyKey.current },
+      hotelSlug,
     )
     setIntent(created)
     writeStoredIntent(created, {

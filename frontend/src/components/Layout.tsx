@@ -3,11 +3,11 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
 import { DakhLogo } from './BrandMarks'
 
-const bookingEnabled = import.meta.env.VITE_BOOKING_ENABLED === 'true'
+const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
 const nav = [
-  { to: '/hotel', label: 'Готель' },
-  { to: '/sunny-park', label: 'Будинки' },
+  { to: '/rooms', label: 'Кімнати' },
+  { to: '/houses', label: 'Будинки' },
   { to: '/menu', label: 'Ресторан' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },
@@ -53,7 +53,7 @@ export function Layout() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
   const overHero =
-    pathname === '/' || pathname === '/menu' || /^\/(hotel|sunny-park)\/[^/]+$/.test(pathname)
+    pathname === '/' || pathname === '/menu' || /^\/(rooms|houses)\/[^/]+$/.test(pathname)
   const tone = overHero ? 'linen' : 'wood'
 
   return (
@@ -140,7 +140,7 @@ export function Layout() {
             ))}
             {bookingEnabled ? (
               <Link to="/bronuvannya" className="block py-1">
-                Бронювання кімнати
+                Бронювання
               </Link>
             ) : null}
           </div>
