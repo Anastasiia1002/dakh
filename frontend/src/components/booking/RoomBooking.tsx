@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookingCalendar } from '../BookingCalendar'
-import { stayBySlug } from '../../data/catalog'
+import type { AccommodationCategory } from '../../lib/catalog/categories'
 import { emptyDraft, type BookingDraft } from '../../lib/booking'
 import {
   guestCountOf,
@@ -10,15 +10,21 @@ import {
   stayNights,
   useStaySearch,
 } from '../../lib/publicBooking'
-import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../../lib/publicBooking/config'
+import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../../lib/publicBooking/config'
 import { reconcileStay } from '../../lib/publicBooking/calendar'
-import { saveBookingHandoff, handoffToSearch, loadBookingHandoff, type BookingHandoff } from '../../lib/publicBooking/handoff'
+import {
+  saveBookingHandoff,
+  handoffToSearch,
+  loadBookingHandoff,
+  rememberRoomDisplayName,
+  type BookingHandoff,
+} from '../../lib/publicBooking/handoff'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
 import { QuoteSummary } from './CheckoutPanels'
 
-function draftFromHandoff(catalogSlug: string): BookingDraft {
+function draftFromHandoff(publicSlug: string): BookingDraft {
   const saved = loadBookingHandoff()
-  if (!saved || saved.catalogSlug !== catalogSlug) return { ...emptyDraft, adults: 2 }
+  if (!saved || saved.catalogSlug !== publicSlug) return { ...emptyDraft, adults: 2 }
   return {
     ...emptyDraft,
     checkIn: saved.checkIn,
@@ -30,10 +36,21 @@ function draftFromHandoff(catalogSlug: string): BookingDraft {
   }
 }
 
-export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
+export function RoomBooking({
+  category,
+  apiSlug,
+  publicSlug,
+  displayName,
+  hotelSlug,
+}: {
+  category: AccommodationCategory
+  apiSlug: string
+  publicSlug: string
+  displayName: string
+  hotelSlug: string
+}) {
   const navigate = useNavigate()
-  const stayName = stayBySlug(catalogSlug)?.name ?? ''
-  const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(catalogSlug))
+  const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(publicSlug))
   const [now, setNow] = useState(() => Date.now())
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
   const guestCount = guestCountOf(draft.adults, draft.children)
@@ -41,13 +58,14 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
-  const calendar = useMappedRoomCalendar(catalogSlug, calendarRange, guestCount)
+  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, guestCount, hotelSlug)
   const search = useStaySearch(
     draft.checkIn,
     draft.checkOut,
     guestCount,
     calendar.roomTypeId,
     draft.ratePlanId,
+    hotelSlug,
   )
   const quoteReady = isQuoteFresh(search.quote, now)
 
@@ -92,13 +110,17 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
     })
   }
 
+  useEffect(() => {
+    if (calendar.roomTypeId && displayName) rememberRoomDisplayName(calendar.roomTypeId, displayName)
+  }, [calendar.roomTypeId, displayName])
+
   function continueToCheckout(event: FormEvent) {
     event.preventDefault()
     if (!isBookingEnabled()) return
     if (!quoteReady || !search.quote || !calendar.roomTypeId || !search.configured) return
     const handoff: BookingHandoff = {
-      hotelSlug: resolveHotelSlug(),
-      catalogSlug,
+      hotelSlug,
+      catalogSlug: publicSlug,
       roomTypeId: calendar.roomTypeId,
       roomTypeSlug: calendar.expectedSlug,
       checkIn: draft.checkIn,
@@ -160,7 +182,7 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
           quoteError={search.quoteError}
           availabilityStatus={search.availabilityStatus}
           availabilityError={search.availabilityError}
-          roomLabel={stayName}
+          roomLabel={displayName}
           missingRoomCopy="На ці дати ця кімната недоступна. Іншу кімнату не підставляємо."
         />
         {bookingEnabled ? (
@@ -173,7 +195,7 @@ export function RoomBooking({ catalogSlug }: { catalogSlug: string }) {
               Забронювати
             </button>
             <p className="mt-4 text-[0.72rem] text-wood/55">
-              Далі на сторінці бронювання зберемо контакти. Кімната, дати й гості залишаються тими, що ви
+              Далі на сторінці бронювання зберемо контакти. {category === 'houses' ? 'Будинок' : 'Кімната'}, дати й гості залишаються тими, що ви
               обрали. Ціну ще раз підтвердить сервер.
             </p>
           </>

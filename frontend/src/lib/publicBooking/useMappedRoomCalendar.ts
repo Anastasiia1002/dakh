@@ -12,9 +12,10 @@ export function useMappedRoomCalendar(
   catalogSlug: string,
   range: { from: string; to: string } | null,
   guestCount: number,
+  hotelSlug?: string,
 ) {
   const expectedSlug = resolveRoomTypeSlug(catalogSlug, readRoomSlugMap())
-  const calendar = useAvailabilityCalendar(range, guestCount, '')
+  const calendar = useAvailabilityCalendar(range, guestCount, '', hotelSlug)
   const matched = useMemo(
     () => (calendar.status === 'ready' ? findRoomTypeBySlug(calendar.roomTypes, expectedSlug) : null),
     [calendar.roomTypes, calendar.status, expectedSlug],

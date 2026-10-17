@@ -15,9 +15,10 @@ export function useAvailabilityCalendar(
   range: { from: string; to: string } | null,
   guestCount: number,
   roomTypeId: string,
+  hotelSlug?: string,
 ) {
   const configured = isPublicApiConfigured()
-  const requestKey = range && configured ? `${range.from}|${range.to}|${guestCount}|${roomTypeId}` : ''
+  const requestKey = range && configured ? `${hotelSlug ?? ''}|${range.from}|${range.to}|${guestCount}|${roomTypeId}` : ''
   const latestKey = useRef(requestKey)
   const [roomTypes, setRoomTypes] = useState<PublicCalendarRoomType[]>([])
   const [hotelToday, setHotelToday] = useState<string | null>(null)
@@ -41,6 +42,7 @@ export function useAvailabilityCalendar(
           roomTypeId: roomTypeId || undefined,
         },
         { signal: controller.signal },
+        hotelSlug,
       )
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestKey.current)) return
@@ -64,7 +66,7 @@ export function useAvailabilityCalendar(
         setReadyKey(requestedKey)
       })
     return () => controller.abort()
-  }, [guestCount, range, requestKey, roomTypeId])
+  }, [guestCount, hotelSlug, range, requestKey, roomTypeId])
 
   const status: CalendarLoadStatus = !requestKey
     ? 'loading'

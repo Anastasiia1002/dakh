@@ -57,8 +57,8 @@ export class PublicBookingClient {
     return this.baseUrl
   }
 
-  private hotelPath(suffix: string) {
-    return `/hotels/${encodeURIComponent(this.hotelSlug)}${suffix}`
+  private hotelPath(suffix: string, hotelSlug = this.hotelSlug) {
+    return `/hotels/${encodeURIComponent(hotelSlug)}${suffix}`
   }
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -100,30 +100,34 @@ export class PublicBookingClient {
     return payload as T
   }
 
-  availability(query: PublicAvailabilityQuery, init: RequestInit = {}): Promise<PublicAvailabilityResponse> {
+  availability(
+    query: PublicAvailabilityQuery,
+    init: RequestInit = {},
+    hotelSlug?: string,
+  ): Promise<PublicAvailabilityResponse> {
     const params = new URLSearchParams({
       checkIn: query.checkIn,
       checkOut: query.checkOut,
     })
     if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
     if (query.roomTypeId) params.set('roomTypeId', query.roomTypeId)
-    return this.request<PublicAvailabilityResponse>(`${this.hotelPath('/availability')}?${params}`, init)
+    return this.request<PublicAvailabilityResponse>(`${this.hotelPath('/availability', hotelSlug)}?${params}`, init)
   }
 
-  calendar(query: PublicCalendarQuery, init: RequestInit = {}): Promise<PublicCalendarResponse> {
+  calendar(query: PublicCalendarQuery, init: RequestInit = {}, hotelSlug?: string): Promise<PublicCalendarResponse> {
     const params = new URLSearchParams({
       from: query.from,
       to: query.to,
     })
     if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
     if (query.roomTypeId) params.set('roomTypeId', query.roomTypeId)
-    return this.request<PublicCalendarResponse>(`${this.hotelPath('/availability/calendar')}?${params}`, init)
+    return this.request<PublicCalendarResponse>(`${this.hotelPath('/availability/calendar', hotelSlug)}?${params}`, init)
   }
 
-  quote(body: PublicQuoteRequest, init: RequestInit = {}): Promise<PublicQuoteResponse> {
+  quote(body: PublicQuoteRequest, init: RequestInit = {}, hotelSlug?: string): Promise<PublicQuoteResponse> {
     const refused = this.writeRefusal()
     if (refused) return refused
-    return this.request<PublicQuoteResponse>(this.hotelPath('/quotes'), {
+    return this.request<PublicQuoteResponse>(this.hotelPath('/quotes', hotelSlug), {
       ...init,
       method: 'POST',
       body: JSON.stringify(body),
@@ -133,13 +137,14 @@ export class PublicBookingClient {
   createIntent(
     body: CreateBookingIntentRequest,
     init: RequestInit & { idempotencyKey?: string } = {},
+    hotelSlug?: string,
   ): Promise<PublicBookingIntentResponse> {
     const refused = this.writeRefusal()
     if (refused) return refused
     const { idempotencyKey, ...requestInit } = init
     const headers = new Headers(requestInit.headers)
     if (idempotencyKey?.trim()) headers.set('Idempotency-Key', idempotencyKey.trim().slice(0, 128))
-    return this.request<PublicBookingIntentResponse>(this.hotelPath('/booking-intents'), {
+    return this.request<PublicBookingIntentResponse>(this.hotelPath('/booking-intents', hotelSlug), {
       ...requestInit,
       method: 'POST',
       headers,

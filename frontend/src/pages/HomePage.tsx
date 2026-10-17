@@ -3,10 +3,9 @@ import { Spot } from '../components/BrandMarks'
 import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
-import { accommodationBase } from '../lib/catalog/routes'
+import { categoryBase, categoryLabel, type AccommodationCategory } from '../lib/catalog/categories'
 import { useAccommodationList } from '../lib/catalog/useAccommodations'
 import { images, site } from '../data/catalog'
-import type { PublicHotelSlug } from '../lib/publicBooking/types'
 
 export function HomePage() {
   return (
@@ -16,6 +15,7 @@ export function HomePage() {
           src={images.heroHouse}
           alt="DAKH увечері"
           tone={false}
+          priority
           className="absolute inset-0 h-full w-full"
         />
         <div className="absolute inset-0 bg-wood/30" />
@@ -49,18 +49,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <HomeCatalog
-        hotel="dakh"
-        kicker="Готель DAKH"
-        title="Номери"
-        empty="Зараз немає опублікованих номерів."
-      />
-      <HomeCatalog
-        hotel="sunny-park"
-        kicker="Sunny Park"
-        title="Будинки"
-        empty="Зараз немає опублікованих будинків."
-      />
+      <HomeCatalog category="rooms" empty="Зараз немає опублікованих кімнат." />
+      <HomeCatalog category="houses" empty="Зараз немає опублікованих будинків." />
 
       <section className="photo-grain relative min-h-[70vh]">
         <Photo src={images.borscht} alt="Миска борщу" className="absolute inset-0 h-full w-full" />
@@ -102,26 +92,16 @@ export function HomePage() {
   )
 }
 
-function HomeCatalog({
-  hotel,
-  kicker,
-  title,
-  empty,
-}: {
-  hotel: PublicHotelSlug
-  kicker: string
-  title: string
-  empty: string
-}) {
-  const catalog = useAccommodationList(hotel)
+function HomeCatalog({ category, empty }: { category: AccommodationCategory; empty: string }) {
+  const catalog = useAccommodationList(category)
+  const title = categoryLabel(category)
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24">
-      <p className="kicker text-[0.68rem] text-wood/55">{kicker}</p>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <h2 className="max-w-xl font-display text-4xl leading-tight text-wood">{title}</h2>
         <Link
-          to={accommodationBase(hotel)}
+          to={categoryBase(category)}
           className="text-[0.72rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
         >
           Усі
@@ -129,8 +109,8 @@ function HomeCatalog({
       </div>
       {catalog.status === 'ready' ? (
         <div className="mt-14 grid gap-14 md:grid-cols-3">
-          {catalog.items.map((item) => (
-            <RoomCard key={item.id} accommodation={item} />
+          {catalog.items.map((item, index) => (
+            <RoomCard key={item.id} accommodation={item} priority={index === 0} />
           ))}
         </div>
       ) : (

@@ -1,3 +1,10 @@
+import {
+  apiHotelSlug,
+  categoryForApiHotel,
+  isAccommodationCategory,
+  toApiAccommodationSlug,
+  toPublicAccommodationSlug,
+} from '../catalog/categories'
 import { stayIsSearchable } from './stay'
 import { DATE_PATTERN, MAX_GUESTS, MIN_GUESTS } from './types'
 
@@ -87,10 +94,16 @@ function parsePreview(value: unknown): BookingHandoffPreview | null {
 
 export function handoffToSearch(handoff: BookingHandoff) {
   const params = new URLSearchParams()
-  params.set('hotel', handoff.hotelSlug)
-  params.set('room', handoff.catalogSlug)
+  const category = categoryForApiHotel(handoff.hotelSlug)
+  if (category) {
+    params.set('category', category)
+    params.set('room', toPublicAccommodationSlug(category, handoff.roomTypeSlug || handoff.catalogSlug))
+  } else {
+    params.set('hotel', handoff.hotelSlug)
+    params.set('room', handoff.catalogSlug)
+    params.set('type', handoff.roomTypeSlug)
+  }
   params.set('roomType', handoff.roomTypeId)
-  params.set('type', handoff.roomTypeSlug)
   params.set('from', handoff.checkIn)
   params.set('to', handoff.checkOut)
   params.set('adults', String(handoff.adults))
@@ -102,9 +115,26 @@ export function handoffFromSearch(params: URLSearchParams): BookingHandoff | nul
   const adults = readCount(params.get('adults'), 1, MAX_GUESTS)
   const children = readCount(params.get('children'), 0, MAX_GUESTS)
   if (adults === null || children === null) return null
+  const category = params.get('category')
+  const room = params.get('room')
+  if (isAccommodationCategory(category) && room) {
+    const apiSlug = toApiAccommodationSlug(category, room)
+    return parseBookingHandoff({
+      hotelSlug: apiHotelSlug(category),
+      catalogSlug: room,
+      roomTypeId: params.get('roomType'),
+      roomTypeSlug: params.get('type') || apiSlug,
+      checkIn: params.get('from'),
+      checkOut: params.get('to'),
+      adults,
+      children,
+      ratePlanId: '',
+      preview: null,
+    })
+  }
   return parseBookingHandoff({
     hotelSlug: params.get('hotel'),
-    catalogSlug: params.get('room'),
+    catalogSlug: room,
     roomTypeId: params.get('roomType'),
     roomTypeSlug: params.get('type'),
     checkIn: params.get('from'),

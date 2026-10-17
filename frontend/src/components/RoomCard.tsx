@@ -4,7 +4,13 @@ import { accommodationPath } from '../lib/catalog/routes'
 import type { PublicAccommodation } from '../lib/publicBooking/types'
 import { Photo } from './Photo'
 
-export function RoomCard({ accommodation }: { accommodation: PublicAccommodation }) {
+export function RoomCard({
+  accommodation,
+  priority = false,
+}: {
+  accommodation: PublicAccommodation
+  priority?: boolean
+}) {
   const to = accommodationPath(accommodation.hotelSlug, accommodation.slug)
   const summary = publicSummary(accommodation.description)
   const title = publicTitle(accommodation.name, accommodation.maxGuests)
@@ -15,6 +21,7 @@ export function RoomCard({ accommodation }: { accommodation: PublicAccommodation
         <Photo
           src={accommodation.cover.url}
           alt={accommodation.cover.alt || title}
+          priority={priority}
           className="aspect-[4/3] w-full transition duration-700 group-hover:scale-[1.02]"
         />
       </Link>

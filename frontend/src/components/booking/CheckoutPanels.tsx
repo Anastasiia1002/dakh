@@ -242,12 +242,11 @@ export function RoomOptions({
             <span className="text-sm text-wood/60">
               до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
               {room.availableCount}
-              {room.availableCount > 0 &&
+              {isBookingEnabled() &&
+              room.availableCount > 0 &&
               room.nightlyStartingPrice &&
               room.ratePlans.some((plan) => authoritativeStayTotal(plan))
-                ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба${
-                    isBookingEnabled() ? '' : ', тестова ціна'
-                  }`
+                ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
                 : ''}
             </span>
           </span>
@@ -303,8 +302,8 @@ export function RatePlanOptions({
           <span className="block font-medium">{publicPlanTitle(plan)}</span>
           <span className="mt-1 block text-sm text-wood/60">
             {rateTypeLabel(plan.type)}
-            {authoritativeStayTotal(plan)
-              ? ` · ${isBookingEnabled() ? 'попередньо' : 'тестова ціна'} ${formatMoneyAmount(plan.totalAmount)}`
+            {isBookingEnabled() && authoritativeStayTotal(plan)
+              ? ` · попередньо ${formatMoneyAmount(plan.totalAmount)}`
               : ' · суму не показуємо'}
           </span>
         </label>

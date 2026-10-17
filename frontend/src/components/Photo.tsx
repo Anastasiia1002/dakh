@@ -5,9 +5,11 @@ type Props = {
   alt: string
   className?: string
   tone?: boolean
+  /** First visible cover or the open gallery image. Everything else waits. */
+  priority?: boolean
 }
 
-export function Photo({ src, alt, className = '', tone = true }: Props) {
+export function Photo({ src, alt, className = '', tone = true, priority = false }: Props) {
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
@@ -22,6 +24,8 @@ export function Photo({ src, alt, className = '', tone = true }: Props) {
     <img
       src={src}
       alt={alt}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       className={`${tone ? 'photo-tone' : ''} object-cover ${className}`}
       onError={() => setFailed(true)}
     />

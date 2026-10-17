@@ -8,7 +8,6 @@ import {
   QuoteSummary,
   RoomOptions,
 } from '../components/booking/CheckoutPanels'
-import { stays } from '../data/catalog'
 import { emptyDraft, type BookingDraft } from '../lib/booking'
 import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
@@ -26,12 +25,14 @@ import {
 } from '../lib/publicBooking'
 import { reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
-import { BOOKING_DISABLED_COPY, isBookingEnabled, readRoomSlugMap, resolveHotelSlug } from '../lib/publicBooking/config'
-import { catalogNameForRoomTypeSlug, publicRoomLabel } from '../lib/publicBooking/display'
+import { acceptsBookingHotel, apiHotelSlug, categoryBase, categoryForApiHotel } from '../lib/catalog/categories'
+import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../lib/publicBooking/config'
+import { publicRoomLabel } from '../lib/publicBooking/display'
 import {
   clearBookingHandoff,
   handoffToSearch,
   loadBookingHandoff,
+  readRoomDisplayName,
   rememberRoomDisplayName,
   resolveBookingHandoff,
   saveBookingHandoff,
@@ -72,6 +73,15 @@ export function BookingFlow() {
     resolveBookingHandoff({ state: location.state, params, stored: loadBookingHandoff() }),
   )
   const locked = Boolean(handoff)
+  const configuredHotel = resolveHotelSlug()
+  const categoryParam = params.get('category')
+  const requestedCategory = categoryParam === 'houses' || categoryParam === 'rooms' ? categoryParam : null
+  const hotelSlug =
+    handoff && acceptsBookingHotel(handoff.hotelSlug, configuredHotel)
+      ? handoff.hotelSlug
+      : apiHotelSlug(requestedCategory ?? 'rooms')
+  const category = categoryForApiHotel(hotelSlug) ?? requestedCategory ?? 'rooms'
+  const listPath = categoryBase(category)
   const [draft, setDraft] = useState<BookingDraft>(() => (handoff ? draftFromHandoff(handoff) : draftFromParams(params)))
   const [guestErr, setGuestErr] = useState<GuestFieldErrors>({})
   const [otpCode, setOtpCode] = useState('')
@@ -82,14 +92,25 @@ export function BookingFlow() {
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
-  const calendar = useAvailabilityCalendar(locked ? null : calendarRange, guestCount, locked ? '' : draft.roomTypeId)
-  const mapped = useMappedRoomCalendar(handoff?.catalogSlug ?? '', locked ? calendarRange : null, guestCount)
+  const calendar = useAvailabilityCalendar(
+    locked ? null : calendarRange,
+    guestCount,
+    locked ? '' : draft.roomTypeId,
+    hotelSlug,
+  )
+  const mapped = useMappedRoomCalendar(
+    handoff?.roomTypeSlug || handoff?.catalogSlug || '',
+    locked ? calendarRange : null,
+    guestCount,
+    hotelSlug,
+  )
   const identityReady =
     !handoff ||
     (mapped.status !== 'loading' &&
       mapped.roomTypeId === handoff.roomTypeId &&
       mapped.expectedSlug === handoff.roomTypeSlug &&
-      handoff.hotelSlug === resolveHotelSlug())
+      acceptsBookingHotel(handoff.hotelSlug, configuredHotel) &&
+      handoff.hotelSlug === hotelSlug)
   const roomRejected = Boolean(handoff && mapped.status !== 'loading' && !identityReady)
   const search = useStaySearch(
     draft.checkIn,
@@ -97,13 +118,17 @@ export function BookingFlow() {
     guestCount,
     identityReady ? draft.roomTypeId : '',
     identityReady ? draft.ratePlanId : '',
+    hotelSlug,
   )
-  const checkout = useBookingCheckout({
-    roomTypeId: draft.roomTypeId,
-    checkIn: draft.checkIn,
-    checkOut: draft.checkOut,
-    guestCount,
-  })
+  const checkout = useBookingCheckout(
+    {
+      roomTypeId: draft.roomTypeId,
+      checkIn: draft.checkIn,
+      checkOut: draft.checkOut,
+      guestCount,
+    },
+    hotelSlug,
+  )
   const guest = {
     firstName: draft.firstName,
     lastName: draft.lastName,
@@ -233,25 +258,20 @@ export function BookingFlow() {
 
   const cooldownLeft = Math.max(0, Math.ceil((checkout.cooldownUntil - now) / 1000))
   const displayQuote = checkout.pendingQuote ?? search.quote
-  const requestedRoomLabel = handoff ? (stays.find((stay) => stay.slug === handoff.catalogSlug)?.name ?? '') : ''
+  const requestedRoomLabel = handoff ? (readRoomDisplayName(handoff.roomTypeId) ?? '') : ''
   const verifiedRoomLabel = handoff && identityReady ? requestedRoomLabel : ''
   const checkingIdentity = Boolean(handoff) && !identityReady && !roomRejected
-  const slugByRoomId = new Map(calendar.roomTypes.map((room) => [room.roomTypeId, room.slug]))
-  const roomMap = readRoomSlugMap()
 
   useEffect(() => {
     if (verifiedRoomLabel && handoff) rememberRoomDisplayName(handoff.roomTypeId, verifiedRoomLabel)
     const room = search.selectedRoom
     if (!room) return
-    const slug = calendar.roomTypes.find((item) => item.roomTypeId === room.roomTypeId)?.slug
-    const catalogName = slug ? catalogNameForRoomTypeSlug(slug, stays, readRoomSlugMap()) : null
-    if (catalogName) rememberRoomDisplayName(room.roomTypeId, catalogName)
-  }, [calendar.roomTypes, handoff, search.selectedRoom, verifiedRoomLabel])
+    const label = publicRoomLabel(room.name, room.kind)
+    if (label) rememberRoomDisplayName(room.roomTypeId, label)
+  }, [handoff, search.selectedRoom, verifiedRoomLabel])
 
   function labelForRoom(room: PublicAvailabilityRoomType) {
-    const slug = slugByRoomId.get(room.roomTypeId)
-    const catalogName = slug ? catalogNameForRoomTypeSlug(slug, stays, roomMap) : null
-    return publicRoomLabel(room.name, room.kind, catalogName)
+    return publicRoomLabel(room.name, room.kind)
   }
 
   const unavailableCopy = roomRejected
@@ -267,16 +287,16 @@ export function BookingFlow() {
       <p className="mt-5 max-w-xl text-sm text-wood/70">
         {bookingEnabled
           ? locked
-            ? 'Кімнату вже обрано. Дати й кількість гостей можна змінити тут, потім залишіть контакти. Ціну підтверджує сервер.'
-            : 'Оберіть дати й кімнату. Тариф підберемо за найнижчою сумою і покажемо умови. Після заявки надішлемо код на пошту.'
-          : 'Оберіть дати й кімнату, щоб побачити наявність і тестову ціну сервера. Заявку зараз не створюємо.'}
+            ? 'Помешкання вже обрано. Дати й кількість гостей можна змінити тут, потім залишіть контакти. Ціну підтверджує сервер.'
+            : 'Оберіть дати й помешкання. Тариф підберемо за найнижчою сумою і покажемо умови. Після заявки надішлемо код на пошту.'
+          : BOOKING_DISABLED_COPY}
       </p>
 
       <p className="mt-10 text-sm text-wood/60">
         {search.searchable
           ? bookingEnabled
-            ? 'Наявність і ціна — з актуального інвентаря готелю, не з демонстраційного каталогу.'
-            : 'Наявність і тестова ціна — з сервера. Орієнтир каталогу на картках кімнат до цих дат не застосовується.'
+            ? 'Наявність і ціна — з актуального інвентаря, не з демонстраційного каталогу.'
+            : BOOKING_DISABLED_COPY
           : 'Спочатку оберіть заїзд і виїзд. Максимум 30 ночей.'}
       </p>
 
@@ -304,7 +324,7 @@ export function BookingFlow() {
         <div className="space-y-12 md:col-span-7">
           {locked ? null : (
             <fieldset className="border-0 p-0">
-              <legend className="font-display text-3xl">Обрати кімнату</legend>
+              <legend className="font-display text-3xl">{category === 'houses' ? 'Обрати будинок' : 'Обрати кімнату'}</legend>
               <RoomOptions
                 rooms={search.availability?.roomTypes ?? []}
                 selectedId={draft.roomTypeId}
@@ -333,11 +353,11 @@ export function BookingFlow() {
                   Змінити дати
                 </a>
                 <Link
-                  to="/hotel"
+                  to={listPath}
                   onClick={() => clearBookingHandoff()}
                   className="inline-flex flex-1 items-center justify-center border border-wood/20 py-3 text-center text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
                 >
-                  Обрати іншу кімнату
+                  {category === 'houses' ? 'Обрати інший будинок' : 'Обрати іншу кімнату'}
                 </Link>
               </div>
             </div>

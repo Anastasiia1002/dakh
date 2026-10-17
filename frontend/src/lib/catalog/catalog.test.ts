@@ -4,9 +4,13 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { CatalogState } from '../../components/CatalogState'
+import { Photo } from '../../components/Photo'
 import { RoomCard } from '../../components/RoomCard'
+import { Layout } from '../../components/Layout'
 import { AccommodationCopy } from '../../pages/RoomPage'
+import { HomePage } from '../../pages/HomePage'
 import { HotelPage } from '../../pages/HotelPage'
+import { BookingPage } from '../../pages/BookingPage'
 import { PublicApiError } from '../publicBooking/errors'
 import type { PublicAccommodation } from '../publicBooking/types'
 import { capacityLabel, galleryImages, publicDescription, publicTitle } from './display'
@@ -58,36 +62,44 @@ function markup(node: ReturnType<typeof createElement>): string {
 }
 
 describe('catalog routes', () => {
-  it('sends /gotel and fictional slugs to the DAKH list', () => {
-    assert.equal(legacyGotelTarget(''), '/hotel')
+  it('sends /gotel and fictional slugs to the rooms list', () => {
+    assert.equal(legacyGotelTarget(''), '/rooms')
     for (const slug of ['bukovyna', 'goryshche', 'plats', 'Bukovyna']) {
       assert.equal(isFictionalAccommodationSlug(slug), true)
-      assert.equal(legacyGotelTarget(slug), '/hotel')
+      assert.equal(legacyGotelTarget(slug), '/rooms')
     }
   })
 
-  it('keeps a real DAKH slug on /hotel and builds both property paths', () => {
-    assert.equal(legacyGotelTarget('dakh-room-14-1'), '/hotel/dakh-room-14-1')
-    assert.equal(accommodationPath('dakh'), '/hotel')
-    assert.equal(accommodationPath('dakh', 'dakh-room-14-2'), '/hotel/dakh-room-14-2')
-    assert.equal(accommodationPath('sunny-park'), '/sunny-park')
-    assert.equal(accommodationPath('sunny-park', 'sunny-park-7'), '/sunny-park/sunny-park-7')
+  it('builds public category paths and hides the legacy house slug', () => {
+    assert.equal(legacyGotelTarget('dakh-room-14-1'), '/rooms/dakh-room-14-1')
+    assert.equal(accommodationPath('dakh'), '/rooms')
+    assert.equal(accommodationPath('dakh', 'dakh-room-14-2'), '/rooms/dakh-room-14-2')
+    assert.equal(accommodationPath('sunny-park'), '/houses')
+    assert.equal(accommodationPath('sunny-park', 'sunny-park-7'), '/houses/house-7')
+    assert.equal(accommodationPath('sunny-park', 'sunny-park-12'), '/houses/house-12')
+    assert.doesNotMatch(accommodationPath('sunny-park', 'sunny-park-10'), /sunny-park/)
   })
 
   it('redirects legacy, fictional and old residence URLs', () => {
-    assert.equal(catalogRedirect('/gotel'), '/hotel')
-    assert.equal(catalogRedirect('/gotel/bukovyna'), '/hotel')
-    assert.equal(catalogRedirect('/gotel/goryshche'), '/hotel')
-    assert.equal(catalogRedirect('/gotel/plats'), '/hotel')
-    assert.equal(catalogRedirect('/hotel/bukovyna'), '/hotel')
-    assert.equal(catalogRedirect('/hotel/goryshche'), '/hotel')
-    assert.equal(catalogRedirect('/hotel/plats'), '/hotel')
-    assert.equal(catalogRedirect('/sunny-park/bukovyna'), '/sunny-park')
-    assert.equal(catalogRedirect('/prozhivannya'), '/hotel')
-    assert.equal(catalogRedirect('/prozhivannya/bukovyna'), '/hotel')
-    assert.equal(catalogRedirect('/gotel/dakh-room-14-1'), '/hotel/dakh-room-14-1')
-    assert.equal(catalogRedirect('/hotel/dakh-room-14-1'), null)
-    assert.equal(catalogRedirect('/sunny-park/sunny-park-7'), null)
+    assert.equal(catalogRedirect('/gotel'), '/rooms')
+    assert.equal(catalogRedirect('/gotel/bukovyna'), '/rooms')
+    assert.equal(catalogRedirect('/gotel/goryshche'), '/rooms')
+    assert.equal(catalogRedirect('/gotel/plats'), '/rooms')
+    assert.equal(catalogRedirect('/hotel'), '/rooms')
+    assert.equal(catalogRedirect('/hotel/bukovyna'), '/rooms')
+    assert.equal(catalogRedirect('/hotel/goryshche'), '/rooms')
+    assert.equal(catalogRedirect('/hotel/plats'), '/rooms')
+    assert.equal(catalogRedirect('/sunny-park'), '/houses')
+    assert.equal(catalogRedirect('/sunny-park/bukovyna'), '/houses')
+    assert.equal(catalogRedirect('/prozhivannya'), '/rooms')
+    assert.equal(catalogRedirect('/prozhivannya/bukovyna'), '/rooms')
+    assert.equal(catalogRedirect('/gotel/dakh-room-14-1'), '/rooms/dakh-room-14-1')
+    assert.equal(catalogRedirect('/hotel/dakh-room-14-1'), '/rooms/dakh-room-14-1')
+    assert.equal(catalogRedirect('/sunny-park/sunny-park-7'), '/houses/house-7')
+    assert.equal(catalogRedirect('/houses/sunny-park-10'), '/houses/house-10')
+    assert.equal(catalogRedirect('/rooms/bukovyna'), '/rooms')
+    assert.equal(catalogRedirect('/rooms/dakh-room-14-1'), null)
+    assert.equal(catalogRedirect('/houses/house-7'), null)
   })
 })
 
@@ -133,12 +145,23 @@ describe('catalog display', () => {
 })
 
 describe('catalog screens', () => {
-  it('lists a property without prices or booking actions while loading', () => {
-    const html = markup(createElement(MemoryRouter, null, createElement(HotelPage, { hotel: 'dakh' })))
+  it('lists rooms without prices, booking actions or the legacy property name', () => {
+    const html = markup(createElement(MemoryRouter, null, createElement(HotelPage, { category: 'rooms' })))
+    const houses = markup(createElement(MemoryRouter, null, createElement(HotelPage, { category: 'houses' })))
+    const home = markup(createElement(MemoryRouter, null, createElement(HomePage)))
+    const layout = markup(createElement(MemoryRouter, null, createElement(Layout)))
     assert.match(html, /Завантажуємо помешкання/)
-    assert.match(html, /Номери/)
-    assert.doesNotMatch(html, /Зараз немає опублікованих/)
-    assert.doesNotMatch(html, /4800|6200|9200|Забронювати|Буковина|Горище|Пляц|\/gotel/)
+    assert.match(html, /animate-pulse/)
+    assert.match(html, /Кімнати/)
+    assert.match(houses, /Будинки/)
+    assert.match(home, /Кімнати/)
+    assert.match(home, /Будинки/)
+    assert.match(home, /loading="eager"/)
+    assert.match(layout, /href="\/rooms"/)
+    assert.match(layout, /href="\/houses"/)
+    const visible = `${html}${houses}${home}${layout}`
+    assert.doesNotMatch(visible, /Sunny Park|sunny-park|Номери|Зараз немає опублікованих/)
+    assert.doesNotMatch(visible, /4800|6200|9200|Забронювати|Горище|Пляц|\/gotel|\/availability|\/quotes|booking-intents/)
   })
 
   it('shows an error with retry instead of an empty catalog', () => {
@@ -165,13 +188,30 @@ describe('catalog screens', () => {
         createElement(RoomCard, { accommodation: cottage }),
       ),
     )
-    assert.match(roomHtml, /href="\/hotel\/dakh-room-14-1"/)
+    assert.match(roomHtml, /href="\/rooms\/dakh-room-14-1"/)
+    assert.match(roomHtml, /loading="lazy"/)
     assert.match(roomHtml, /До 4 гостей/)
-    assert.match(cottageHtml, /href="\/sunny-park\/sunny-park-10"/)
+    assert.match(cottageHtml, /href="\/houses\/house-10"/)
+    assert.doesNotMatch(cottageHtml, /sunny-park|Sunny Park/)
     assert.match(cottageHtml, /Будинок №10/)
     assert.match(cottageHtml, /До 8 гостей/)
     assert.doesNotMatch(cottageHtml, /до 7 гостей/)
     assert.match(cottageHtml, /Сніданок входить у проживання/)
     assert.doesNotMatch(`${roomHtml}${cottageHtml}`, /4800|6200|9200|Забронювати|даруємо|−10%|\/gotel|Буковина/)
+  })
+
+  it('lazy-loads offscreen photos and keeps a fallback when the file fails to render', () => {
+    const lazy = markup(createElement(Photo, { src: 'https://photos.example/late.webp', alt: 'Пізніше' }))
+    const hero = markup(createElement(Photo, { src: 'https://photos.example/cover.webp', alt: 'Обкладинка', priority: true }))
+    assert.match(lazy, /loading="lazy"/)
+    assert.match(hero, /loading="eager"/)
+    assert.match(hero, /fetchPriority="high"/)
+  })
+
+  it('keeps booking closed and makes no booking request from the public page', () => {
+    const html = markup(createElement(MemoryRouter, null, createElement(BookingPage)))
+    assert.match(html, /Онлайн-бронювання зараз вимкнене/)
+    assert.match(html, /href="\/rooms"/)
+    assert.doesNotMatch(html, /Забронювати|тестова ціна|\/quotes|booking-intents|\/availability/)
   })
 })
