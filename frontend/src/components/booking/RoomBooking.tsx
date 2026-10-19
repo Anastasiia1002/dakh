@@ -145,7 +145,7 @@ export function RoomBooking({
   const canContinue = bookingEnabled && quoteReady && Boolean(calendar.roomTypeId) && search.configured
 
   return (
-    <aside className="h-fit w-full min-w-0 self-start bg-beige p-6">
+    <aside className="h-fit w-full min-w-0 self-start border border-wood/10 bg-beige p-5 sm:p-6">
       <p className="text-[0.7rem] tracking-[0.16em] uppercase">Дати</p>
       <div className="mt-4">
         <BookingCalendar

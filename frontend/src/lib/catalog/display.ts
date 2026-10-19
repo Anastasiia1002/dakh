@@ -3,13 +3,61 @@ import type { PublicAccommodation, PublicAccommodationImage } from '../publicBoo
 const PROMOTIONAL_LINE =
   /%|даруємо|вигідн|знижк|спеціальн\p{L}*\s+умов|тривалого проживання/iu
 
-/** Guest-facing description. The stored API text stays intact; unverified offers are not rendered. */
-export function publicDescription(description: string): string {
+/** Exact stay sentence written by the catalog import from check-in and check-out fields. */
+const STAY_POLICY_LINE = /^Заїзд з \d{2}:\d{2} до \d{2}:\d{2}\. Виїзд до \d{2}:\d{2}\.$/u
+
+const INTERNAL_LABEL = /^(?:джерело|спальні|зручності)\s*:/iu
+
+const INTERNAL_NOTE =
+  /standardGuestsNumber|minDaysRestriction|cancellationPolicy|неперевірена розбіжність|guestsMax/iu
+
+function catalogLines(description: string): string[] {
   return description
     .split(/\n+/)
     .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !PROMOTIONAL_LINE.test(line))
-    .join('\n\n')
+    .filter((line) => line.length > 0)
+}
+
+/**
+ * One stored line, with import labels removed.
+ * Returns null when the line is an offer, a migration note, or only an internal label.
+ * A BookMeNow status sentence keeps the guest words that follow it when that status is enabled.
+ */
+function guestFacingLine(line: string): string | null {
+  if (PROMOTIONAL_LINE.test(line) || STAY_POLICY_LINE.test(line)) return null
+  if (INTERNAL_LABEL.test(line) || INTERNAL_NOTE.test(line)) return null
+  const pets = line.match(/^Тварини у формі BookMeNow увімкнені\.\s*(.*)$/iu)
+  if (pets) return pets[1].trim() || null
+  const children = line.match(/^Діти у формі BookMeNow увімкнені\.\s*(.*)$/iu)
+  if (children) return children[1].trim() || null
+  if (/bookmenow/i.test(line)) return null
+  return line
+}
+
+function uniqueGuestLines(lines: string[]): string[] {
+  const seen = new Set<string>()
+  const kept: string[] = []
+  for (const line of lines) {
+    const key = line.replace(/\s+/g, ' ').toLocaleLowerCase('uk')
+    if (seen.has(key)) continue
+    seen.add(key)
+    kept.push(line)
+  }
+  return kept
+}
+
+/** Guest-facing description. The stored API text stays intact; notes and unverified offers are not rendered. */
+export function publicDescription(description: string): string {
+  return uniqueGuestLines(
+    catalogLines(description)
+      .map(guestFacingLine)
+      .filter((line): line is string => line !== null),
+  ).join('\n\n')
+}
+
+/** Per-stay check-in sentence when the catalog text contains one. Otherwise the page uses the hotel times. */
+export function stayPolicyLine(description: string): string | null {
+  return catalogLines(description).find((line) => STAY_POLICY_LINE.test(line)) ?? null
 }
 
 export function publicSummary(description: string): string {

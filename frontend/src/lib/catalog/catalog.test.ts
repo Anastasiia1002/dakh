@@ -13,7 +13,7 @@ import { HotelPage } from '../../pages/HotelPage'
 import { BookingPage } from '../../pages/BookingPage'
 import { PublicApiError } from '../publicBooking/errors'
 import type { PublicAccommodation } from '../publicBooking/types'
-import { capacityLabel, galleryImages, publicDescription, publicTitle } from './display'
+import { capacityLabel, galleryImages, publicDescription, publicTitle, stayPolicyLine } from './display'
 import { accommodationPath, catalogRedirect, isFictionalAccommodationSlug, legacyGotelTarget } from './routes'
 import { catalogErrorCopy } from './useAccommodations'
 
@@ -120,6 +120,33 @@ describe('catalog display', () => {
     assert.match(text, /Сніданок входить у проживання/)
     assert.match(text, /оплачуються додатково/)
     assert.doesNotMatch(text, /даруємо|знижк|%|тривалого проживання/)
+  })
+
+  it('hides import notes and repeated paragraphs without turning amenities into facts', () => {
+    const imported = [
+      'Двокімнатний номер з терасою.',
+      'Сніданки входять у вартість.',
+      'У номері є: чайник, телевізор, фен.',
+      'Джерело BookMeNow id 699ff061a849a82b1b9eac05.',
+      'Заїзд з 14:00 до 20:00. Виїзд до 11:00.',
+      'Сніданки входять у вартість.',
+      'Тварини у формі BookMeNow увімкнені. Надаємо воду та корм для улюбленця.',
+      'Тварини у формі BookMeNow вимкнені. Текст форми: не показувати.',
+      'Діти у формі BookMeNow вимкнені.',
+      'Спальні: Двокімнатний номер з терасою.',
+      'Зручності: Wifi; Чайник; Тривале перебування.',
+      'Опублікований standardGuestsNumber: 2. Це не максимальна місткість.',
+      'minDaysRestriction: 0. cancellationPolicy.enabled: false.',
+      'Неперевірена розбіжність BookMeNow: поле guestsMax дорівнює 8.',
+    ].join('\n')
+    const text = publicDescription(imported)
+    assert.match(text, /Двокімнатний номер з терасою/)
+    assert.match(text, /У номері є: чайник, телевізор, фен/)
+    assert.match(text, /Надаємо воду та корм для улюбленця/)
+    assert.equal(text.split('Сніданки входять у вартість').length - 1, 1)
+    assert.equal(stayPolicyLine(imported), 'Заїзд з 14:00 до 20:00. Виїзд до 11:00.')
+    assert.doesNotMatch(text, /BookMeNow|standardGuestsNumber|minDaysRestriction|Зручності|Спальні|Заїзд|не показувати/)
+    assert.equal(stayPolicyLine('Без окремого розкладу.'), null)
   })
 
   it('sorts gallery images and skips a repeated cover', () => {
