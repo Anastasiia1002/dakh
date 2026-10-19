@@ -48,4 +48,14 @@ describe('public booking labels', () => {
     assert.equal(publicRoomLabel('TEST DATA Горище', 'ROOM', null), 'Кімната')
     assert.equal(publicPlanTitle({ name: 'TEST DATA Тестовий тариф', type: 'STANDARD' }), 'Стандарт')
   })
+
+  it('labels the staging QA tariff as a demonstration price', () => {
+    assert.equal(publicPlanTitle({ name: 'Staging public E2E', type: 'STANDARD', demo: true }), 'Демонстраційний тариф')
+    assert.equal(publicPlanTitle({ name: 'Staging public E2E', type: 'STANDARD' }), 'Демонстраційний тариф')
+    assert.equal(
+      publicPlanTitle({ name: 'Стандарт', type: 'STANDARD', nightlyStartingPrice: '2000.00' }),
+      'Демонстраційний тариф',
+    )
+    assert.equal(publicPlanTitle({ name: 'Стандарт', type: 'STANDARD', nightlyStartingPrice: '4800.00' }), 'Стандарт')
+  })
 })

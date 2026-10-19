@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { handoffFromSearch, handoffToSearch, parseBookingHandoff, resolveBookingHandoff } from './handoff'
 
+const merged = { VITE_ACCOMMODATION_HOTEL_MAP: 'merged' }
+const split = { VITE_ACCOMMODATION_HOTEL_MAP: 'split' }
+
 const roomTypeId = '11111111-1111-4111-8111-111111111111'
 const ratePlanId = '22222222-2222-4222-8222-222222222222'
 
@@ -82,7 +85,7 @@ describe('booking handoff', () => {
     })
     const houses = handoffToSearch({
       ...handoff,
-      hotelSlug: 'sunny-park',
+      hotelSlug: 'dakh',
       catalogSlug: 'house-7',
       roomTypeSlug: 'sunny-park-7',
     })
@@ -94,9 +97,22 @@ describe('booking handoff', () => {
     assert.equal(houses.get('hotel'), null)
     assert.equal(houses.get('type'), null)
     assert.equal(houses.toString().includes('sunny-park'), false)
+    const legacyHotel = handoffToSearch({
+      ...handoff,
+      hotelSlug: 'sunny-park',
+      catalogSlug: 'house-8',
+      roomTypeSlug: 'sunny-park-8',
+    })
+    assert.equal(legacyHotel.get('category'), 'houses')
+    assert.equal(legacyHotel.get('room'), 'house-8')
+    assert.equal(legacyHotel.toString().includes('sunny-park'), false)
 
-    const restored = handoffFromSearch(houses)
-    assert.equal(restored?.hotelSlug, 'sunny-park')
+    const restored = handoffFromSearch(houses, merged)
+    assert.equal(restored?.hotelSlug, 'dakh')
+    const legacy = handoffFromSearch(houses, split)
+    assert.equal(legacy?.hotelSlug, 'sunny-park')
+    assert.equal(handoffFromSearch(houses), null)
+    assert.equal(handoffFromSearch(houses, { VITE_ACCOMMODATION_HOTEL_MAP: 'merged ' }), null)
     assert.equal(restored?.catalogSlug, 'house-7')
     assert.equal(restored?.roomTypeSlug, 'sunny-park-7')
     assert.equal(restored?.roomTypeId, roomTypeId)

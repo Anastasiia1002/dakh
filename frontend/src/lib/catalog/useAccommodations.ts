@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { isAbortError, isPublicApiError } from '../publicBooking/errors'
 import type { PublicAccommodation } from '../publicBooking/types'
 import { invalidateCatalogCache, loadAccommodationList } from './cache'
-import { apiHotelSlug, type AccommodationCategory } from './categories'
+import { accommodationsInCategory, apiHotelSlug, CATALOG_MAP_MISSING_COPY, type AccommodationCategory } from './categories'
 
 export type CatalogStatus = 'loading' | 'ready' | 'empty' | 'error'
 
@@ -22,14 +22,21 @@ export function useAccommodationList(category: AccommodationCategory) {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!hotelSlug) {
+      setItems([])
+      setError(CATALOG_MAP_MISSING_COPY)
+      setStatus('error')
+      return
+    }
     const controller = new AbortController()
     setStatus((current) => (current === 'ready' ? current : 'loading'))
     setError('')
     loadAccommodationList(hotelSlug, controller.signal, attempt > 0)
       .then((result) => {
         if (controller.signal.aborted) return
-        setItems(result.accommodations)
-        setStatus(result.accommodations.length > 0 ? 'ready' : 'empty')
+        const items = accommodationsInCategory(result.accommodations, category)
+        setItems(items)
+        setStatus(items.length > 0 ? 'ready' : 'empty')
       })
       .catch((caught: unknown) => {
         if (controller.signal.aborted || isAbortError(caught)) return
@@ -38,21 +45,20 @@ export function useAccommodationList(category: AccommodationCategory) {
         setStatus('error')
       })
     return () => controller.abort()
-  }, [hotelSlug, attempt])
+  }, [category, hotelSlug, attempt])
 
   return {
     status,
     items,
     error,
     retry: () => {
-      invalidateCatalogCache(hotelSlug)
+      if (hotelSlug) invalidateCatalogCache(hotelSlug)
       setAttempt((value) => value + 1)
     },
   }
 }
 
 export function useAccommodation(category: AccommodationCategory, apiSlug: string) {
-  const hotelSlug = apiHotelSlug(category)
   const list = useAccommodationList(category)
   const item = list.items.find((entry) => entry.slug === apiSlug) ?? null
 
@@ -65,7 +71,6 @@ export function useAccommodation(category: AccommodationCategory, apiSlug: strin
     item: status === 'ready' ? item : null,
     error: list.error,
     retry: () => {
-      invalidateCatalogCache(hotelSlug)
       list.retry()
     },
   }

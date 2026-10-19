@@ -37,7 +37,9 @@ export {
 } from './guest'
 export type { GuestFieldErrors } from './guest'
 export {
+  DEMO_PRICE_COPY,
   canUseAsCheckIn,
+  isDemoRate,
   canUseAsCheckOut,
   findRatePlan,
   guestCountOf,
@@ -45,7 +47,9 @@ export {
   availabilityMatchesSearch,
   availabilitySearchStatus,
   authoritativeStayTotal,
+  offerableRatePlans,
   quoteMatchesSearch,
+  roomAcceptsGuestCount,
   shouldRequestQuote,
   rateConditions,
   ratePlanIdForRoom,

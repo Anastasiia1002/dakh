@@ -86,6 +86,19 @@ describe('PublicBookingClient', () => {
       url,
       'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=2',
     )
+    assert.equal(url.includes('adults'), false)
+    assert.equal(url.includes('utm_'), false)
+    const cottage = await client.availability({
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      guestCount: 2,
+      kind: 'COTTAGE',
+    })
+    assert.equal(cottage.roomTypes.length, 1)
+    assert.equal(
+      calls[1]?.[0],
+      'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=2&kind=COTTAGE',
+    )
     assert.equal(result.roomTypes.length, 1)
     assert.equal(result.roomTypes[0]?.nightlyStartingPrice, '4500.00')
     assert.equal(result.roomTypes[0]?.ratePlans.length, 2)

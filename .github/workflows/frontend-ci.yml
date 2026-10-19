@@ -30,6 +30,7 @@ jobs:
         env:
           VITE_PUBLIC_API_BASE_URL: https://dakh-backend.onrender.com/api/public/v1
           VITE_PUBLIC_HOTEL_SLUG: dakh
-          VITE_BOOKING_ENABLED: "false"
+          VITE_ACCOMMODATION_HOTEL_MAP: merged
+          VITE_BOOKING_ENABLED: "true"
       - name: Verify Pages entry files
         run: test -f frontend/dist/index.html && test -f frontend/dist/404.html

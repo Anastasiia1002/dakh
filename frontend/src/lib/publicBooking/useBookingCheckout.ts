@@ -8,6 +8,7 @@ import {
   isQuoteFresh,
   newIdempotencyKey,
   resumeIntentForStay,
+  shouldStartCheckout,
   type CheckoutStep,
   type StoredStay,
   writeStoredConfirmationToken,
@@ -138,11 +139,12 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
 
   async function startCheckout(quote: PublicQuoteResponse | null, guest: GuestInput) {
     if (writesClosed()) return
-    if (inflight.current || busy) return
-    if (!isQuoteFresh(quote) || !quote) {
-      setError('Розрахунок застарів. Оберіть дати ще раз.')
+    const quoteFresh = isQuoteFresh(quote) && quote != null
+    if (!shouldStartCheckout({ inflight: inflight.current, busy, quoteFresh })) {
+      if (!quoteFresh) setError('Розрахунок застарів. Оберіть дати ще раз.')
       return
     }
+    if (!quote) return
     inflight.current = true
     setBusy(true)
     try {

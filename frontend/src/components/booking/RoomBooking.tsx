@@ -66,6 +66,7 @@ export function RoomBooking({
     calendar.roomTypeId,
     draft.ratePlanId,
     hotelSlug,
+    category === 'houses' ? 'COTTAGE' : 'ROOM',
   )
   const quoteReady = isQuoteFresh(search.quote, now)
 
@@ -196,7 +197,7 @@ export function RoomBooking({
             </button>
             <p className="mt-4 text-[0.72rem] text-wood/55">
               Далі на сторінці бронювання зберемо контакти. {category === 'houses' ? 'Будинок' : 'Кімната'}, дати й гості залишаються тими, що ви
-              обрали. Ціну ще раз підтвердить сервер.
+              обрали. Ціну ще раз підтвердить сервер. Оплату на сайті не приймаємо.
             </p>
           </>
         ) : (

@@ -6,6 +6,7 @@ import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/co
 import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
+import { DEMO_PRICE_COPY, isDemoStayTotal, stayNights } from '../lib/publicBooking/stay'
 import {
   isConfirmationToken,
   readStoredConfirmationToken,
@@ -108,6 +109,10 @@ export function ConfirmationPage() {
           </p>
           <p className="mt-6 font-display text-3xl">{formatMoneyAmount(confirmation.totalAmount)}</p>
           <p className="mt-2 text-[0.72rem] text-wood/55">Сума в {confirmation.currency}. Дані з сервера.</p>
+          {isDemoStayTotal(confirmation.totalAmount, stayNights(confirmation.checkIn, confirmation.checkOut)) ? (
+            <p className="mt-2 text-[0.72rem] text-clay">{DEMO_PRICE_COPY}</p>
+          ) : null}
+          <p className="mt-2 text-[0.72rem] text-wood/55">Оплату на сайті не приймаємо.</p>
         </div>
       ) : null}
 

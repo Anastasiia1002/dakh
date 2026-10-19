@@ -16,7 +16,10 @@ import {
   guestFieldErrors,
   guestFormIsValid,
   isQuoteFresh,
+  offerableRatePlans,
+  roomAcceptsGuestCount,
   selectedRatePlanId,
+  selectEligibleRatePlan,
   stayNights,
   useAvailabilityCalendar,
   useBookingCheckout,
@@ -25,7 +28,7 @@ import {
 } from '../lib/publicBooking'
 import { reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
-import { acceptsBookingHotel, apiHotelSlug, categoryBase, categoryForApiHotel } from '../lib/catalog/categories'
+import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase } from '../lib/catalog/categories'
 import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../lib/publicBooking/config'
 import { publicRoomLabel } from '../lib/publicBooking/display'
 import {
@@ -76,11 +79,9 @@ export function BookingFlow() {
   const configuredHotel = resolveHotelSlug()
   const categoryParam = params.get('category')
   const requestedCategory = categoryParam === 'houses' || categoryParam === 'rooms' ? categoryParam : null
-  const hotelSlug =
-    handoff && acceptsBookingHotel(handoff.hotelSlug, configuredHotel)
-      ? handoff.hotelSlug
-      : apiHotelSlug(requestedCategory ?? 'rooms')
-  const category = categoryForApiHotel(hotelSlug) ?? requestedCategory ?? 'rooms'
+  const category =
+    requestedCategory ?? (handoff?.hotelSlug === 'sunny-park' ? 'houses' : null) ?? 'rooms'
+  const hotelSlug = apiHotelSlug(category)
   const listPath = categoryBase(category)
   const [draft, setDraft] = useState<BookingDraft>(() => (handoff ? draftFromHandoff(handoff) : draftFromParams(params)))
   const [guestErr, setGuestErr] = useState<GuestFieldErrors>({})
@@ -96,21 +97,22 @@ export function BookingFlow() {
     locked ? null : calendarRange,
     guestCount,
     locked ? '' : draft.roomTypeId,
-    hotelSlug,
+    hotelSlug ?? undefined,
   )
   const mapped = useMappedRoomCalendar(
     handoff?.roomTypeSlug || handoff?.catalogSlug || '',
     locked ? calendarRange : null,
     guestCount,
-    hotelSlug,
+    hotelSlug ?? undefined,
   )
   const identityReady =
     !handoff ||
     (mapped.status !== 'loading' &&
       mapped.roomTypeId === handoff.roomTypeId &&
       mapped.expectedSlug === handoff.roomTypeSlug &&
+      hotelSlug !== null &&
       acceptsBookingHotel(handoff.hotelSlug, configuredHotel) &&
-      handoff.hotelSlug === hotelSlug)
+      bookingHotelMatchesCategory(handoff.hotelSlug, category))
   const roomRejected = Boolean(handoff && mapped.status !== 'loading' && !identityReady)
   const search = useStaySearch(
     draft.checkIn,
@@ -118,7 +120,8 @@ export function BookingFlow() {
     guestCount,
     identityReady ? draft.roomTypeId : '',
     identityReady ? draft.ratePlanId : '',
-    hotelSlug,
+    hotelSlug ?? undefined,
+    category === 'houses' ? 'COTTAGE' : 'ROOM',
   )
   const checkout = useBookingCheckout(
     {
@@ -127,7 +130,7 @@ export function BookingFlow() {
       checkOut: draft.checkOut,
       guestCount,
     },
-    hotelSlug,
+    hotelSlug ?? undefined,
   )
   const guest = {
     firstName: draft.firstName,
@@ -274,6 +277,24 @@ export function BookingFlow() {
     return publicRoomLabel(room.name, room.kind)
   }
 
+  const bookableRooms = (search.availability?.roomTypes ?? [])
+    .filter(
+      (room) =>
+        room.kind === (category === 'houses' ? 'COTTAGE' : 'ROOM') &&
+        room.availableCount > 0 &&
+        roomAcceptsGuestCount(room, guestCount),
+    )
+    .map((room) => {
+      const ratePlans = offerableRatePlans(room.ratePlans)
+      return {
+        ...room,
+        ratePlans,
+        nightlyStartingPrice: selectEligibleRatePlan(ratePlans)?.nightlyStartingPrice ?? null,
+      }
+    })
+  const roomListStatus =
+    search.availabilityStatus === 'ready' && bookableRooms.length === 0 ? 'empty' : search.availabilityStatus
+
   const unavailableCopy = roomRejected
     ? mapped.error || 'Не вдалося підтвердити обрану кімнату. Іншу кімнату не підставляємо.'
     : roomMissing
@@ -295,7 +316,7 @@ export function BookingFlow() {
       <p className="mt-10 text-sm text-wood/60">
         {search.searchable
           ? bookingEnabled
-            ? 'Наявність і ціна — з актуального інвентаря, не з демонстраційного каталогу.'
+            ? 'Наявність підтверджує сервер. Показана сума — демонстраційна тестова ціна, не комерційний тариф.'
             : BOOKING_DISABLED_COPY
           : 'Спочатку оберіть заїзд і виїзд. Максимум 30 ночей.'}
       </p>
@@ -326,9 +347,9 @@ export function BookingFlow() {
             <fieldset className="border-0 p-0">
               <legend className="font-display text-3xl">{category === 'houses' ? 'Обрати будинок' : 'Обрати кімнату'}</legend>
               <RoomOptions
-                rooms={search.availability?.roomTypes ?? []}
+                rooms={bookableRooms}
                 selectedId={draft.roomTypeId}
-                status={search.availabilityStatus}
+                status={roomListStatus}
                 error={search.availabilityError}
                 searchable={search.searchable}
                 roomLabel={labelForRoom}
@@ -490,7 +511,7 @@ export function BookingFlow() {
               </button>
               <p className="mt-4 text-[0.72rem] text-wood/55">
                 Це ще не бронювання. Підтвердження з’явиться лише після коду з листа і відповіді
-                сервера.
+                сервера. Оплату на сайті не приймаємо, картку вводити не потрібно.
               </p>
             </>
           )}

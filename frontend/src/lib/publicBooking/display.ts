@@ -1,5 +1,5 @@
 import { resolveRoomTypeSlug } from './roomIdentity'
-import { rateTypeLabel, roomKindLabel } from './stay'
+import { isDemoRate, rateTypeLabel, roomKindLabel } from './stay'
 import type { PublicRateType, PublicRoomKind } from './types'
 
 export function isFixtureLabel(name: string) {
@@ -29,7 +29,14 @@ export function publicRoomLabel(apiName: string, kind: PublicRoomKind, verifiedC
   return apiName
 }
 
-export function publicPlanTitle(plan: { name: string; type: PublicRateType }) {
+export function publicPlanTitle(plan: {
+  name: string
+  type: PublicRateType
+  demo?: boolean
+  code?: string
+  nightlyStartingPrice?: string | null
+}) {
+  if (isDemoRate(plan)) return 'Демонстраційний тариф'
   if (isHiddenInventoryLabel(plan.name)) return rateTypeLabel(plan.type)
   return plan.name
 }

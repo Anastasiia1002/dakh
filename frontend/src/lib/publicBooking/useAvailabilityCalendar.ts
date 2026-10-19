@@ -6,6 +6,7 @@ import {
   isCalendarResponse,
   type CalendarLoadStatus,
 } from './calendar'
+import { CATALOG_MAP_MISSING_COPY } from '../catalog/categories'
 import { isPublicApiConfigured } from './config'
 import { errorCopy, isAbortError } from './errors'
 import { shouldApplyResponse } from './stay'
@@ -18,7 +19,12 @@ export function useAvailabilityCalendar(
   hotelSlug?: string,
 ) {
   const configured = isPublicApiConfigured()
-  const requestKey = range && configured ? `${hotelSlug ?? ''}|${range.from}|${range.to}|${guestCount}|${roomTypeId}` : ''
+  const requestedHotel = hotelSlug?.trim() ?? ''
+  const hotelMissing = Boolean(range && configured && !requestedHotel)
+  const requestKey =
+    range && configured && requestedHotel
+      ? `${requestedHotel}|${range.from}|${range.to}|${guestCount}|${roomTypeId}`
+      : ''
   const latestKey = useRef(requestKey)
   const [roomTypes, setRoomTypes] = useState<PublicCalendarRoomType[]>([])
   const [hotelToday, setHotelToday] = useState<string | null>(null)
@@ -42,7 +48,7 @@ export function useAvailabilityCalendar(
           roomTypeId: roomTypeId || undefined,
         },
         { signal: controller.signal },
-        hotelSlug,
+        requestedHotel,
       )
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestKey.current)) return
@@ -66,15 +72,18 @@ export function useAvailabilityCalendar(
         setReadyKey(requestedKey)
       })
     return () => controller.abort()
-  }, [guestCount, hotelSlug, range, requestKey, roomTypeId])
+  }, [guestCount, range, requestKey, requestedHotel, roomTypeId])
 
-  const status: CalendarLoadStatus = !requestKey
-    ? 'loading'
-    : readyKey !== requestKey
+  const status: CalendarLoadStatus = hotelMissing
+    ? 'error'
+    : !requestKey
       ? 'loading'
-      : error
-        ? 'error'
-        : 'ready'
+      : readyKey !== requestKey
+        ? 'loading'
+        : error
+          ? 'error'
+          : 'ready'
+  const visibleError = hotelMissing ? CATALOG_MAP_MISSING_COPY : error
   const days = useMemo<Record<string, PublicCalendarDay>>(
     () => (status === 'ready' ? indexCalendarDays(roomTypes, roomTypeId) : {}),
     [roomTypeId, roomTypes, status],
@@ -85,7 +94,7 @@ export function useAvailabilityCalendar(
     hotelToday: status === 'ready' ? hotelToday : null,
     days,
     roomTypes: status === 'ready' ? roomTypes : [],
-    error: status === 'error' ? error : '',
+    error: status === 'error' ? visibleError : '',
     capacityNote: status === 'ready' ? capacityExplanation(roomTypes, roomTypeId) : '',
     readyKey,
   }

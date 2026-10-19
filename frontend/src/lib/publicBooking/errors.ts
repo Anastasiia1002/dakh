@@ -62,11 +62,16 @@ const SAFE_COPY: Record<string, string> = {
   ROOM_TYPE_NOT_FOUND: 'Цю кімнату зараз не можна забронювати.',
   RATE_PLAN_NOT_FOUND: 'Цей тариф недоступний.',
   IDEMPOTENCY_CONFLICT: 'Заявку вже надіслано з іншими даними. Оновіть сторінку.',
+  PUBLIC_BOOKING_UNAVAILABLE: 'Публічне бронювання зараз недоступне.',
+  EMAIL_DELIVERY_FAILED: 'Не вдалося надіслати лист. Спробуйте ще раз.',
 }
 
 export function errorCopy(error: unknown): string {
   if (isPublicApiError(error)) {
-    if (error.error === 'INTERNAL_ERROR' || (error.statusCode >= 500 && error.error !== 'EMAIL_UNAVAILABLE')) {
+    if (
+      error.error === 'INTERNAL_ERROR' ||
+      (error.statusCode >= 500 && error.error !== 'EMAIL_UNAVAILABLE' && error.error !== 'EMAIL_DELIVERY_FAILED')
+    ) {
       return 'Сервер бронювання тимчасово недоступний. Спробуйте пізніше.'
     }
     if (error.message && error.error !== 'INTERNAL_ERROR') return error.message
@@ -77,6 +82,9 @@ export function errorCopy(error: unknown): string {
   }
   if (error instanceof Error && error.message === 'BOOKING_DISABLED') {
     return BOOKING_DISABLED_COPY
+  }
+  if (error instanceof Error && error.message === 'BOOKING_TARGET_BLOCKED') {
+    return 'Заявку з цього запуску можна надіслати лише на локальний сервер бронювання.'
   }
   return 'Не вдалося зв’язатися з сервером бронювання.'
 }

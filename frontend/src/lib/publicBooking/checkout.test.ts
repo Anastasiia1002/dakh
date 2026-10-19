@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isConfirmationToken, isOtpCode, isQuoteFresh, storedIntentMatchesStay } from './checkout'
+import { isConfirmationToken, isOtpCode, isQuoteFresh, shouldStartCheckout, storedIntentMatchesStay } from './checkout'
 import { quoteFromPriceChanged, retryAfterSeconds } from './errors'
 import { PublicApiError } from './errors'
 
@@ -51,6 +51,13 @@ describe('checkout helpers', () => {
       ),
       12,
     )
+  })
+
+  it('ignores a second submit while a checkout write is in flight', () => {
+    assert.equal(shouldStartCheckout({ inflight: false, busy: false, quoteFresh: true }), true)
+    assert.equal(shouldStartCheckout({ inflight: true, busy: false, quoteFresh: true }), false)
+    assert.equal(shouldStartCheckout({ inflight: false, busy: true, quoteFresh: true }), false)
+    assert.equal(shouldStartCheckout({ inflight: false, busy: false, quoteFresh: false }), false)
   })
 
   it('resumes a pending intent only for the same stay', () => {

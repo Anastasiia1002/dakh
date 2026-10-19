@@ -114,6 +114,64 @@ export function shouldRequestQuote(bookingEnabled: boolean, quoteKey: string) {
   return bookingEnabled && quoteKey.length > 0
 }
 
+/** Staging seed tariff. It must never become a guest-facing price. */
+export const HIDDEN_TEST_RATE_CODE = 'catalog-test-100'
+
+/** Client-visible staging QA tariff. Must be labeled as a demonstration price. */
+export const STAGING_DEMO_RATE_CODE = 'staging-public-e2e'
+
+/** Published client-test nightly amount. Not a commercial tariff. */
+export const DEMO_NIGHTLY_UAH = '2000.00'
+
+export const DEMO_PRICE_COPY =
+  '2 000 ₴ за ніч — демонстраційна ціна для тесту, не комерційний тариф. Оплата не стягується.'
+
+export function isDemoNightlyAmount(amount: string | null | undefined): boolean {
+  if (!amount) return false
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(amount.trim())
+  if (!match) return false
+  const fraction = (match[2] ?? '').padEnd(2, '0')
+  return match[1] === '2000' && fraction === '00'
+}
+
+export function isDemoQuotedStay(nights: readonly { price: string }[]): boolean {
+  return nights.length > 0 && nights.every((night) => isDemoNightlyAmount(night.price))
+}
+
+export function isDemoStayTotal(total: string, nights: number): boolean {
+  if (!Number.isInteger(nights) || nights < 1) return false
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(total.trim())
+  if (!match) return false
+  const cents = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'))
+  return cents === nights * 200_000
+}
+
+export function isDemoRate(plan: { demo?: boolean; code?: string; name?: string; nightlyStartingPrice?: string | null }) {
+  if (plan.demo === true || isDemoNightlyAmount(plan.nightlyStartingPrice)) return true
+  const blob = `${plan.code ?? ''} ${plan.name ?? ''}`.toLowerCase()
+  return blob.includes(STAGING_DEMO_RATE_CODE) || blob.includes('staging public e2e')
+}
+
+export const CAPACITY_BLOCK_COPY = 'Це помешкання не вміщує стільки гостей.'
+
+export const MISSING_PUBLIC_PRICE_COPY =
+  'Публічної ціни для цих дат немає. Бронювання недоступне, доки з’явиться тариф.'
+
+export function roomAcceptsGuestCount(room: { maxGuests: number } | undefined, guestCount: number) {
+  if (!room) return false
+  return guestCount >= MIN_GUESTS && guestCount <= MAX_GUESTS && guestCount <= room.maxGuests
+}
+
+export function isHiddenTestRate(plan: { ratePlanId?: string; name?: string; code?: string }) {
+  const blob = `${plan.code ?? ''} ${plan.name ?? ''} ${plan.ratePlanId ?? ''}`.toLowerCase()
+  return blob.includes(HIDDEN_TEST_RATE_CODE)
+}
+
+/** Plans a guest may be quoted. Test tariffs and amounts the server did not price are dropped. */
+export function offerableRatePlans<T extends PublicAvailabilityRatePlan & { code?: string }>(plans: readonly T[]): T[] {
+  return plans.filter((plan) => !isHiddenTestRate(plan) && authoritativeStayTotal(plan) !== null)
+}
+
 const DECIMAL_MONEY = /^(?:0|[1-9]\d*)\.\d{2}$/
 
 /** Stay total from an availability rate plan. Nightly catalog or starting prices are not a total. */

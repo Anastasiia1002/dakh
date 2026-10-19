@@ -54,6 +54,7 @@ export interface PublicAvailabilityQuery {
   checkOut: string
   guestCount?: number
   roomTypeId?: string
+  kind?: 'ROOM' | 'COTTAGE'
 }
 
 export type PublicRateType = 'STANDARD' | 'NON_REFUNDABLE' | 'SPECIAL'
@@ -66,6 +67,8 @@ export interface PublicAvailabilityRatePlan {
   nightlyStartingPrice: string
   totalAmount: string
   currency: SupportedCurrency
+  /** Staging QA tariff only. Guests must see it as a demonstration price. */
+  demo?: boolean
 }
 
 export interface PublicAvailabilityRoomType {

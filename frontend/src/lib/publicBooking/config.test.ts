@@ -7,6 +7,13 @@ import {
   resolveHotelSlug,
   resolvePublicApiBaseUrl,
 } from './config'
+import {
+  bookingTargetAllowsWrites,
+  isLoopbackPublicApi,
+  STAGING_PUBLIC_API_BASE_URL,
+  STAGING_QA_PUBLIC_API_BASE_URL,
+  stagingApiBaseUrlError,
+} from './productionApiUrl'
 
 describe('public booking config', () => {
   it('prefers the documented public API base URL', () => {
@@ -55,6 +62,28 @@ describe('public booking config', () => {
     assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: '1' }), false)
     assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: ' true' }), false)
     assert.equal(isBookingEnabled({ VITE_BOOKING_ENABLED: 'true' }), true)
+  })
+
+  it('allows booking writes only to local staging unless a production build opts in', () => {
+    assert.equal(STAGING_PUBLIC_API_BASE_URL, 'http://localhost:3000/api/public/v1')
+    assert.equal(STAGING_QA_PUBLIC_API_BASE_URL, 'http://127.0.0.1:3001/api/public/v1')
+    assert.equal(isLoopbackPublicApi('http://localhost:3000/api/public/v1'), true)
+    assert.equal(isLoopbackPublicApi('http://127.0.0.1:3000/api/public/v1'), true)
+    assert.equal(isLoopbackPublicApi('http://127.0.0.1:3001/api/public/v1'), true)
+    assert.equal(stagingApiBaseUrlError('http://127.0.0.1:3001/api/public/v1'), null)
+    assert.equal(stagingApiBaseUrlError('https://dakh-staging-api.example/api/public/v1'), null)
+    assert.match(stagingApiBaseUrlError('https://dakh-backend.onrender.com/api/public/v1') ?? '', /production Render/)
+    assert.equal(isLoopbackPublicApi('https://dakh-backend.onrender.com/api/public/v1'), false)
+    assert.equal(isLoopbackPublicApi('http://localhost:5173/api/public/v1'), false)
+    assert.equal(bookingTargetAllowsWrites('http://localhost:3000/api/public/v1', false), true)
+    assert.equal(bookingTargetAllowsWrites('http://127.0.0.1:3001/api/public/v1', false), true)
+    assert.equal(bookingTargetAllowsWrites('https://dakh-backend.onrender.com/api/public/v1', false), false)
+    assert.equal(bookingTargetAllowsWrites('https://dakh-backend.onrender.com/api/public/v1', true), true)
+    assert.equal(bookingTargetAllowsWrites('https://dakh-staging-api.example/api/public/v1', true), true)
+    assert.equal(bookingTargetAllowsWrites('https://dakh-staging-api.example/api/public/v1', false), false)
+    assert.equal(bookingTargetAllowsWrites(null, true), false)
+    assert.equal(bookingTargetAllowsWrites('http://localhost:3000/api/public/v1', true), true)
+    assert.equal(bookingTargetAllowsWrites('not-a-url', true), false)
   })
 
   it('defaults the hotel slug to dakh', () => {

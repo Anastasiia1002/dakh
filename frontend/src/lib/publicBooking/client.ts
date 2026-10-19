@@ -1,6 +1,7 @@
 import { isPublicHotelSlug, parseAccommodationDetail, parseAccommodationList } from './accommodation'
 import { isBookingEnabled, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 import { PublicApiError, parseApiError } from './errors'
+import { bookingTargetAllowsWrites } from './productionApiUrl'
 import type {
   PublicAccommodation,
   PublicAccommodationListResponse,
@@ -26,6 +27,16 @@ export type PublicBookingClientOptions = {
   fetch?: typeof fetch
   /** Defaults to the frontend booking flag. Availability and calendar stay readable either way. */
   writesEnabled?: boolean
+  /**
+   * Remote HTTPS writes. Production builds may set this; local dev and tests stay on localhost:3000.
+   */
+  allowRemoteWrites?: boolean
+}
+
+function remoteWritesAllowedByRuntime() {
+  const env = import.meta.env
+  if (!env?.PROD || env?.DEV === true) return false
+  return env?.MODE === 'production' || env?.MODE === 'staging'
 }
 
 function joinUrl(base: string, path: string) {
@@ -37,17 +48,22 @@ export class PublicBookingClient {
   private readonly hotelSlug: string
   private readonly fetchFn: typeof fetch
   private readonly writesEnabled: boolean
+  private readonly allowRemoteWrites: boolean
 
   constructor(options: PublicBookingClientOptions = {}) {
     this.baseUrl = options.baseUrl === undefined ? resolvePublicApiBaseUrl() : options.baseUrl
     this.hotelSlug = options.hotelSlug ?? resolveHotelSlug()
     this.fetchFn = options.fetch ?? fetch.bind(globalThis)
     this.writesEnabled = options.writesEnabled ?? isBookingEnabled()
+    this.allowRemoteWrites = options.allowRemoteWrites ?? remoteWritesAllowedByRuntime()
   }
 
   private writeRefusal(): Promise<never> | null {
-    if (this.writesEnabled) return null
-    return Promise.reject(new Error('BOOKING_DISABLED'))
+    if (!this.writesEnabled) return Promise.reject(new Error('BOOKING_DISABLED'))
+    if (!bookingTargetAllowsWrites(this.baseUrl, this.allowRemoteWrites)) {
+      return Promise.reject(new Error('BOOKING_TARGET_BLOCKED'))
+    }
+    return null
   }
 
   private requireBase(): string {
@@ -111,6 +127,7 @@ export class PublicBookingClient {
     })
     if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
     if (query.roomTypeId) params.set('roomTypeId', query.roomTypeId)
+    if (query.kind) params.set('kind', query.kind)
     return this.request<PublicAvailabilityResponse>(`${this.hotelPath('/availability', hotelSlug)}?${params}`, init)
   }
 
@@ -168,9 +185,13 @@ export class PublicBookingClient {
   ): Promise<PublicBookingIntentResponse> {
     const refused = this.writeRefusal()
     if (refused) return refused
+    const { idempotencyKey, ...requestInit } = init
+    const headers = new Headers(requestInit.headers)
+    if (idempotencyKey?.trim()) headers.set('Idempotency-Key', idempotencyKey.trim().slice(0, 128))
     return this.request<PublicBookingIntentResponse>(`/booking-intents/${encodeURIComponent(intentId)}/email`, {
-      ...init,
+      ...requestInit,
       method: 'POST',
+      headers,
       body: JSON.stringify(body),
     })
   }

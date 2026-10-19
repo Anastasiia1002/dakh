@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:local-booking": "node scripts/dev-local-booking.mjs",
     "build": "tsc -b && vite build && cp dist/index.html dist/404.html",
+    "build:staging": "tsc -b && vite build --mode staging && cp dist/index.html dist/404.html",
     "lint": "oxlint",
     "test": "tsx --tsconfig tsconfig.tests.json --test src/lib/publicBooking/*.test.ts src/lib/catalog/*.test.ts",
     "preview": "vite preview"

@@ -81,7 +81,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
                   apiSlug={room.slug}
                   publicSlug={toPublicAccommodationSlug(category, room.slug)}
                   displayName={publicTitle(room.name, room.maxGuests)}
-                  hotelSlug={apiHotelSlug(category)}
+                  hotelSlug={apiHotelSlug(category) ?? ''}
                 />
               </Suspense>
             ) : null}

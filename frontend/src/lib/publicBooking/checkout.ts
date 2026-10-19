@@ -136,6 +136,11 @@ export function clearStoredConfirmationToken() {
   sessionStore()?.removeItem(CONFIRMATION_SESSION_KEY)
 }
 
+/** A second click while a write is in flight must not create another intent. */
+export function shouldStartCheckout(input: { inflight: boolean; busy: boolean; quoteFresh: boolean }) {
+  return input.quoteFresh && !input.inflight && !input.busy
+}
+
 export function intentLooksExpired(expiresAt: string, now = Date.now()) {
   const expires = Date.parse(expiresAt)
   return Number.isFinite(expires) && expires <= now

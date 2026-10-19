@@ -2,9 +2,11 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { loadEnv, type Plugin } from 'vite'
 import { defineConfig } from 'vite'
+import { accommodationHotelMapError } from './src/lib/catalog/hotelMap.ts'
 import {
   productionApiBaseUrlError,
   resolvePublicApiBaseUrlFromValues,
+  stagingApiBaseUrlError,
 } from './src/lib/publicBooking/productionApiUrl.ts'
 
 const repoBase = '/dakh/'
@@ -36,8 +38,14 @@ function requireProductionApiUrl(): Plugin {
         VITE_PUBLIC_API_BASE_URL: process.env.VITE_PUBLIC_API_BASE_URL ?? fileEnv.VITE_PUBLIC_API_BASE_URL,
         VITE_API_BASE_URL: process.env.VITE_API_BASE_URL ?? fileEnv.VITE_API_BASE_URL,
       })
-      const error = productionApiBaseUrlError(resolved)
+      const error = config.mode === 'staging' ? stagingApiBaseUrlError(resolved) : productionApiBaseUrlError(resolved)
       if (error) throw new Error(error)
+      const mapError = accommodationHotelMapError({
+        VITE_ACCOMMODATION_HOTEL_MAP:
+          process.env.VITE_ACCOMMODATION_HOTEL_MAP ?? fileEnv.VITE_ACCOMMODATION_HOTEL_MAP,
+        VITE_PUBLIC_HOTEL_SLUG: process.env.VITE_PUBLIC_HOTEL_SLUG ?? fileEnv.VITE_PUBLIC_HOTEL_SLUG,
+      })
+      if (mapError) throw new Error(mapError)
     },
   }
 }

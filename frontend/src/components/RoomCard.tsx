@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { capacityLabel, kindLabel, publicSummary, publicTitle } from '../lib/catalog/display'
-import { accommodationPath } from '../lib/catalog/routes'
+import { accommodationHref } from '../lib/catalog/routes'
 import type { PublicAccommodation } from '../lib/publicBooking/types'
 import { Photo } from './Photo'
 
@@ -11,7 +11,7 @@ export function RoomCard({
   accommodation: PublicAccommodation
   priority?: boolean
 }) {
-  const to = accommodationPath(accommodation.hotelSlug, accommodation.slug)
+  const to = accommodationHref(accommodation)
   const summary = publicSummary(accommodation.description)
   const title = publicTitle(accommodation.name, accommodation.maxGuests)
 

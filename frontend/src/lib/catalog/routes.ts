@@ -1,6 +1,7 @@
 import {
   categoryBase,
   categoryForApiHotel,
+  categoryForKind,
   toPublicAccommodationSlug,
   type AccommodationCategory,
 } from './categories'
@@ -21,6 +22,11 @@ export function accommodationPath(hotel: PublicHotelSlug, apiSlug?: string): str
   const base = categoryBase(category)
   if (!apiSlug) return base
   return `${base}/${encodeURIComponent(toPublicAccommodationSlug(category, apiSlug.trim()))}`
+}
+
+export function accommodationHref(item: { kind: 'ROOM' | 'COTTAGE'; slug: string }): string {
+  const category = categoryForKind(item.kind)
+  return `${categoryBase(category)}/${encodeURIComponent(toPublicAccommodationSlug(category, item.slug))}`
 }
 
 function roomTarget(slug: string): string {

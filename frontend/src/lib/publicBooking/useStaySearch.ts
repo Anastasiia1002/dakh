@@ -1,12 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { publicBookingClient } from './client'
+import { CATALOG_MAP_MISSING_COPY } from '../catalog/categories'
 import { isBookingEnabled, isPublicApiConfigured } from './config'
 import { errorCopy, isAbortError } from './errors'
 import {
   availabilityMatchesSearch,
   availabilitySearchStatus,
+  CAPACITY_BLOCK_COPY,
   findRatePlan,
+  MISSING_PUBLIC_PRICE_COPY,
+  offerableRatePlans,
   quoteMatchesSearch,
+  roomAcceptsGuestCount,
   shouldApplyResponse,
   shouldRequestQuote,
   stayIsSearchable,
@@ -22,11 +27,17 @@ export function useStaySearch(
   roomTypeId: string,
   ratePlanId: string,
   hotelSlug?: string,
+  kind?: 'ROOM' | 'COTTAGE',
 ) {
   const configured = isPublicApiConfigured()
   const bookingEnabled = isBookingEnabled()
   const searchable = stayIsSearchable(checkIn, checkOut, guestCount)
-  const availabilityKey = searchable && configured ? `${hotelSlug ?? ''}|${checkIn}|${checkOut}|${guestCount}` : ''
+  const requestedHotel = hotelSlug?.trim() ?? ''
+  const hotelMissing = searchable && configured && !requestedHotel
+  const availabilityKey =
+    searchable && configured && requestedHotel
+      ? `${requestedHotel}|${checkIn}|${checkOut}|${guestCount}|${kind ?? ''}`
+      : ''
 
   const latestAvailabilityKey = useRef(availabilityKey)
   const latestQuoteKey = useRef('')
@@ -46,9 +57,13 @@ export function useStaySearch(
       ? availability
       : null
 
-  const selectedRoom: PublicAvailabilityRoomType | undefined = currentAvailability?.roomTypes.find(
+  const listedRoom: PublicAvailabilityRoomType | undefined = currentAvailability?.roomTypes.find(
     (room) => room.roomTypeId === roomTypeId,
   )
+  const capacityBlocked = Boolean(listedRoom && !roomAcceptsGuestCount(listedRoom, guestCount))
+  const selectedRoom: PublicAvailabilityRoomType | undefined = listedRoom
+    ? { ...listedRoom, ratePlans: capacityBlocked ? [] : offerableRatePlans(listedRoom.ratePlans) }
+    : undefined
   const selectedPlan = findRatePlan(selectedRoom, ratePlanId)
   const quoteKey =
     searchable && configured && selectedPlan ? `${availabilityKey}|${roomTypeId}|${selectedPlan.ratePlanId}` : ''
@@ -64,7 +79,7 @@ export function useStaySearch(
     const requestedKey = availabilityKey
     const controller = new AbortController()
     publicBookingClient
-      .availability({ checkIn, checkOut, guestCount }, { signal: controller.signal }, hotelSlug)
+      .availability({ checkIn, checkOut, guestCount, kind }, { signal: controller.signal }, requestedHotel)
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestAvailabilityKey.current)) return
         setAvailability(response)
@@ -79,7 +94,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [availabilityKey, checkIn, checkOut, guestCount, hotelSlug])
+  }, [availabilityKey, checkIn, checkOut, guestCount, kind, requestedHotel])
 
   useEffect(() => {
     if (!shouldRequestQuote(bookingEnabled, quoteKey) || !selectedPlan) return
@@ -96,7 +111,7 @@ export function useStaySearch(
           ratePlanId: selectedPlan.ratePlanId,
         },
         { signal: controller.signal },
-        hotelSlug,
+        requestedHotel,
       )
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestQuoteKey.current)) return
@@ -112,7 +127,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [bookingEnabled, checkIn, checkOut, guestCount, hotelSlug, quoteKey, roomTypeId, selectedPlan])
+  }, [bookingEnabled, checkIn, checkOut, guestCount, quoteKey, requestedHotel, roomTypeId, selectedPlan])
 
   const currentQuote =
     quoteReadyKey === quoteKey && quote && quoteMatchesSearch(quote, search) ? quote : null
@@ -120,8 +135,8 @@ export function useStaySearch(
   const availabilityStatus: Status = availabilitySearchStatus({
     searchable,
     configured,
-    settled: availabilityReadyKey === availabilityKey,
-    error: availabilityError,
+    settled: hotelMissing || availabilityReadyKey === availabilityKey,
+    error: hotelMissing ? CATALOG_MAP_MISSING_COPY : availabilityError,
     roomCount: currentAvailability?.roomTypes.length ?? 0,
   })
 
@@ -162,9 +177,10 @@ export function useStaySearch(
     selectedPlan,
     quote: currentQuote,
     quoteStatus,
-    quoteError:
-      selectedRoom && selectedRoom.ratePlans.length === 0
-        ? 'На ці дати немає доступного тарифу для цієї кімнати.'
+    quoteError: capacityBlocked
+      ? CAPACITY_BLOCK_COPY
+      : listedRoom && selectedRoom && selectedRoom.ratePlans.length === 0
+        ? MISSING_PUBLIC_PRICE_COPY
         : quoteError,
     nightPrices,
   }

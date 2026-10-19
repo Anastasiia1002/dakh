@@ -11,14 +11,22 @@ import {
   availabilityMatchesSearch,
   availabilitySearchStatus,
   authoritativeStayTotal,
+  CAPACITY_BLOCK_COPY,
   canUseAsCheckIn,
   canUseAsCheckOut,
   findRatePlan,
   guestCountOf,
+  MISSING_PUBLIC_PRICE_COPY,
+  isDemoNightlyAmount,
+  isDemoQuotedStay,
+  isDemoRate,
+  isDemoStayTotal,
+  offerableRatePlans,
   quoteMatchesSearch,
   rateConditions,
   ratePlanIdForRoom,
   rateTypeLabel,
+  roomAcceptsGuestCount,
   selectEligibleRatePlan,
   shouldApplyResponse,
   shouldRequestQuote,
@@ -181,6 +189,60 @@ describe('stay helpers', () => {
       availabilitySearchStatus({ searchable: true, configured: true, settled: false, error: '', roomCount: 0 }),
       'loading',
     )
+  })
+
+  it('rejects inverted dates, a same-day stay, and a stay longer than 30 nights', () => {
+    assert.equal(stayIsSearchable('2026-12-03', '2026-12-01', 2), false)
+    assert.equal(stayIsSearchable('2026-12-01', '2026-12-01', 2), false)
+    assert.equal(stayIsSearchable('2026-12-01', '2027-02-01', 2), false)
+    assert.equal(stayIsSearchable('2026-12-01', '2026-12-03', 2), true)
+    assert.equal(stayIsSearchable('not-a-date', '2026-12-03', 2), false)
+  })
+
+  it('blocks a room that cannot hold the guest count', () => {
+    assert.equal(roomAcceptsGuestCount({ maxGuests: 2 }, 2), true)
+    assert.equal(roomAcceptsGuestCount({ maxGuests: 2 }, 3), false)
+    assert.equal(roomAcceptsGuestCount(undefined, 2), false)
+    assert.equal(CAPACITY_BLOCK_COPY.length > 0, true)
+  })
+
+  it('drops the staging test tariff and refuses to quote without a public price', () => {
+    const real = {
+      ratePlanId,
+      name: 'Стандарт',
+      type: 'STANDARD' as const,
+      nightlyStartingPrice: '4800.00',
+      totalAmount: '9600.00',
+      currency: 'UAH' as const,
+    }
+    const testPlan = {
+      ...real,
+      ratePlanId: '44444444-4444-4444-8444-444444444444',
+      name: 'TEST',
+      code: 'catalog-test-100',
+      totalAmount: '100.00',
+      nightlyStartingPrice: '100.00',
+    }
+    assert.deepEqual(offerableRatePlans([testPlan, real]).map((plan) => plan.ratePlanId), [ratePlanId])
+    assert.deepEqual(offerableRatePlans([testPlan]), [])
+    assert.equal(shouldRequestQuote(true, ''), false)
+    assert.equal(MISSING_PUBLIC_PRICE_COPY.includes('Публічної ціни'), true)
+  })
+
+  it('labels only the 2000 UAH nightly rate as a demonstration price', () => {
+    assert.equal(isDemoNightlyAmount('2000.00'), true)
+    assert.equal(isDemoNightlyAmount('2000'), true)
+    assert.equal(isDemoNightlyAmount('2000.0'), true)
+    assert.equal(isDemoNightlyAmount('4800.00'), false)
+    assert.equal(isDemoNightlyAmount('2000.01'), false)
+    assert.equal(isDemoNightlyAmount('12000.00'), false)
+    assert.equal(isDemoRate({ name: 'Стандарт', nightlyStartingPrice: '2000.00' }), true)
+    assert.equal(isDemoRate({ name: 'Стандарт', nightlyStartingPrice: '4800.00' }), false)
+    assert.equal(isDemoQuotedStay([{ price: '2000.00' }, { price: '2000.00' }]), true)
+    assert.equal(isDemoQuotedStay([{ price: '2000.00' }, { price: '4800.00' }]), false)
+    assert.equal(isDemoStayTotal('4000.00', 2), true)
+    assert.equal(isDemoStayTotal('2000.00', 1), true)
+    assert.equal(isDemoStayTotal('9600.00', 2), false)
   })
 
   it('does not request a quote unless booking is explicitly enabled', () => {

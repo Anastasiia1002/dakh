@@ -66,6 +66,11 @@ export function Layout() {
             : 'sticky top-0 z-30 border-b border-wood/10 bg-linen/95 text-wood'
         }
       >
+        {bookingEnabled ? (
+          <p className="bg-clay px-4 py-2 text-center text-[0.78rem] font-semibold leading-5 text-linen" role="status">
+            Тестовий режим. 2 000 ₴ за ніч — демонстраційна ціна, не комерційна. Оплата не стягується.
+          </p>
+        ) : null}
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 md:gap-6">
           <DakhLogo tone={tone} compact />
           <nav className="hidden items-center gap-8 text-[0.72rem] font-medium tracking-[0.16em] uppercase md:flex">

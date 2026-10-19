@@ -8,7 +8,12 @@ import { spawn } from 'node:child_process'
 import net from 'node:net'
 
 const CHECK_ONLY = process.argv.includes('--check')
-const REQUIRED_MAP = 'bukovyna=e2e-bukovyna,goryshche=e2e-goryshche,plats=e2e-plats'
+const STAGING_APIS = new Set([
+  'http://localhost:3000/api/public/v1',
+  'http://127.0.0.1:3000/api/public/v1',
+  'http://localhost:3001/api/public/v1',
+  'http://127.0.0.1:3001/api/public/v1',
+])
 
 function fail(message) {
   console.error(`local-booking: ${message}`)
@@ -26,20 +31,23 @@ function portOpen(port) {
 }
 
 const api = process.env.VITE_PUBLIC_API_BASE_URL ?? ''
-const hotel = process.env.VITE_PUBLIC_HOTEL_SLUG ?? ''
-const roomMap = process.env.VITE_PUBLIC_ROOM_SLUG_MAP ?? ''
+const booking = process.env.VITE_BOOKING_ENABLED ?? ''
+const hotelMap = process.env.VITE_ACCOMMODATION_HOTEL_MAP ?? ''
 
-if (api !== 'http://localhost:3000/api/public/v1' && api !== 'http://127.0.0.1:3000/api/public/v1') {
-  fail('VITE_PUBLIC_API_BASE_URL must be http://localhost:3000/api/public/v1 or http://127.0.0.1:3000/api/public/v1')
+if (!STAGING_APIS.has(api)) {
+  fail('VITE_PUBLIC_API_BASE_URL must be the local API on port 3000 or the QA API on 127.0.0.1:3001')
 }
-if (hotel !== 'dakh-e2e-primary') {
-  fail('VITE_PUBLIC_HOTEL_SLUG must be dakh-e2e-primary')
+if (booking !== 'true') {
+  fail('VITE_BOOKING_ENABLED must be exactly true for this local process. Do not point it at production.')
 }
-if (roomMap !== REQUIRED_MAP) {
-  fail(`VITE_PUBLIC_ROOM_SLUG_MAP must be ${REQUIRED_MAP}`)
+if (hotelMap !== 'split' && hotelMap !== 'merged') {
+  fail('VITE_ACCOMMODATION_HOTEL_MAP must be exactly split or merged.')
+}
+if (api.includes(':3001/') && hotelMap !== 'merged') {
+  fail('The QA API on port 3001 already serves cottages from dakh. Set VITE_ACCOMMODATION_HOTEL_MAP=merged.')
 }
 
-console.log(`local-booking: api=${api} hotel=${hotel} rooms=${roomMap}`)
+console.log(`local-booking: api=${api} booking=local-only`)
 
 if (CHECK_ONLY) {
   console.log('local-booking: configuration accepted')

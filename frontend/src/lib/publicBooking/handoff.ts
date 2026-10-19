@@ -4,6 +4,7 @@ import {
   isAccommodationCategory,
   toApiAccommodationSlug,
   toPublicAccommodationSlug,
+  type AccommodationMapEnv,
 } from '../catalog/categories'
 import { stayIsSearchable } from './stay'
 import { DATE_PATTERN, MAX_GUESTS, MIN_GUESTS } from './types'
@@ -94,7 +95,9 @@ function parsePreview(value: unknown): BookingHandoffPreview | null {
 
 export function handoffToSearch(handoff: BookingHandoff) {
   const params = new URLSearchParams()
-  const category = categoryForApiHotel(handoff.hotelSlug)
+  const cottageSlug =
+    /^sunny-park-\d+$/.test(handoff.roomTypeSlug) || /^house-\d+$/.test(handoff.catalogSlug)
+  const category = cottageSlug ? 'houses' : (categoryForApiHotel(handoff.hotelSlug) ?? 'rooms')
   if (category) {
     params.set('category', category)
     params.set('room', toPublicAccommodationSlug(category, handoff.roomTypeSlug || handoff.catalogSlug))
@@ -111,7 +114,7 @@ export function handoffToSearch(handoff: BookingHandoff) {
   return params
 }
 
-export function handoffFromSearch(params: URLSearchParams): BookingHandoff | null {
+export function handoffFromSearch(params: URLSearchParams, env?: AccommodationMapEnv): BookingHandoff | null {
   const adults = readCount(params.get('adults'), 1, MAX_GUESTS)
   const children = readCount(params.get('children'), 0, MAX_GUESTS)
   if (adults === null || children === null) return null
@@ -119,8 +122,10 @@ export function handoffFromSearch(params: URLSearchParams): BookingHandoff | nul
   const room = params.get('room')
   if (isAccommodationCategory(category) && room) {
     const apiSlug = toApiAccommodationSlug(category, room)
+    const hotelSlug = apiHotelSlug(category, env)
+    if (!apiSlug || !hotelSlug) return null
     return parseBookingHandoff({
-      hotelSlug: apiHotelSlug(category),
+      hotelSlug,
       catalogSlug: room,
       roomTypeId: params.get('roomType'),
       roomTypeSlug: params.get('type') || apiSlug,

@@ -3,6 +3,8 @@ import { RoomCard } from '../components/RoomCard'
 import { categoryLabel, type AccommodationCategory } from '../lib/catalog/categories'
 import { useAccommodationList } from '../lib/catalog/useAccommodations'
 
+const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
+
 const copy = {
   rooms: {
     title: 'Кімнати',
@@ -27,6 +29,12 @@ export function HotelPage({ category }: { category: AccommodationCategory }) {
       <p className="kicker text-[0.68rem] text-clay">{categoryLabel(category)}</p>
       <h1 className="mt-3 max-w-2xl font-display text-5xl leading-tight">{text.title}</h1>
       <p className="mt-6 max-w-xl text-sm leading-relaxed text-wood/75">{text.lead}</p>
+      {bookingEnabled ? (
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-clay">
+          Відкрийте {category === 'houses' ? 'будинок' : 'кімнату'}, щоб обрати дати й кількість гостей. Ціна 2 000 ₴ за
+          ніч демонстраційна. Оплату на сайті не приймаємо.
+        </p>
+      ) : null}
       {catalog.status === 'ready' ? (
         <div className={`mt-16 grid gap-16 ${text.columns === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
           {catalog.items.map((item, index) => (
