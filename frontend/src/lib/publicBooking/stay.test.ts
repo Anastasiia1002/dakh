@@ -86,6 +86,7 @@ describe('stay helpers', () => {
   it('applies a response only when it still matches the latest request key', () => {
     assert.equal(shouldApplyResponse('2026-12-01|2026-12-03|2', '2026-12-01|2026-12-03|2'), true)
     assert.equal(shouldApplyResponse('2026-12-01|2026-12-03|2', '2026-12-04|2026-12-06|2'), false)
+    assert.equal(shouldApplyResponse('dakh|2026-12-01|2026-12-03|2', 'dakh|2026-12-01|2026-12-03|3'), false)
     assert.equal(shouldApplyResponse('', '2026-12-01|2026-12-03|2'), false)
   })
 

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { publicBookingClient } from './client'
 import { CATALOG_MAP_MISSING_COPY } from '../catalog/categories'
 import { isBookingEnabled, isPublicApiConfigured } from './config'
-import { errorCopy, isAbortError } from './errors'
+import { errorCopy, isAbortError, stayRejection, STAY_RANGE_COPY, type StayRejectionKind } from './errors'
 import {
   availabilityMatchesSearch,
   availabilitySearchStatus,
@@ -20,6 +20,15 @@ import type { PublicAvailabilityResponse, PublicAvailabilityRoomType, PublicQuot
 
 type Status = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
 
+export type StayRejectionEvent = {
+  id: number
+  kind: StayRejectionKind
+  message: string
+  checkIn: string
+  checkOut: string
+  guestCount: number
+}
+
 export function useStaySearch(
   checkIn: string,
   checkOut: string,
@@ -28,6 +37,7 @@ export function useStaySearch(
   ratePlanId: string,
   hotelSlug?: string,
   kind?: 'ROOM' | 'COTTAGE',
+  quoteBlocked = false,
 ) {
   const configured = isPublicApiConfigured()
   const bookingEnabled = isBookingEnabled()
@@ -49,6 +59,9 @@ export function useStaySearch(
   const [quote, setQuote] = useState<PublicQuoteResponse | null>(null)
   const [quoteReadyKey, setQuoteReadyKey] = useState('')
   const [quoteError, setQuoteError] = useState('')
+  const [stayRejectionState, setStayRejectionState] = useState<StayRejectionEvent | null>(null)
+  const rejectionSerial = useRef(0)
+  const rejectedQuoteKeys = useRef(new Set<string>())
 
   const search = { checkIn, checkOut, guestCount, roomTypeId, ratePlanId }
 
@@ -66,7 +79,9 @@ export function useStaySearch(
     : undefined
   const selectedPlan = findRatePlan(selectedRoom, ratePlanId)
   const quoteKey =
-    searchable && configured && selectedPlan ? `${availabilityKey}|${roomTypeId}|${selectedPlan.ratePlanId}` : ''
+    !quoteBlocked && searchable && configured && selectedPlan
+      ? `${availabilityKey}|${roomTypeId}|${selectedPlan.ratePlanId}`
+      : ''
 
   useLayoutEffect(() => {
     latestAvailabilityKey.current = availabilityKey
@@ -88,9 +103,21 @@ export function useStaySearch(
       })
       .catch((error: unknown) => {
         if (isAbortError(error) || !shouldApplyResponse(requestedKey, latestAvailabilityKey.current)) return
+        const rejection = stayRejection(error)
         setAvailability(null)
-        setAvailabilityError(errorCopy(error))
+        setAvailabilityError(rejection?.message ?? errorCopy(error))
         setAvailabilityReadyKey(requestedKey)
+        if (rejection && rejection.kind !== 'guests') {
+          rejectionSerial.current += 1
+          setStayRejectionState({
+            id: rejectionSerial.current,
+            kind: rejection.kind,
+            message: rejection.message,
+            checkIn,
+            checkOut,
+            guestCount,
+          })
+        }
       })
 
     return () => controller.abort()
@@ -100,6 +127,12 @@ export function useStaySearch(
     if (!shouldRequestQuote(bookingEnabled, quoteKey) || !selectedPlan) return
 
     const requestedKey = quoteKey
+    if (rejectedQuoteKeys.current.has(requestedKey)) {
+      setQuote(null)
+      setQuoteError(STAY_RANGE_COPY)
+      setQuoteReadyKey(requestedKey)
+      return
+    }
     const controller = new AbortController()
     publicBookingClient
       .quote(
@@ -121,9 +154,23 @@ export function useStaySearch(
       })
       .catch((error: unknown) => {
         if (isAbortError(error) || !shouldApplyResponse(requestedKey, latestQuoteKey.current)) return
+        const rejection = stayRejection(error)
         setQuote(null)
-        setQuoteError(errorCopy(error))
+        setQuoteError(rejection?.message ?? errorCopy(error))
         setQuoteReadyKey(requestedKey)
+        if (!rejection) return
+        // A closed booking window can open later the same day. Remember only
+        // stay-length failures so a refreshed eligible date can be quoted again.
+        if (rejection.kind === 'range') rejectedQuoteKeys.current.add(requestedKey)
+        rejectionSerial.current += 1
+        setStayRejectionState({
+          id: rejectionSerial.current,
+          kind: rejection.kind,
+          message: rejection.message,
+          checkIn,
+          checkOut,
+          guestCount,
+        })
       })
 
     return () => controller.abort()
@@ -140,7 +187,7 @@ export function useStaySearch(
     roomCount: currentAvailability?.roomTypes.length ?? 0,
   })
 
-  const quoteStatus: Status = !bookingEnabled || !searchable || !roomTypeId
+  const quoteStatus: Status = !bookingEnabled || !searchable || !roomTypeId || quoteBlocked
     ? 'idle'
     : !configured
       ? 'error'
@@ -177,6 +224,7 @@ export function useStaySearch(
     selectedPlan,
     quote: currentQuote,
     quoteStatus,
+    stayRejection: stayRejectionState,
     quoteError: capacityBlocked
       ? CAPACITY_BLOCK_COPY
       : listedRoom && selectedRoom && selectedRoom.ratePlans.length === 0

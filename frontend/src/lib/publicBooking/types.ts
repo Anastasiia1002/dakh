@@ -93,7 +93,7 @@ export interface PublicAvailabilityResponse {
 
 export type PublicCalendarDayStatus = 'available' | 'booked' | 'restricted' | 'closed'
 
-export type PublicCalendarReason = 'booking' | 'block' | 'occupancy' | 'rate' | 'inactive' | null
+export type PublicCalendarReason = 'booking' | 'block' | 'occupancy' | 'rate' | 'inactive' | 'window' | null
 
 export interface PublicCalendarQuery {
   from: string
@@ -107,6 +107,12 @@ export interface PublicCalendarDay {
   status: PublicCalendarDayStatus
   availableCount: number
   reason: PublicCalendarReason
+  /** Present when the calendar reports the hotel booking window separately from inventory. */
+  checkInEligible?: boolean
+  /** This morning can end some stay the quote endpoint would accept. */
+  checkoutEligible?: boolean
+  minStay?: number | null
+  maxStay?: number | null
 }
 
 export interface PublicCalendarRoomType {
@@ -122,6 +128,8 @@ export interface PublicCalendarResponse {
   from: string
   to: string
   hotelToday: string
+  /** Hotel-local earliest check-in. Null means the booking window is closed. */
+  earliestCheckIn?: string | null
   currency: SupportedCurrency
   guestCount: number | null
   roomTypes: PublicCalendarRoomType[]

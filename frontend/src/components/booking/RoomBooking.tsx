@@ -11,7 +11,7 @@ import {
   useStaySearch,
 } from '../../lib/publicBooking'
 import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../../lib/publicBooking/config'
-import { reconcileStay } from '../../lib/publicBooking/calendar'
+import { calendarRejectsStay, reconcileStay } from '../../lib/publicBooking/calendar'
 import {
   saveBookingHandoff,
   handoffToSearch,
@@ -20,6 +20,7 @@ import {
   type BookingHandoff,
 } from '../../lib/publicBooking/handoff'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
+import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
 import { QuoteSummary } from './CheckoutPanels'
 
 function draftFromHandoff(publicSlug: string): BookingDraft {
@@ -53,12 +54,21 @@ export function RoomBooking({
   const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(publicSlug))
   const [now, setNow] = useState(() => Date.now())
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
+  const [calendarReload, setCalendarReload] = useState(0)
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
-  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, guestCount, hotelSlug)
+  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, guestCount, hotelSlug, calendarReload)
+  const quoteBlocked = calendarRejectsStay({
+    status: calendar.status,
+    hotelToday: calendar.hotelToday,
+    earliestCheckIn: calendar.earliestCheckIn,
+    days: calendar.days,
+    checkIn: draft.checkIn,
+    checkOut: draft.checkOut,
+  })
   const search = useStaySearch(
     draft.checkIn,
     draft.checkOut,
@@ -67,7 +77,12 @@ export function RoomBooking({
     draft.ratePlanId,
     hotelSlug,
     category === 'houses' ? 'COTTAGE' : 'ROOM',
+    quoteBlocked,
   )
+  const stayGuard = useStayGuard(search.stayRejection, () => {
+    setCalendarReload((value) => value + 1)
+    setDraft((current) => ({ ...current, checkIn: '', checkOut: '', ratePlanId: '' }))
+  })
   const quoteReady = isQuoteFresh(search.quote, now)
 
   useEffect(() => {
@@ -88,9 +103,12 @@ export function RoomBooking({
     const next = reconcileStay({
       status: calendar.status,
       hotelToday: calendar.hotelToday,
+      earliestCheckIn: calendar.earliestCheckIn,
       days: calendar.days,
       checkIn: draft.checkIn,
       checkOut: draft.checkOut,
+      blockedCheckIns: stayGuard.blockedCheckIns,
+      blockedRanges: stayGuard.blockedRanges,
     })
     if (next.checkIn === draft.checkIn && next.checkOut === draft.checkOut) return
     setDraft((current) => ({
@@ -99,9 +117,20 @@ export function RoomBooking({
       checkOut: next.checkOut,
       ratePlanId: next.checkOut ? current.ratePlanId : '',
     }))
-  }, [calendar.days, calendar.hotelToday, calendar.status, draft.checkIn, draft.checkOut])
+  }, [
+    calendar.days,
+    calendar.hotelToday,
+    calendar.status,
+    draft.checkIn,
+    draft.checkOut,
+    stayGuard.blockedCheckIns,
+    stayGuard.blockedRanges,
+  ])
 
   function patch(next: Partial<BookingDraft>) {
+    if (next.checkIn !== undefined || next.checkOut !== undefined || next.adults !== undefined || next.children !== undefined) {
+      stayGuard.clearNotice()
+    }
     setDraft((current) => {
       const merged = { ...current, ...next, roomTypeId: calendar.roomTypeId || current.roomTypeId }
       const stayChanged =
@@ -159,10 +188,14 @@ export function RoomBooking({
           live={{
             status: calendar.status,
             hotelToday: calendar.hotelToday,
+            earliestCheckIn: calendar.earliestCheckIn,
             days: calendar.days,
             error: calendar.error,
             capacityNote: calendar.capacityNote,
           }}
+          blockedCheckIns={stayGuard.blockedCheckIns}
+          blockedRanges={stayGuard.blockedRanges}
+          notice={stayGuard.notice}
           onVisibleRange={onVisibleRange}
           onChange={patch}
         />

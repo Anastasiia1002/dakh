@@ -26,7 +26,7 @@ import {
   useStaySearch,
   type GuestFieldErrors,
 } from '../lib/publicBooking'
-import { reconcileStay } from '../lib/publicBooking/calendar'
+import { calendarRejectsStay, reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
 import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase } from '../lib/catalog/categories'
 import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../lib/publicBooking/config'
@@ -42,6 +42,7 @@ import {
   type BookingHandoff,
 } from '../lib/publicBooking/handoff'
 import { useMappedRoomCalendar } from '../lib/publicBooking/useMappedRoomCalendar'
+import { useStayGuard } from '../lib/publicBooking/useStayGuard'
 import type { PublicAvailabilityRoomType } from '../lib/publicBooking/types'
 
 function draftFromParams(params: URLSearchParams): BookingDraft {
@@ -90,6 +91,7 @@ export function BookingFlow() {
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
+  const [calendarReload, setCalendarReload] = useState(0)
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
@@ -98,12 +100,14 @@ export function BookingFlow() {
     guestCount,
     locked ? '' : draft.roomTypeId,
     hotelSlug ?? undefined,
+    calendarReload,
   )
   const mapped = useMappedRoomCalendar(
     handoff?.roomTypeSlug || handoff?.catalogSlug || '',
     locked ? calendarRange : null,
     guestCount,
     hotelSlug ?? undefined,
+    calendarReload,
   )
   const identityReady =
     !handoff ||
@@ -114,6 +118,15 @@ export function BookingFlow() {
       acceptsBookingHotel(handoff.hotelSlug, configuredHotel) &&
       bookingHotelMatchesCategory(handoff.hotelSlug, category))
   const roomRejected = Boolean(handoff && mapped.status !== 'loading' && !identityReady)
+  const activeCalendar = locked ? mapped : calendar
+  const quoteBlocked = calendarRejectsStay({
+    status: activeCalendar.status,
+    hotelToday: activeCalendar.hotelToday,
+    earliestCheckIn: activeCalendar.earliestCheckIn,
+    days: activeCalendar.days,
+    checkIn: draft.checkIn,
+    checkOut: draft.checkOut,
+  })
   const search = useStaySearch(
     draft.checkIn,
     draft.checkOut,
@@ -122,7 +135,18 @@ export function BookingFlow() {
     identityReady ? draft.ratePlanId : '',
     hotelSlug ?? undefined,
     category === 'houses' ? 'COTTAGE' : 'ROOM',
+    quoteBlocked,
   )
+  const stayGuard = useStayGuard(search.stayRejection, () => {
+    setCalendarReload((value) => value + 1)
+    setDraft((current) => ({
+      ...current,
+      checkIn: '',
+      checkOut: '',
+      ratePlanId: '',
+      roomTypeId: locked ? current.roomTypeId : '',
+    }))
+  })
   const checkout = useBookingCheckout(
     {
       roomTypeId: draft.roomTypeId,
@@ -193,13 +217,15 @@ export function BookingFlow() {
   }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, draft.ratePlanId, draft.roomTypeId, handoff, location.search, navigate])
 
   useEffect(() => {
-    if (locked) return
     const next = reconcileStay({
-      status: calendar.status,
-      hotelToday: calendar.hotelToday,
-      days: calendar.days,
+      status: activeCalendar.status,
+      hotelToday: activeCalendar.hotelToday,
+      earliestCheckIn: activeCalendar.earliestCheckIn,
+      days: activeCalendar.days,
       checkIn: draft.checkIn,
       checkOut: draft.checkOut,
+      blockedCheckIns: stayGuard.blockedCheckIns,
+      blockedRanges: stayGuard.blockedRanges,
     })
     if (next.checkIn === draft.checkIn && next.checkOut === draft.checkOut) return
     if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
@@ -213,7 +239,17 @@ export function BookingFlow() {
       roomTypeId: locked ? current.roomTypeId : next.checkIn ? current.roomTypeId : '',
       ratePlanId: next.checkOut ? current.ratePlanId : '',
     }))
-  }, [calendar.days, calendar.hotelToday, calendar.status, checkout, draft.checkIn, draft.checkOut, locked])
+  }, [
+    activeCalendar.days,
+    activeCalendar.hotelToday,
+    activeCalendar.status,
+    checkout,
+    draft.checkIn,
+    draft.checkOut,
+    locked,
+    stayGuard.blockedCheckIns,
+    stayGuard.blockedRanges,
+  ])
 
   useEffect(() => {
     if (checkout.step !== 'confirmed') return
@@ -223,6 +259,9 @@ export function BookingFlow() {
   }, [checkout.step, navigate])
 
   function patch(next: Partial<BookingDraft>) {
+    if (next.checkIn !== undefined || next.checkOut !== undefined || next.adults !== undefined || next.children !== undefined) {
+      stayGuard.clearNotice()
+    }
     const stayChanged =
       next.checkIn !== undefined ||
       next.checkOut !== undefined ||
@@ -332,10 +371,14 @@ export function BookingFlow() {
           live={{
             status: locked ? mapped.status : calendar.status,
             hotelToday: locked ? mapped.hotelToday : calendar.hotelToday,
+            earliestCheckIn: locked ? mapped.earliestCheckIn : calendar.earliestCheckIn,
             days: locked ? mapped.days : calendar.days,
             error: locked ? mapped.error : calendar.error,
             capacityNote: locked ? mapped.capacityNote : calendar.capacityNote,
           }}
+          blockedCheckIns={stayGuard.blockedCheckIns}
+          blockedRanges={stayGuard.blockedRanges}
+          notice={stayGuard.notice}
           onVisibleRange={onVisibleRange}
           onChange={patch}
         />

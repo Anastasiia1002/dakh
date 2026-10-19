@@ -13,9 +13,10 @@ export function useMappedRoomCalendar(
   range: { from: string; to: string } | null,
   guestCount: number,
   hotelSlug?: string,
+  reloadKey = 0,
 ) {
   const expectedSlug = resolveRoomTypeSlug(catalogSlug, readRoomSlugMap())
-  const calendar = useAvailabilityCalendar(range, guestCount, '', hotelSlug)
+  const calendar = useAvailabilityCalendar(range, guestCount, '', hotelSlug, reloadKey)
   const matched = useMemo(
     () => (calendar.status === 'ready' ? findRoomTypeBySlug(calendar.roomTypes, expectedSlug) : null),
     [calendar.roomTypes, calendar.status, expectedSlug],
@@ -29,24 +30,31 @@ export function useMappedRoomCalendar(
     id: string
     days: Record<string, PublicCalendarDay>
     hotelToday: string | null
+    earliestCheckIn: string | null | undefined
   }>({
     slug: '',
     id: '',
     days: {},
     hotelToday: null,
+    earliestCheckIn: undefined,
   })
 
   const nextId = matched?.roomTypeId ?? ''
   const nextDays = indexed ?? EMPTY_DAYS
   if (
     calendar.status === 'ready' &&
-    (held.slug !== expectedSlug || held.id !== nextId || held.days !== nextDays || held.hotelToday !== calendar.hotelToday)
+    (held.slug !== expectedSlug ||
+      held.id !== nextId ||
+      held.days !== nextDays ||
+      held.hotelToday !== calendar.hotelToday ||
+      held.earliestCheckIn !== calendar.earliestCheckIn)
   ) {
     setHeld({
       slug: expectedSlug,
       id: nextId,
       days: nextDays,
       hotelToday: calendar.hotelToday,
+      earliestCheckIn: calendar.earliestCheckIn,
     })
   }
 
@@ -58,6 +66,7 @@ export function useMappedRoomCalendar(
   return {
     status: unmapped ? ('error' as const) : showingHeld ? ('ready' as const) : calendar.status,
     hotelToday: calendar.hotelToday ?? (showingHeld ? held.hotelToday : null),
+    earliestCheckIn: calendar.status === 'ready' ? calendar.earliestCheckIn : showingHeld ? held.earliestCheckIn : undefined,
     days: indexed ?? (verified ? held.days : {}),
     error: unmapped ? UNMAPPED : calendar.error,
     capacityNote:

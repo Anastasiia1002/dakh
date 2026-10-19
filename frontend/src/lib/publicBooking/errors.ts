@@ -45,6 +45,8 @@ export function parseApiError(status: number, payload: unknown): PublicApiError 
   })
 }
 
+const GENERIC_VALIDATION_MESSAGE = 'Некоректні дані запиту'
+
 const SAFE_COPY: Record<string, string> = {
   VALIDATION_ERROR: 'Перевірте заповнені поля.',
   UNAVAILABLE: 'На ці дати немає вільних кімнат. Оберіть інші дати.',
@@ -74,6 +76,9 @@ export function errorCopy(error: unknown): string {
     ) {
       return 'Сервер бронювання тимчасово недоступний. Спробуйте пізніше.'
     }
+    if (error.error === 'VALIDATION_ERROR' && (!error.message || error.message === GENERIC_VALIDATION_MESSAGE)) {
+      return SAFE_COPY.VALIDATION_ERROR
+    }
     if (error.message && error.error !== 'INTERNAL_ERROR') return error.message
     return SAFE_COPY[error.error] ?? 'Не вдалося виконати запит бронювання.'
   }
@@ -93,6 +98,33 @@ export function retryAfterSeconds(error: unknown): number | null {
   if (!isPublicApiError(error) || !isRecord(error.details)) return null
   const value = error.details.retryAfterSeconds
   return typeof value === 'number' && value >= 0 ? value : null
+}
+
+export const STAY_WINDOW_COPY = 'На цю дату заїзд уже недоступний. Оберіть пізнішу дату.'
+
+export const STAY_RANGE_COPY = 'Цей період не можна забронювати. Оберіть інші дати.'
+
+export const STAY_GUESTS_COPY = 'Обрана кількість гостей не підходить для цього помешкання.'
+
+export type StayRejectionKind = 'check-in' | 'range' | 'guests'
+
+/** Maps a stay quote or availability failure to guest copy. Never returns the raw validation message. */
+export function stayRejection(error: unknown): { kind: StayRejectionKind; message: string } | null {
+  if (!isPublicApiError(error)) return null
+  if (error.error === 'UNAVAILABLE') {
+    return {
+      kind: 'range',
+      message:
+        error.message && error.message !== GENERIC_VALIDATION_MESSAGE
+          ? error.message
+          : 'На ці дати немає вільних кімнат. Оберіть інші дати.',
+    }
+  }
+  if (error.error !== 'VALIDATION_ERROR') return null
+  const details = Array.isArray(error.details) ? error.details.filter((item): item is string => typeof item === 'string') : []
+  if (details.some((item) => item.startsWith('guestCount:'))) return { kind: 'guests', message: STAY_GUESTS_COPY }
+  if (details.some((item) => item.startsWith('checkIn:'))) return { kind: 'check-in', message: STAY_WINDOW_COPY }
+  return { kind: 'range', message: STAY_RANGE_COPY }
 }
 
 export function quoteFromPriceChanged(error: unknown): PublicQuoteResponse | null {

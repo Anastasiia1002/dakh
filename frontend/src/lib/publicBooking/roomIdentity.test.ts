@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  calendarDaySlot,
+  calendarPopoverWidth,
   calendarUsesTwoMonths,
   findRoomTypeBySlug,
   parseRoomSlugMap,
@@ -60,8 +62,18 @@ describe('room identity', () => {
 
   it('shows two months only when the calendar is wide enough', () => {
     assert.equal(calendarUsesTwoMonths(TWO_MONTH_MIN_PX - 1), false)
+    assert.equal(calendarUsesTwoMonths(320), false)
     assert.equal(calendarUsesTwoMonths(390), false)
     assert.equal(calendarUsesTwoMonths(TWO_MONTH_MIN_PX), true)
     assert.equal(calendarUsesTwoMonths(1440), true)
+  })
+
+  it('keeps one day cell inside a 320px and 390px viewport', () => {
+    for (const viewport of [320, 390]) {
+      const width = calendarPopoverWidth(viewport, 280, 'end')
+      assert.ok(width <= viewport - 24)
+      assert.ok(calendarDaySlot(viewport, 280) >= 32)
+      assert.equal(calendarUsesTwoMonths(width), false)
+    }
   })
 })

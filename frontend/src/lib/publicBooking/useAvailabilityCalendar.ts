@@ -17,17 +17,19 @@ export function useAvailabilityCalendar(
   guestCount: number,
   roomTypeId: string,
   hotelSlug?: string,
+  reloadKey = 0,
 ) {
   const configured = isPublicApiConfigured()
   const requestedHotel = hotelSlug?.trim() ?? ''
   const hotelMissing = Boolean(range && configured && !requestedHotel)
   const requestKey =
     range && configured && requestedHotel
-      ? `${requestedHotel}|${range.from}|${range.to}|${guestCount}|${roomTypeId}`
+      ? `${requestedHotel}|${range.from}|${range.to}|${guestCount}|${roomTypeId}|${reloadKey}`
       : ''
   const latestKey = useRef(requestKey)
   const [roomTypes, setRoomTypes] = useState<PublicCalendarRoomType[]>([])
   const [hotelToday, setHotelToday] = useState<string | null>(null)
+  const [earliestCheckIn, setEarliestCheckIn] = useState<string | null | undefined>(undefined)
   const [readyKey, setReadyKey] = useState('')
   const [error, setError] = useState('')
 
@@ -55,12 +57,14 @@ export function useAvailabilityCalendar(
         if (!isCalendarResponse(response) || response.from !== range.from || response.to !== range.to) {
           setRoomTypes([])
           setHotelToday(null)
+          setEarliestCheckIn(undefined)
           setError('Не вдалося дізнатися наявність. Дати не показано як вільні.')
           setReadyKey(requestedKey)
           return
         }
         setRoomTypes(response.roomTypes)
         setHotelToday(response.hotelToday)
+        setEarliestCheckIn(response.earliestCheckIn)
         setError('')
         setReadyKey(requestedKey)
       })
@@ -68,6 +72,7 @@ export function useAvailabilityCalendar(
         if (isAbortError(reason) || !shouldApplyResponse(requestedKey, latestKey.current)) return
         setRoomTypes([])
         setHotelToday(null)
+        setEarliestCheckIn(undefined)
         setError(errorCopy(reason))
         setReadyKey(requestedKey)
       })
@@ -92,6 +97,7 @@ export function useAvailabilityCalendar(
   return {
     status,
     hotelToday: status === 'ready' ? hotelToday : null,
+    earliestCheckIn: status === 'ready' ? earliestCheckIn : undefined,
     days,
     roomTypes: status === 'ready' ? roomTypes : [],
     error: status === 'error' ? visibleError : '',

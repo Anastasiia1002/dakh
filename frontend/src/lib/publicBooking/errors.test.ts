@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { errorCopy, isAbortError, parseApiError } from './errors'
+import { errorCopy, isAbortError, parseApiError, stayRejection, STAY_RANGE_COPY, STAY_WINDOW_COPY } from './errors'
 
 describe('public API errors', () => {
   it('prefers the structured error code and Ukrainian message', () => {
@@ -47,6 +47,35 @@ describe('public API errors', () => {
       assert.equal(errorCopy(parseApiError(status, { statusCode: status, error: code, message })), message)
     }
     assert.match(errorCopy(new Error('BOOKING_TARGET_BLOCKED')), /локальний сервер/)
+  })
+
+  it('hides the raw validation message and names the stay rule the server rejected', () => {
+    const tooEarly = parseApiError(400, {
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Некоректні дані запиту',
+      details: ['checkIn: заїзд занадто рано відносно мінімального часу бронювання'],
+    })
+    const minimum = parseApiError(400, {
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Некоректні дані запиту',
+      details: ['checkOut: тариф вимагає мінімум 3 ночей'],
+    })
+    const guests = parseApiError(400, {
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Некоректні дані запиту',
+      details: ['guestCount: перевищує місткість категорії'],
+    })
+    assert.equal(errorCopy(tooEarly), 'Перевірте заповнені поля.')
+    assert.doesNotMatch(errorCopy(tooEarly), /Некоректні дані запиту|VALIDATION_ERROR/)
+    assert.equal(stayRejection(tooEarly)?.kind, 'check-in')
+    assert.equal(stayRejection(tooEarly)?.message, STAY_WINDOW_COPY)
+    assert.equal(stayRejection(minimum)?.kind, 'range')
+    assert.equal(stayRejection(minimum)?.message, STAY_RANGE_COPY)
+    assert.equal(stayRejection(guests)?.kind, 'guests')
+    assert.doesNotMatch(`${stayRejection(tooEarly)?.message}${stayRejection(minimum)?.message}`, /VALIDATION_ERROR|Некоректні/)
   })
 
   it('recognizes AbortError so stale requests can be ignored', () => {
