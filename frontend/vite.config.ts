@@ -8,17 +8,17 @@ import {
   resolvePublicApiBaseUrlFromValues,
   stagingApiBaseUrlError,
 } from './src/lib/publicBooking/productionApiUrl.ts'
+import { resolveSiteBase } from './src/lib/siteBase.ts'
 
-const repoBase = '/dakh/'
-
-function redirectToBase(): Plugin {
+function redirectToBase(base: string): Plugin {
   return {
     name: 'redirect-to-base',
     configureServer(server) {
+      if (base === '/') return
       server.middlewares.use((req, res, next) => {
         if (req.url === '/') {
           res.statusCode = 302
-          res.setHeader('Location', repoBase)
+          res.setHeader('Location', base)
           res.end()
           return
         }
@@ -50,15 +50,21 @@ function requireProductionApiUrl(): Plugin {
   }
 }
 
-export default defineConfig({
-  base: repoBase,
-  plugins: [react(), tailwindcss(), redirectToBase(), requireProductionApiUrl()],
-  server: {
-    host: true,
-    port: 5173,
-  },
-  preview: {
-    host: true,
-    port: 4173,
-  },
+export default defineConfig(() => {
+  const base = resolveSiteBase({
+    DAKH_SITE_BASE: process.env.DAKH_SITE_BASE,
+    VERCEL: process.env.VERCEL,
+  })
+  return {
+    base,
+    plugins: [react(), tailwindcss(), redirectToBase(base), requireProductionApiUrl()],
+    server: {
+      host: true,
+      port: 5173,
+    },
+    preview: {
+      host: true,
+      port: 4173,
+    },
+  }
 })

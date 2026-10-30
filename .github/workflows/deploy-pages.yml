@@ -30,6 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
+          DAKH_SITE_BASE: /dakh/
           VITE_PUBLIC_API_BASE_URL: https://dakh-backend.onrender.com/api/public/v1
           VITE_PUBLIC_HOTEL_SLUG: dakh
           VITE_ACCOMMODATION_HOTEL_MAP: merged

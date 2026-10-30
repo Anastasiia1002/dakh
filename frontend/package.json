@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "dev:local-booking": "node scripts/dev-local-booking.mjs",
-    "build": "tsc -b && vite build && cp dist/index.html dist/404.html",
-    "build:staging": "tsc -b && vite build --mode staging && cp dist/index.html dist/404.html",
+    "build": "tsc -b && vite build && tsx scripts/copy-pages-fallback.ts",
+    "build:staging": "tsc -b && vite build --mode staging && tsx scripts/copy-pages-fallback.ts",
     "lint": "oxlint",
-    "test": "tsx --tsconfig tsconfig.tests.json --test src/lib/publicBooking/*.test.ts src/lib/catalog/*.test.ts",
+    "test": "tsx --tsconfig tsconfig.tests.json --test src/lib/publicBooking/*.test.ts src/lib/catalog/*.test.ts src/lib/siteBase.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
