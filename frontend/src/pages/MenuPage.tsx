@@ -16,7 +16,7 @@ export function MenuPage() {
           src={images.restaurantHall}
           alt="Зал ресторану DAKH"
           tone={false}
-          className="absolute inset-0 h-full w-full"
+          className="absolute inset-0 h-full w-full object-[center_80%]"
         />
         <div className="absolute inset-0 bg-wood/40" />
         <div className="relative flex min-h-[58vh] items-end px-6 pb-16 md:px-16">

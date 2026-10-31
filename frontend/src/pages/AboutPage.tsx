@@ -1,6 +1,10 @@
+import { Link } from 'react-router-dom'
 import { Photo } from '../components/Photo'
 import { images, site } from '../data/catalog'
 import { asset } from '../lib/asset'
+
+const sectionLink =
+  'text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4'
 
 export function AboutPage() {
   return (
@@ -14,6 +18,17 @@ export function AboutPage() {
         Ми не доводимо словами — показуємо атмосферою. Якщо фраза звучить як реклама, ми її
         викреслюємо.
       </p>
+      <nav className="mt-8 flex flex-wrap gap-x-8 gap-y-3" aria-label="Розділи DAKH">
+        <Link to="/rooms" className={sectionLink}>
+          Кімнати
+        </Link>
+        <Link to="/houses" className={sectionLink}>
+          Будиночки
+        </Link>
+        <Link to="/menu" className={sectionLink}>
+          Ресторан
+        </Link>
+      </nav>
 
       <div className="relative mt-16 grid gap-4 md:grid-cols-2">
         <img
@@ -22,7 +37,7 @@ export function AboutPage() {
           className="absolute -right-2 -top-8 h-12 w-auto opacity-70"
         />
         <Photo src={images.heroHouse} alt="DAKH увечері" tone={false} className="aspect-[4/3] w-full" />
-        <Photo src={images.forest} alt="Світло між деревами" className="aspect-[4/3] w-full grayscale" />
+        <Photo src={images.pottery} alt="Зал DAKH із диванами й видом на гори" tone={false} className="aspect-[4/3] w-full" />
       </div>
 
       <section className="mt-20 grid gap-16 md:grid-cols-2">

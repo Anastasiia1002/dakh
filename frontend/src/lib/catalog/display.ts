@@ -68,15 +68,33 @@ export function publicSummary(description: string): string {
 const TITLE_CAPACITY_PARENS = /\(\s*до\s+(\d+)\s+гост\p{L}*\s*\)/giu
 const TITLE_CAPACITY = /до\s+(\d+)\s+гост\p{L}*/giu
 
+/** Display spacing only. The stored catalog name is not rewritten. */
+function normalizeTitleSpacing(name: string): string {
+  return name
+    .replace(/(\d)\s*-\s+/gu, '$1-')
+    .replace(/\(\s+/g, '(')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
 /**
- * Visible title. The API name is unchanged.
+ * Detail title. The API name is unchanged.
  * A "до N гостей" phrase stays when N is maxGuests and is omitted when it disagrees.
  */
 export function publicTitle(name: string, maxGuests: number): string {
   const dropIfContradictory = (phrase: string, digits: string) => (Number(digits) === maxGuests ? phrase : '')
-  return name
+  return normalizeTitleSpacing(name)
     .replace(TITLE_CAPACITY_PARENS, dropIfContradictory)
     .replace(TITLE_CAPACITY, dropIfContradictory)
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
+/** Card title. Capacity stays on the separate label, so the heading does not repeat it. */
+export function cardTitle(name: string, maxGuests: number): string {
+  return publicTitle(name, maxGuests)
+    .replace(TITLE_CAPACITY_PARENS, '')
+    .replace(TITLE_CAPACITY, '')
     .replace(/[ \t]{2,}/g, ' ')
     .trim()
 }

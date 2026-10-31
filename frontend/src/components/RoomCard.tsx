@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { capacityLabel, kindLabel, publicSummary, publicTitle } from '../lib/catalog/display'
+import { capacityLabel, cardTitle, kindLabel, publicSummary } from '../lib/catalog/display'
 import { accommodationHref } from '../lib/catalog/routes'
 import type { PublicAccommodation } from '../lib/publicBooking/types'
 import { Photo } from './Photo'
@@ -13,7 +13,7 @@ export function RoomCard({
 }) {
   const to = accommodationHref(accommodation)
   const summary = publicSummary(accommodation.description)
-  const title = publicTitle(accommodation.name, accommodation.maxGuests)
+  const title = cardTitle(accommodation.name, accommodation.maxGuests)
 
   return (
     <article className="group">
@@ -26,8 +26,10 @@ export function RoomCard({
         />
       </Link>
       <p className="kicker mt-5 text-[0.68rem] text-clay">{kindLabel(accommodation.kind)}</p>
-      <h3 className="font-display text-3xl">
-        <Link to={to}>{title}</Link>
+      <h3 className="font-display text-[1.75rem] leading-[1.15]">
+        <Link to={to} className="block text-balance">
+          {title}
+        </Link>
       </h3>
       {summary ? <p className="mt-2 line-clamp-3 text-sm text-wood/75">{summary}</p> : null}
       <div className="mt-4 flex items-baseline justify-between gap-4">

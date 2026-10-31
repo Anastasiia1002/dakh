@@ -8,12 +8,14 @@ import { Photo } from '../../components/Photo'
 import { RoomCard } from '../../components/RoomCard'
 import { Layout } from '../../components/Layout'
 import { AccommodationCopy } from '../../pages/RoomPage'
+import { AboutPage } from '../../pages/AboutPage'
 import { HomePage } from '../../pages/HomePage'
 import { HotelPage } from '../../pages/HotelPage'
+import { MenuPage } from '../../pages/MenuPage'
 import { BookingPage } from '../../pages/BookingPage'
 import { PublicApiError } from '../publicBooking/errors'
 import type { PublicAccommodation } from '../publicBooking/types'
-import { capacityLabel, galleryImages, publicDescription, publicTitle, stayPolicyLine } from './display'
+import { capacityLabel, cardTitle, galleryImages, publicDescription, publicTitle, stayPolicyLine } from './display'
 import { accommodationPath, catalogRedirect, isFictionalAccommodationSlug, legacyGotelTarget } from './routes'
 import { catalogErrorCopy } from './useAccommodations'
 
@@ -106,10 +108,17 @@ describe('catalog routes', () => {
 describe('catalog display', () => {
   it('drops a title capacity that disagrees with maxGuests and keeps the API name', () => {
     const original = '4- кімнатний будинок до 7 гостей №10'
-    assert.equal(publicTitle(original, 8), '4- кімнатний будинок №10')
+    const room141 = '2- кімнатний номер з терасою та балконом ( до 4 гостей) № 14/1'
+    assert.equal(publicTitle(original, 8), '4-кімнатний будинок №10')
     assert.equal(original, '4- кімнатний будинок до 7 гостей №10')
-    assert.equal(publicTitle('4- кімнатний будинок до 7 гостей №8', 7), '4- кімнатний будинок до 7 гостей №8')
-    assert.equal(publicTitle('2- кімнатний номер з терасою ( до 4 гостей) № 14/1', 4), '2- кімнатний номер з терасою ( до 4 гостей) № 14/1')
+    assert.equal(publicTitle('4- кімнатний будинок до 7 гостей №8', 7), '4-кімнатний будинок до 7 гостей №8')
+    assert.equal(publicTitle(room141, 4), '2-кімнатний номер з терасою та балконом (до 4 гостей) № 14/1')
+    assert.equal(cardTitle(room141, 4), '2-кімнатний номер з терасою та балконом № 14/1')
+    assert.equal(cardTitle('1- кімнатний номер для двох з балконом №14/3', 2), '1-кімнатний номер для двох з балконом №14/3')
+    assert.equal(cardTitle('1-кімнатний номер для 2-х з балконом на гори №14/2', 2), '1-кімнатний номер для 2-х з балконом на гори №14/2')
+    assert.equal(cardTitle('3-кімнатний будинок до 5 гостей №7', 5), '3-кімнатний будинок №7')
+    assert.equal(cardTitle('4- кімнатний будинок до 7 гостей №8', 7), '4-кімнатний будинок №8')
+    assert.equal(cardTitle(original, 8), '4-кімнатний будинок №10')
     assert.equal(capacityLabel(8), 'До 8 гостей')
   })
 
@@ -233,6 +242,26 @@ describe('catalog screens', () => {
     assert.match(lazy, /loading="lazy"/)
     assert.match(hero, /loading="eager"/)
     assert.match(hero, /fetchPriority="high"/)
+  })
+
+  it('shows the lounge beside the facade and links to rooms, houses and the restaurant', () => {
+    const html = markup(createElement(MemoryRouter, null, createElement(AboutPage)))
+    assert.match(html, /dakh-facade-night\.jpg/)
+    assert.match(html, /dakh-lounge\.jpg/)
+    assert.match(html, /href="\/rooms"/)
+    assert.match(html, /href="\/houses"/)
+    assert.match(html, /Будиночки/)
+    assert.match(html, /href="\/menu"/)
+    assert.match(html, /Ресторан/)
+    assert.doesNotMatch(html, /unsplash|photo-1441974231531|grayscale/)
+  })
+
+  it('keeps the restaurant hall and shifts the crop toward the tables', () => {
+    const html = markup(createElement(MenuPage))
+    assert.match(html, /dakh-restaurant-hall\.jpg/)
+    assert.match(html, /object-cover/)
+    assert.match(html, /object-\[center_80%\]/)
+    assert.doesNotMatch(html, /object-fill|scale-x|scale-y/)
   })
 
   it('keeps booking closed and makes no booking request from the public page', () => {
