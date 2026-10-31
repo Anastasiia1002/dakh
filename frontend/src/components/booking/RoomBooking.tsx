@@ -6,6 +6,7 @@ import { emptyDraft, type BookingDraft } from '../../lib/booking'
 import {
   guestCountOf,
   isQuoteFresh,
+  roomSelectionAfterStayPatch,
   selectedRatePlanId,
   stayNights,
   useStaySearch,
@@ -59,7 +60,7 @@ export function RoomBooking({
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
-  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, guestCount, hotelSlug)
+  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, { adults: draft.adults, children: draft.children }, hotelSlug)
   const quoteBlocked = calendarRejectsStay({
     status: calendar.status,
     hotelToday: calendar.hotelToday,
@@ -130,11 +131,14 @@ export function RoomBooking({
       stayGuard.clearNotice()
     }
     setDraft((current) => {
-      const merged = { ...current, ...next, roomTypeId: calendar.roomTypeId || current.roomTypeId }
-      const stayChanged =
-        next.checkIn !== undefined || next.checkOut !== undefined || next.adults !== undefined || next.children !== undefined
-      if (stayChanged && next.ratePlanId === undefined) merged.ratePlanId = ''
-      return merged
+      const roomTypeId = calendar.roomTypeId || current.roomTypeId
+      const kept = roomSelectionAfterStayPatch({
+        locked: true,
+        roomTypeId,
+        ratePlanId: current.ratePlanId,
+        next,
+      })
+      return { ...current, ...next, roomTypeId: kept.roomTypeId, ratePlanId: kept.ratePlanId }
     })
   }
 

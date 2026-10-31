@@ -9,12 +9,13 @@ import {
   CAPACITY_BLOCK_COPY,
   findRatePlan,
   MISSING_PUBLIC_PRICE_COPY,
+  availabilityQueryFromParty,
   guestCountOf,
   offerableRatePlans,
   publicQuoteBody,
   quoteMatchesSearch,
   quoteRequestKey,
-  roomAcceptsGuestCount,
+  roomAcceptsAdults,
   shouldApplyResponse,
   shouldRequestQuote,
   stayIsSearchable,
@@ -51,7 +52,7 @@ export function useStaySearch(
   const hotelMissing = searchable && configured && !requestedHotel
   const availabilityKey =
     searchable && configured && requestedHotel
-      ? `${requestedHotel}|${checkIn}|${checkOut}|${guestCount}|${kind ?? ''}`
+      ? `${requestedHotel}|${checkIn}|${checkOut}|${guestCount}|${adults}|${children}|${kind ?? ''}`
       : ''
 
   const latestAvailabilityKey = useRef(availabilityKey)
@@ -78,7 +79,7 @@ export function useStaySearch(
   const listedRoom: PublicAvailabilityRoomType | undefined = currentAvailability?.roomTypes.find(
     (room) => room.roomTypeId === roomTypeId,
   )
-  const capacityBlocked = Boolean(listedRoom && !roomAcceptsGuestCount(listedRoom, guestCount))
+  const capacityBlocked = Boolean(listedRoom && !roomAcceptsAdults(listedRoom, adults))
   const selectedRoom: PublicAvailabilityRoomType | undefined = listedRoom
     ? { ...listedRoom, ratePlans: capacityBlocked ? [] : offerableRatePlans(listedRoom.ratePlans) }
     : undefined
@@ -106,9 +107,11 @@ export function useStaySearch(
     if (!availabilityKey) return
 
     const requestedKey = availabilityKey
+    const availabilityQuery = availabilityQueryFromParty({ checkIn, checkOut, adults, children, kind })
+    if (!availabilityQuery) return
     const controller = new AbortController()
     publicBookingClient
-      .availability({ checkIn, checkOut, guestCount, kind }, { signal: controller.signal }, requestedHotel)
+      .availability(availabilityQuery, { signal: controller.signal }, requestedHotel)
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestAvailabilityKey.current)) return
         setAvailability(response)
@@ -135,7 +138,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [availabilityKey, checkIn, checkOut, guestCount, kind, requestedHotel])
+  }, [adults, availabilityKey, checkIn, checkOut, children, guestCount, kind, requestedHotel])
 
   useEffect(() => {
     if (!shouldRequestQuote(bookingEnabled, quoteKey) || !selectedPlan) return

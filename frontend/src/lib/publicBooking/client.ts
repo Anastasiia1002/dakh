@@ -33,6 +33,21 @@ export type PublicBookingClientOptions = {
   allowRemoteWrites?: boolean
 }
 
+function appendGuestParty(
+  params: URLSearchParams,
+  query: { guestCount?: number; adults?: number; children?: number },
+) {
+  const adults = query.adults
+  const children = query.children
+  if (adults != null && children != null) {
+    params.set('guestCount', String(query.guestCount ?? adults + children))
+    params.set('adults', String(adults))
+    params.set('children', String(children))
+    return
+  }
+  if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
+}
+
 function remoteWritesAllowedByRuntime() {
   const env = import.meta.env
   if (!env?.PROD || env?.DEV === true) return false
@@ -125,7 +140,7 @@ export class PublicBookingClient {
       checkIn: query.checkIn,
       checkOut: query.checkOut,
     })
-    if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
+    appendGuestParty(params, query)
     if (query.roomTypeId) params.set('roomTypeId', query.roomTypeId)
     if (query.kind) params.set('kind', query.kind)
     return this.request<PublicAvailabilityResponse>(`${this.hotelPath('/availability', hotelSlug)}?${params}`, init)
@@ -136,7 +151,7 @@ export class PublicBookingClient {
       from: query.from,
       to: query.to,
     })
-    if (query.guestCount != null) params.set('guestCount', String(query.guestCount))
+    appendGuestParty(params, query)
     if (query.roomTypeId) params.set('roomTypeId', query.roomTypeId)
     return this.request<PublicCalendarResponse>(`${this.hotelPath('/availability/calendar', hotelSlug)}?${params}`, init)
   }

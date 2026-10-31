@@ -223,11 +223,14 @@ describe('stay helpers', () => {
     assert.equal(stayIsSearchable('not-a-date', '2026-12-03', 2), false)
   })
 
-  it('blocks a room that cannot hold the guest count', () => {
+  it('fits a 2-person room to adults and keeps children informational', () => {
     assert.equal(roomAcceptsGuestCount({ maxGuests: 2 }, 2), true)
     assert.equal(roomAcceptsGuestCount({ maxGuests: 2 }, 3), false)
     assert.equal(roomAcceptsGuestCount(undefined, 2), false)
-    assert.equal(CAPACITY_BLOCK_COPY.length > 0, true)
+    assert.deepEqual(guestComposition(2, 2, 2), { adults: 2, children: 2, guestCount: 4 })
+    assert.equal(guestComposition(3, 0, 2), null)
+    assert.equal(guestComposition(3, 1, 2), null)
+    assert.equal(CAPACITY_BLOCK_COPY.includes('дорослих'), true)
   })
 
   it('drops the staging test tariff and refuses to quote without a public price', () => {

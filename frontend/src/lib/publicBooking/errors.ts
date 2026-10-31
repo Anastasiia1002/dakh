@@ -122,7 +122,9 @@ export function stayRejection(error: unknown): { kind: StayRejectionKind; messag
   }
   if (error.error !== 'VALIDATION_ERROR') return null
   const details = Array.isArray(error.details) ? error.details.filter((item): item is string => typeof item === 'string') : []
-  if (details.some((item) => item.startsWith('guestCount:'))) return { kind: 'guests', message: STAY_GUESTS_COPY }
+  if (details.some((item) => /^(?:adults|children|guestCount):/.test(item))) {
+    return { kind: 'guests', message: STAY_GUESTS_COPY }
+  }
   if (details.some((item) => item.startsWith('checkIn:'))) return { kind: 'check-in', message: STAY_WINDOW_COPY }
   return { kind: 'range', message: STAY_RANGE_COPY }
 }

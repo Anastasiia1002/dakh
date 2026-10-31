@@ -11,12 +11,12 @@ const EMPTY_DAYS: Record<string, PublicCalendarDay> = {}
 export function useMappedRoomCalendar(
   catalogSlug: string,
   range: { from: string; to: string } | null,
-  guestCount: number,
+  party: { adults: number; children: number },
   hotelSlug?: string,
   reloadKey = 0,
 ) {
   const expectedSlug = resolveRoomTypeSlug(catalogSlug, readRoomSlugMap())
-  const calendar = useAvailabilityCalendar(range, guestCount, '', hotelSlug, reloadKey)
+  const calendar = useAvailabilityCalendar(range, party, '', hotelSlug, reloadKey)
   const matched = useMemo(
     () => (calendar.status === 'ready' ? findRoomTypeBySlug(calendar.roomTypes, expectedSlug) : null),
     [calendar.roomTypes, calendar.status, expectedSlug],

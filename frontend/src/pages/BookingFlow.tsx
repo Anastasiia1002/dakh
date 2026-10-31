@@ -18,7 +18,8 @@ import {
   guestFormIsValid,
   isQuoteFresh,
   offerableRatePlans,
-  roomAcceptsGuestCount,
+  roomAcceptsAdults,
+  roomSelectionAfterStayPatch,
   selectedRatePlanId,
   selectEligibleRatePlan,
   stayNights,
@@ -97,16 +98,17 @@ export function BookingFlow() {
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
+  const party = { adults: draft.adults, children: draft.children }
   const calendar = useAvailabilityCalendar(
     locked ? null : calendarRange,
-    guestCount,
+    party,
     locked ? '' : draft.roomTypeId,
     hotelSlug ?? undefined,
   )
   const mapped = useMappedRoomCalendar(
     handoff?.roomTypeSlug || handoff?.catalogSlug || '',
     locked ? calendarRange : null,
-    guestCount,
+    party,
     hotelSlug ?? undefined,
   )
   const identityReady =
@@ -283,13 +285,14 @@ export function BookingFlow() {
     }
     setDraft((current) => {
       const merged = { ...current, ...next }
-      if (stayChanged) {
-        if (!locked && next.roomTypeId === undefined) merged.roomTypeId = ''
-        if (next.ratePlanId === undefined) merged.ratePlanId = ''
-      } else if (next.roomTypeId !== undefined && next.ratePlanId === undefined) {
-        merged.ratePlanId = ''
-      }
-      if (locked) merged.roomTypeId = handoff?.roomTypeId || current.roomTypeId
+      const kept = roomSelectionAfterStayPatch({
+        locked,
+        roomTypeId: locked ? handoff?.roomTypeId || current.roomTypeId : current.roomTypeId,
+        ratePlanId: current.ratePlanId,
+        next,
+      })
+      merged.roomTypeId = kept.roomTypeId
+      merged.ratePlanId = kept.ratePlanId
       return merged
     })
     setGuestErr((current) => {
@@ -330,7 +333,7 @@ export function BookingFlow() {
       (room) =>
         room.kind === (category === 'houses' ? 'COTTAGE' : 'ROOM') &&
         room.availableCount > 0 &&
-        roomAcceptsGuestCount(room, guestCount),
+        roomAcceptsAdults(room, draft.adults),
     )
     .map((room) => {
       const ratePlans = offerableRatePlans(room.ratePlans)

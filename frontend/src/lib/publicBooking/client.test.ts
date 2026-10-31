@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { PublicBookingClient } from './client'
+import { availabilityQueryFromParty, calendarQueryFromParty } from './stay'
 import { PublicApiError } from './errors'
 
 const availabilityOk = {
@@ -74,30 +75,35 @@ describe('PublicBookingClient', () => {
       fetch: fetchMock,
     })
 
-    const result = await client.availability({
-      checkIn: '2026-12-01',
-      checkOut: '2026-12-03',
-      guestCount: 2,
-    })
+    const result = await client.availability(
+      availabilityQueryFromParty({
+        checkIn: '2026-12-01',
+        checkOut: '2026-12-03',
+        adults: 2,
+        children: 0,
+      })!,
+    )
 
     assert.equal(calls.length, 1)
     const [url] = calls[0] as [string]
     assert.equal(
       url,
-      'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=2',
+      'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=2&adults=2&children=0',
     )
-    assert.equal(url.includes('adults'), false)
     assert.equal(url.includes('utm_'), false)
-    const cottage = await client.availability({
-      checkIn: '2026-12-01',
-      checkOut: '2026-12-03',
-      guestCount: 2,
-      kind: 'COTTAGE',
-    })
+    const cottage = await client.availability(
+      availabilityQueryFromParty({
+        checkIn: '2026-12-01',
+        checkOut: '2026-12-03',
+        adults: 2,
+        children: 1,
+        kind: 'COTTAGE',
+      })!,
+    )
     assert.equal(cottage.roomTypes.length, 1)
     assert.equal(
       calls[1]?.[0],
-      'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=2&kind=COTTAGE',
+      'http://localhost:3000/api/public/v1/hotels/dakh/availability?checkIn=2026-12-01&checkOut=2026-12-03&guestCount=3&adults=2&children=1&kind=COTTAGE',
     )
     assert.equal(result.roomTypes.length, 1)
     assert.equal(result.roomTypes[0]?.nightlyStartingPrice, '4500.00')
@@ -124,15 +130,18 @@ describe('PublicBookingClient', () => {
       hotelSlug: 'dakh-e2e-primary',
       fetch: fetchMock,
     })
-    await client.calendar({
-      from: '2026-12-01',
-      to: '2027-02-01',
-      guestCount: 2,
-      roomTypeId: '11111111-1111-4111-8111-111111111111',
-    })
+    await client.calendar(
+      calendarQueryFromParty({
+        from: '2026-12-01',
+        to: '2027-02-01',
+        adults: 2,
+        children: 2,
+        roomTypeId: '11111111-1111-4111-8111-111111111111',
+      })!,
+    )
     assert.equal(
       calls[0],
-      'http://localhost:3000/api/public/v1/hotels/dakh-e2e-primary/availability/calendar?from=2026-12-01&to=2027-02-01&guestCount=2&roomTypeId=11111111-1111-4111-8111-111111111111',
+      'http://localhost:3000/api/public/v1/hotels/dakh-e2e-primary/availability/calendar?from=2026-12-01&to=2027-02-01&guestCount=4&adults=2&children=2&roomTypeId=11111111-1111-4111-8111-111111111111',
     )
   })
 

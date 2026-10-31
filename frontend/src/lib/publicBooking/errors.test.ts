@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { errorCopy, isAbortError, parseApiError, stayRejection, STAY_RANGE_COPY, STAY_WINDOW_COPY } from './errors'
+import { errorCopy, isAbortError, parseApiError, stayRejection, STAY_GUESTS_COPY, STAY_RANGE_COPY, STAY_WINDOW_COPY } from './errors'
 
 describe('public API errors', () => {
   it('prefers the structured error code and Ukrainian message', () => {
@@ -75,6 +75,22 @@ describe('public API errors', () => {
     assert.equal(stayRejection(minimum)?.kind, 'range')
     assert.equal(stayRejection(minimum)?.message, STAY_RANGE_COPY)
     assert.equal(stayRejection(guests)?.kind, 'guests')
+    const adultsOnly = parseApiError(400, {
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Некоректні дані запиту',
+      details: ['adults: перевищує місткість категорії'],
+    })
+    const both = parseApiError(400, {
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Некоректні дані запиту',
+      details: ['adults: перевищує місткість категорії', 'guestCount: перевищує місткість категорії'],
+    })
+    assert.equal(stayRejection(adultsOnly)?.kind, 'guests')
+    assert.equal(stayRejection(adultsOnly)?.message, STAY_GUESTS_COPY)
+    assert.equal(stayRejection(both)?.kind, 'guests')
+    assert.equal(stayRejection(both)?.message, STAY_GUESTS_COPY)
     assert.doesNotMatch(`${stayRejection(tooEarly)?.message}${stayRejection(minimum)?.message}`, /VALIDATION_ERROR|Некоректні/)
   })
 

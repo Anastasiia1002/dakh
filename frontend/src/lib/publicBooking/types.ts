@@ -52,7 +52,12 @@ export interface ApiErrorBody {
 export interface PublicAvailabilityQuery {
   checkIn: string
   checkOut: string
+  /** Total people. Always adults + children when the split is sent. */
   guestCount?: number
+  /** Adult occupancy. Sent together with children. Does not replace guestCount. */
+  adults?: number
+  /** Informational children. Sent together with adults. */
+  children?: number
   roomTypeId?: string
   kind?: 'ROOM' | 'COTTAGE'
 }
@@ -98,7 +103,12 @@ export type PublicCalendarReason = 'booking' | 'block' | 'occupancy' | 'rate' | 
 export interface PublicCalendarQuery {
   from: string
   to: string
+  /** Total people. Always adults + children when the split is sent. */
   guestCount?: number
+  /** Adult occupancy. Sent together with children. Does not replace guestCount. */
+  adults?: number
+  /** Informational children. Sent together with adults. */
+  children?: number
   roomTypeId?: string
 }
 
@@ -131,7 +141,10 @@ export interface PublicCalendarResponse {
   /** Hotel-local earliest check-in. Null means the booking window is closed. */
   earliestCheckIn?: string | null
   currency: SupportedCurrency
+  /** Total guests. Null when the calendar was not filtered by a party. */
   guestCount: number | null
+  /** Adults used for the occupancy filter. Null when the calendar was not filtered. */
+  occupancyCount?: number | null
   roomTypes: PublicCalendarRoomType[]
 }
 

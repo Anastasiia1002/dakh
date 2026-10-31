@@ -1,8 +1,10 @@
 import { addDays, nightsBetween, todayIso } from '../format'
 import type {
+  PublicAvailabilityQuery,
   PublicAvailabilityRatePlan,
   PublicAvailabilityResponse,
   PublicAvailabilityRoomType,
+  PublicCalendarQuery,
   PublicQuoteRequest,
   PublicQuoteResponse,
   PublicRateType,
@@ -27,14 +29,16 @@ export type GuestComposition = {
 
 /**
  * Adults and children stay separate. guestCount is their sum.
+ * `capacity` limits adults only. Children are informational and do not consume it.
  * Invalid counts are rejected rather than rewritten into a different split.
  */
 export function guestComposition(adults: number, children: number, capacity = MAX_GUESTS): GuestComposition | null {
   if (!Number.isInteger(adults) || !Number.isInteger(children) || !Number.isInteger(capacity)) return null
   if (adults < 1 || children < 0) return null
   if (adults > MAX_GUESTS || children > MAX_GUESTS || capacity < MIN_GUESTS) return null
+  if (adults > capacity) return null
   const guestCount = adults + children
-  if (guestCount < MIN_GUESTS || guestCount > MAX_GUESTS || guestCount > capacity) return null
+  if (guestCount < MIN_GUESTS || guestCount > MAX_GUESTS) return null
   return { adults, children, guestCount }
 }
 
@@ -244,14 +248,102 @@ export function isDemoRate(plan: { demo?: boolean; code?: string; name?: string;
   return blob.includes(STAGING_DEMO_RATE_CODE) || blob.includes('staging public e2e')
 }
 
-export const CAPACITY_BLOCK_COPY = 'Це помешкання не вміщує стільки гостей.'
+export const CAPACITY_BLOCK_COPY = 'Це помешкання не вміщує стільки дорослих.'
 
 export const MISSING_PUBLIC_PRICE_COPY =
   'Публічної ціни для цих дат немає. Бронювання недоступне, доки з’явиться тариф.'
 
-export function roomAcceptsGuestCount(room: { maxGuests: number } | undefined, guestCount: number) {
+/** Room capacity is the adult count. Children do not consume it. */
+export function roomAcceptsAdults(room: { maxGuests: number } | undefined, adults: number) {
   if (!room) return false
-  return guestCount >= MIN_GUESTS && guestCount <= MAX_GUESTS && guestCount <= room.maxGuests
+  return adults >= MIN_GUESTS && adults <= MAX_GUESTS && adults <= room.maxGuests
+}
+
+export function roomAcceptsGuestCount(room: { maxGuests: number } | undefined, adults: number) {
+  return roomAcceptsAdults(room, adults)
+}
+
+export function availabilityQueryFromParty(input: {
+  checkIn: string
+  checkOut: string
+  adults: number
+  children: number
+  roomTypeId?: string
+  kind?: 'ROOM' | 'COTTAGE'
+}): PublicAvailabilityQuery | null {
+  const split = guestComposition(input.adults, input.children)
+  if (!split) return null
+  return {
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guestCount: split.guestCount,
+    adults: split.adults,
+    children: split.children,
+    ...(input.roomTypeId ? { roomTypeId: input.roomTypeId } : {}),
+    ...(input.kind ? { kind: input.kind } : {}),
+  }
+}
+
+export function calendarQueryFromParty(input: {
+  from: string
+  to: string
+  adults: number
+  children: number
+  roomTypeId?: string
+}): PublicCalendarQuery | null {
+  const split = guestComposition(input.adults, input.children)
+  if (!split) return null
+  return {
+    from: input.from,
+    to: input.to,
+    guestCount: split.guestCount,
+    adults: split.adults,
+    children: split.children,
+    ...(input.roomTypeId ? { roomTypeId: input.roomTypeId } : {}),
+  }
+}
+
+/**
+ * A children-only change keeps the selected room and rate.
+ * Dates are left to the caller. An adult, date, or room change still resets the rate.
+ */
+export function roomSelectionAfterStayPatch(input: {
+  locked: boolean
+  roomTypeId: string
+  ratePlanId: string
+  next: {
+    checkIn?: string
+    checkOut?: string
+    adults?: number
+    children?: number
+    roomTypeId?: string
+    ratePlanId?: string
+  }
+}) {
+  const next = input.next
+  const childrenOnly =
+    next.children !== undefined &&
+    next.adults === undefined &&
+    next.checkIn === undefined &&
+    next.checkOut === undefined &&
+    next.roomTypeId === undefined
+  const stayChanged =
+    next.checkIn !== undefined ||
+    next.checkOut !== undefined ||
+    next.adults !== undefined ||
+    next.children !== undefined
+  let roomTypeId = next.roomTypeId !== undefined ? next.roomTypeId : input.roomTypeId
+  let ratePlanId = next.ratePlanId !== undefined ? next.ratePlanId : input.ratePlanId
+  if (stayChanged) {
+    if (!childrenOnly) {
+      if (!input.locked && next.roomTypeId === undefined) roomTypeId = ''
+      if (next.ratePlanId === undefined) ratePlanId = ''
+    }
+  } else if (next.roomTypeId !== undefined && next.ratePlanId === undefined) {
+    ratePlanId = ''
+  }
+  if (input.locked) roomTypeId = input.roomTypeId
+  return { roomTypeId, ratePlanId }
 }
 
 export function isHiddenTestRate(plan: { ratePlanId?: string; name?: string; code?: string }) {

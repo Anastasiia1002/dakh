@@ -13,7 +13,7 @@ export function dayStatusCopy(visual: DayVisual, reason: PublicCalendarDay['reas
   if (visual === 'booked') return 'немає вільних місць'
   if (visual === 'past') return 'минула дата'
   if (visual === 'unknown') return 'наявність ще невідома'
-  if (reason === 'occupancy') return 'Кімната не підходить для вибраної кількості гостей'
+  if (reason === 'occupancy') return 'Кімната не підходить для вибраної кількості дорослих'
   if (reason === 'window') return 'Заїзд на цю дату вже недоступний'
   if (reason === 'inactive' || visual === 'closed') return 'Кімната тимчасово недоступна'
   return 'На цю дату немає доступного тарифу'
@@ -23,6 +23,14 @@ export function visibleCalendarRange(year: number, monthIndex: number) {
   const from = toIso(new Date(year, monthIndex, 1))
   const end = addMonths(year, monthIndex, 2)
   return { from, to: toIso(new Date(end.year, end.monthIndex, 1)) }
+}
+
+/** The calendar's occupancyCount is the adult filter. guestCount stays the total. */
+export function calendarMatchesParty(
+  response: Pick<PublicCalendarResponse, 'guestCount' | 'occupancyCount'>,
+  party: { adults: number; children: number; guestCount: number },
+) {
+  return response.guestCount === party.guestCount && response.occupancyCount === party.adults
 }
 
 export function isCalendarResponse(value: PublicCalendarResponse | null | undefined): value is PublicCalendarResponse {
@@ -35,7 +43,8 @@ export function isCalendarResponse(value: PublicCalendarResponse | null | undefi
       Array.isArray(value.roomTypes) &&
       (value.earliestCheckIn === undefined ||
         value.earliestCheckIn === null ||
-        /^\d{4}-\d{2}-\d{2}$/.test(value.earliestCheckIn)),
+        /^\d{4}-\d{2}-\d{2}$/.test(value.earliestCheckIn)) &&
+      (value.occupancyCount === undefined || value.occupancyCount === null || Number.isInteger(value.occupancyCount)),
   )
 }
 
@@ -258,7 +267,7 @@ export function capacityExplanation(roomTypes: readonly PublicCalendarRoomType[]
   const room = roomTypes.find((item) => item.roomTypeId === roomTypeId)
   if (!room || room.days.length === 0) return ''
   if (room.days.every((day) => day.reason === 'occupancy')) {
-    return 'Обрана категорія не вміщує стільки гостей.'
+    return 'Обрана категорія не вміщує стільки дорослих.'
   }
   return ''
 }

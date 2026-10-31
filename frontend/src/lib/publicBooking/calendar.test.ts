@@ -234,7 +234,7 @@ describe('availability calendar', () => {
 
   it('explains restricted dates in Ukrainian and keeps them unselectable', () => {
     assert.equal(dayStatusCopy('restricted', 'rate'), 'На цю дату немає доступного тарифу')
-    assert.equal(dayStatusCopy('restricted', 'occupancy'), 'Кімната не підходить для вибраної кількості гостей')
+    assert.equal(dayStatusCopy('restricted', 'occupancy'), 'Кімната не підходить для вибраної кількості дорослих')
     assert.equal(dayStatusCopy('closed', 'inactive'), 'Кімната тимчасово недоступна')
     assert.equal(canStartCheckIn('ready', '2026-12-01', readyDays, '2026-12-23'), false)
     assert.match(dayAriaLabel('2026-12-23', 'restricted', false, 'rate'), /немає доступного тарифу/)

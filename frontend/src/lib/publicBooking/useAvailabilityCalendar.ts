@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { publicBookingClient } from './client'
 import {
+  calendarMatchesParty,
   capacityExplanation,
   indexCalendarDays,
   isCalendarResponse,
@@ -9,12 +10,12 @@ import {
 import { CATALOG_MAP_MISSING_COPY } from '../catalog/categories'
 import { isPublicApiConfigured } from './config'
 import { errorCopy, isAbortError } from './errors'
-import { shouldApplyResponse } from './stay'
+import { calendarQueryFromParty, guestComposition, shouldApplyResponse } from './stay'
 import type { PublicCalendarDay, PublicCalendarRoomType } from './types'
 
 export function useAvailabilityCalendar(
   range: { from: string; to: string } | null,
-  guestCount: number,
+  party: { adults: number; children: number },
   roomTypeId: string,
   hotelSlug?: string,
   reloadKey = 0,
@@ -22,9 +23,13 @@ export function useAvailabilityCalendar(
   const configured = isPublicApiConfigured()
   const requestedHotel = hotelSlug?.trim() ?? ''
   const hotelMissing = Boolean(range && configured && !requestedHotel)
+  const split = useMemo(
+    () => guestComposition(party.adults, party.children),
+    [party.adults, party.children],
+  )
   const requestKey =
-    range && configured && requestedHotel
-      ? `${requestedHotel}|${range.from}|${range.to}|${guestCount}|${roomTypeId}|${reloadKey}`
+    range && configured && requestedHotel && split
+      ? `${requestedHotel}|${range.from}|${range.to}|${split.guestCount}|${split.adults}|${split.children}|${roomTypeId}|${reloadKey}`
       : ''
   const latestKey = useRef(requestKey)
   const [roomTypes, setRoomTypes] = useState<PublicCalendarRoomType[]>([])
@@ -38,23 +43,27 @@ export function useAvailabilityCalendar(
   }, [requestKey])
 
   useEffect(() => {
-    if (!requestKey || !range) return
+    if (!requestKey || !range || !split) return
     const requestedKey = requestKey
+    const query = calendarQueryFromParty({
+      from: range.from,
+      to: range.to,
+      adults: split.adults,
+      children: split.children,
+      roomTypeId,
+    })
+    if (!query) return
     const controller = new AbortController()
     publicBookingClient
-      .calendar(
-        {
-          from: range.from,
-          to: range.to,
-          guestCount,
-          roomTypeId: roomTypeId || undefined,
-        },
-        { signal: controller.signal },
-        requestedHotel,
-      )
+      .calendar(query, { signal: controller.signal }, requestedHotel)
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestKey.current)) return
-        if (!isCalendarResponse(response) || response.from !== range.from || response.to !== range.to) {
+        if (
+          !isCalendarResponse(response) ||
+          response.from !== range.from ||
+          response.to !== range.to ||
+          !calendarMatchesParty(response, split)
+        ) {
           setRoomTypes([])
           setHotelToday(null)
           setEarliestCheckIn(undefined)
@@ -77,7 +86,7 @@ export function useAvailabilityCalendar(
         setReadyKey(requestedKey)
       })
     return () => controller.abort()
-  }, [guestCount, range, requestKey, requestedHotel, roomTypeId])
+  }, [range, requestKey, requestedHotel, roomTypeId, split])
 
   const status: CalendarLoadStatus = hotelMissing
     ? 'error'
