@@ -139,6 +139,8 @@ export interface PublicQuoteRequest {
   checkIn: string
   checkOut: string
   guestCount: number
+  adults: number
+  children: number
   roomTypeId: string
   ratePlanId: string
 }
@@ -153,6 +155,8 @@ export interface PublicQuoteResponse {
   checkIn: string
   checkOut: string
   guestCount: number
+  adults: number
+  children: number
   roomTypeId: string
   ratePlanId: string
   nights: PublicQuoteNight[]
@@ -173,6 +177,8 @@ export interface CreateBookingIntentRequest {
   checkIn: string
   checkOut: string
   guestCount: number
+  adults: number
+  children: number
   roomTypeId: string
   ratePlanId: string
   quoteToken: string

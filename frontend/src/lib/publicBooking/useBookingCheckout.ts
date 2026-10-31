@@ -16,6 +16,7 @@ import {
 } from './checkout'
 import { errorCopy, isAbortError, isPublicApiError, quoteFromPriceChanged, retryAfterSeconds } from './errors'
 import { guestCommentForIntent, toGuestContact } from './guest'
+import { intentStayFromQuote } from './stay'
 import type {
   PublicBookingConfirmationResponse,
   PublicBookingIntentResponse,
@@ -99,11 +100,19 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
     if (writesClosed()) return null
     setStep('creating_intent')
     setError('')
+    const split = intentStayFromQuote(quote)
+    if (!split) {
+      setStep('collect')
+      setError('Склад гостей у розрахунку не збігається. Оновіть розрахунок перед заявкою.')
+      return null
+    }
     const created = await publicBookingClient.createIntent(
       {
         checkIn: quote.checkIn,
         checkOut: quote.checkOut,
-        guestCount: quote.guestCount,
+        guestCount: split.guestCount,
+        adults: split.adults,
+        children: split.children,
         roomTypeId: quote.roomTypeId,
         ratePlanId: quote.ratePlanId,
         quoteToken: quote.quoteToken,
@@ -119,7 +128,9 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
       roomTypeId: quote.roomTypeId,
       checkIn: quote.checkIn,
       checkOut: quote.checkOut,
-      guestCount: quote.guestCount,
+      guestCount: split.guestCount,
+      adults: split.adults,
+      children: split.children,
     })
     setPendingQuote(quote)
     setPriceChangeAt(null)

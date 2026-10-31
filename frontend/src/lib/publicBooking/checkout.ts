@@ -19,6 +19,8 @@ export type StoredCheckout = {
   checkIn?: string
   checkOut?: string
   guestCount?: number
+  adults?: number
+  children?: number
 }
 
 export type StoredStay = {
@@ -26,6 +28,8 @@ export type StoredStay = {
   checkIn: string
   checkOut: string
   guestCount: number
+  adults?: number
+  children?: number
 }
 
 const INTENT_SESSION_KEY = 'dakh-booking-intent'
@@ -64,6 +68,8 @@ export function readStoredIntent(): StoredCheckout | null {
     const parsed = JSON.parse(raw) as StoredCheckout
     if (!parsed.intentId || !parsed.emailMasked || !parsed.expiresAt) return null
     if (parsed.guestCount != null && !Number.isInteger(parsed.guestCount)) return null
+    if (parsed.adults != null && !Number.isInteger(parsed.adults)) return null
+    if (parsed.children != null && !Number.isInteger(parsed.children)) return null
     return parsed
   } catch {
     return null
@@ -73,11 +79,16 @@ export function readStoredIntent(): StoredCheckout | null {
 export function storedIntentMatchesStay(stored: StoredCheckout | null, stay: StoredStay) {
   if (!stored?.roomTypeId || !stored.checkIn || !stored.checkOut || stored.guestCount == null) return false
   if (intentLooksExpired(stored.expiresAt)) return false
+  const splitMatches =
+    stay.adults == null && stay.children == null
+      ? true
+      : stored.adults === stay.adults && stored.children === stay.children
   return (
     stored.roomTypeId === stay.roomTypeId &&
     stored.checkIn === stay.checkIn &&
     stored.checkOut === stay.checkOut &&
-    stored.guestCount === stay.guestCount
+    stored.guestCount === stay.guestCount &&
+    splitMatches
   )
 }
 
@@ -103,6 +114,8 @@ export function writeStoredIntent(intent: PublicBookingIntentResponse, stay?: St
           checkIn: previous.checkIn,
           checkOut: previous.checkOut,
           guestCount: previous.guestCount,
+          adults: previous.adults,
+          children: previous.children,
         }
       : undefined)
   sessionStore()?.setItem(
@@ -115,6 +128,8 @@ export function writeStoredIntent(intent: PublicBookingIntentResponse, stay?: St
       checkIn: bound?.checkIn,
       checkOut: bound?.checkOut,
       guestCount: bound?.guestCount,
+      adults: bound?.adults,
+      children: bound?.children,
     } satisfies StoredCheckout),
   )
 }

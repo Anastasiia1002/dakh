@@ -118,6 +118,43 @@ describe('booking handoff', () => {
     assert.equal(restored?.roomTypeId, roomTypeId)
   })
 
+  it('keeps one adult and one child from a room detail through the booking URL', () => {
+    const params = handoffToSearch({
+      ...handoff,
+      hotelSlug: 'dakh',
+      catalogSlug: 'dakh-room-14-1',
+      roomTypeSlug: 'dakh-room-14-1',
+      adults: 1,
+      children: 1,
+    })
+    assert.equal(params.get('category'), 'rooms')
+    assert.equal(params.get('adults'), '1')
+    assert.equal(params.get('children'), '1')
+    const restored = handoffFromSearch(params, merged)
+    assert.equal(restored?.adults, 1)
+    assert.equal(restored?.children, 1)
+    assert.equal(restored?.catalogSlug, 'dakh-room-14-1')
+  })
+
+  it('keeps one adult and one child from a cottage detail through the booking URL', () => {
+    const params = handoffToSearch({
+      ...handoff,
+      hotelSlug: 'dakh',
+      catalogSlug: 'house-7',
+      roomTypeSlug: 'sunny-park-7',
+      adults: 1,
+      children: 1,
+    })
+    assert.equal(params.get('category'), 'houses')
+    assert.equal(params.get('adults'), '1')
+    assert.equal(params.get('children'), '1')
+    const restored = handoffFromSearch(params, merged)
+    assert.equal(restored?.adults, 1)
+    assert.equal(restored?.children, 1)
+    assert.equal(restored?.catalogSlug, 'house-7')
+    assert.equal(restored?.roomTypeSlug, 'sunny-park-7')
+  })
+
   it('ignores stored context on a direct visit without room parameters', () => {
     const resolved = resolveBookingHandoff({
       state: null,

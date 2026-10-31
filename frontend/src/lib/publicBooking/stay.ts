@@ -3,6 +3,7 @@ import type {
   PublicAvailabilityRatePlan,
   PublicAvailabilityResponse,
   PublicAvailabilityRoomType,
+  PublicQuoteRequest,
   PublicQuoteResponse,
   PublicRateType,
 } from './types'
@@ -12,12 +13,103 @@ export type StaySearch = {
   checkIn: string
   checkOut: string
   guestCount: number
+  adults?: number
+  children?: number
   roomTypeId?: string
   ratePlanId?: string | null
 }
 
+export type GuestComposition = {
+  adults: number
+  children: number
+  guestCount: number
+}
+
+/**
+ * Adults and children stay separate. guestCount is their sum.
+ * Invalid counts are rejected rather than rewritten into a different split.
+ */
+export function guestComposition(adults: number, children: number, capacity = MAX_GUESTS): GuestComposition | null {
+  if (!Number.isInteger(adults) || !Number.isInteger(children) || !Number.isInteger(capacity)) return null
+  if (adults < 1 || children < 0) return null
+  if (adults > MAX_GUESTS || children > MAX_GUESTS || capacity < MIN_GUESTS) return null
+  const guestCount = adults + children
+  if (guestCount < MIN_GUESTS || guestCount > MAX_GUESTS || guestCount > capacity) return null
+  return { adults, children, guestCount }
+}
+
 export function guestCountOf(adults: number, children: number) {
-  return Math.min(MAX_GUESTS, Math.max(MIN_GUESTS, adults + children))
+  return guestComposition(adults, children)?.guestCount ?? 0
+}
+
+function wholeGuestParam(value: string | null, fallback: number) {
+  if (value == null || value.trim() === '') return fallback
+  if (!/^\d+$/.test(value.trim())) return Number.NaN
+  return Number(value)
+}
+
+/** URL drafts stay on a valid split. Zero adults become the default of 2; children are kept. */
+export function guestDraftFromParams(adultsRaw: string | null, childrenRaw: string | null): GuestComposition {
+  const adultsParsed = wholeGuestParam(adultsRaw, 2)
+  const childrenParsed = wholeGuestParam(childrenRaw, 0)
+  const adults = Number.isInteger(adultsParsed) && adultsParsed >= 1 ? adultsParsed : 2
+  const children = Number.isInteger(childrenParsed) && childrenParsed >= 0 ? childrenParsed : 0
+  return guestComposition(adults, children) ?? { adults: 2, children: 0, guestCount: 2 }
+}
+
+export function publicQuoteBody(input: {
+  checkIn: string
+  checkOut: string
+  adults: number
+  children: number
+  roomTypeId: string
+  ratePlanId: string
+}): PublicQuoteRequest | null {
+  const split = guestComposition(input.adults, input.children)
+  if (!split) return null
+  return {
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guestCount: split.guestCount,
+    adults: split.adults,
+    children: split.children,
+    roomTypeId: input.roomTypeId,
+    ratePlanId: input.ratePlanId,
+  }
+}
+
+/** The intent must repeat the split the quote was issued for. */
+export function intentStayFromQuote(
+  quote: Pick<PublicQuoteResponse, 'guestCount' | 'adults' | 'children'>,
+): GuestComposition | null {
+  const split = guestComposition(quote.adults, quote.children)
+  if (!split || split.guestCount !== quote.guestCount) return null
+  return split
+}
+
+export function quoteRequestKey(input: {
+  hotel: string
+  checkIn: string
+  checkOut: string
+  adults: number
+  children: number
+  roomTypeId: string
+  ratePlanId: string
+  kind?: string
+}) {
+  const split = guestComposition(input.adults, input.children)
+  if (!split) return ''
+  return [
+    input.hotel,
+    input.checkIn,
+    input.checkOut,
+    String(split.guestCount),
+    String(split.adults),
+    String(split.children),
+    input.kind ?? '',
+    input.roomTypeId,
+    input.ratePlanId,
+  ].join('|')
 }
 
 export function isIsoDate(value: string) {
@@ -206,10 +298,17 @@ export function availabilityMatchesSearch(
 }
 
 export function quoteMatchesSearch(quote: PublicQuoteResponse, search: StaySearch) {
+  const splitKnown = search.adults != null && search.children != null
+  const splitMatches =
+    !splitKnown ||
+    (quote.adults === search.adults &&
+      quote.children === search.children &&
+      quote.adults + quote.children === quote.guestCount)
   return (
     quote.checkIn === search.checkIn &&
     quote.checkOut === search.checkOut &&
     quote.guestCount === search.guestCount &&
+    splitMatches &&
     quote.roomTypeId === search.roomTypeId &&
     Boolean(search.ratePlanId) &&
     quote.ratePlanId === search.ratePlanId

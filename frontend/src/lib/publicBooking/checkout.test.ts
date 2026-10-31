@@ -8,6 +8,8 @@ const quote = {
   checkIn: '2026-12-01',
   checkOut: '2026-12-03',
   guestCount: 2,
+  adults: 2,
+  children: 0,
   roomTypeId: '11111111-1111-4111-8111-111111111111',
   ratePlanId: '22222222-2222-4222-8222-222222222222',
   nights: [{ date: '2026-12-01', price: '4800.00', currency: 'UAH' as const }],
@@ -78,6 +80,9 @@ describe('checkout helpers', () => {
     }
     assert.equal(storedIntentMatchesStay(stored, stay), true)
     assert.equal(storedIntentMatchesStay(stored, { ...stay, checkOut: '2026-12-18' }), false)
+    assert.equal(storedIntentMatchesStay({ ...stored, adults: 2, children: 0 }, { ...stay, adults: 2, children: 0 }), true)
+    assert.equal(storedIntentMatchesStay({ ...stored, adults: 2, children: 0 }, { ...stay, adults: 1, children: 1 }), false)
+    assert.equal(storedIntentMatchesStay(stored, { ...stay, adults: 1, children: 1 }), false)
     assert.equal(storedIntentMatchesStay({ ...stored, roomTypeId: undefined }, stay), false)
     assert.equal(storedIntentMatchesStay({ ...stored, expiresAt: '2000-01-01T00:00:00.000Z' }, stay), false)
   })

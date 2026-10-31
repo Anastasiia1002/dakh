@@ -72,7 +72,8 @@ export function RoomBooking({
   const search = useStaySearch(
     draft.checkIn,
     draft.checkOut,
-    guestCount,
+    draft.adults,
+    draft.children,
     calendar.roomTypeId,
     draft.ratePlanId,
     hotelSlug,

@@ -15,7 +15,12 @@ import {
   canUseAsCheckIn,
   canUseAsCheckOut,
   findRatePlan,
+  guestComposition,
   guestCountOf,
+  guestDraftFromParams,
+  intentStayFromQuote,
+  publicQuoteBody,
+  quoteRequestKey,
   MISSING_PUBLIC_PRICE_COPY,
   isDemoNightlyAmount,
   isDemoQuotedStay,
@@ -49,6 +54,8 @@ const quote: PublicQuoteResponse = {
   checkIn: '2026-12-01',
   checkOut: '2026-12-03',
   guestCount: 2,
+  adults: 2,
+  children: 0,
   roomTypeId,
   ratePlanId,
   nights: [
@@ -62,10 +69,23 @@ const quote: PublicQuoteResponse = {
 }
 
 describe('stay helpers', () => {
-  it('clamps guestCount to the public API bounds', () => {
-    assert.equal(guestCountOf(0, 0), 1)
-    assert.equal(guestCountOf(2, 1), 3)
-    assert.equal(guestCountOf(18, 8), 20)
+  it('keeps adults and children as a sum and rejects an invalid split', () => {
+    assert.deepEqual(guestComposition(1, 1), { adults: 1, children: 1, guestCount: 2 })
+    assert.deepEqual(guestComposition(2, 0), { adults: 2, children: 0, guestCount: 2 })
+    assert.deepEqual(guestComposition(2, 2), { adults: 2, children: 2, guestCount: 4 })
+    assert.equal(guestCountOf(1, 1), 2)
+    assert.equal(guestCountOf(2, 0), 2)
+    assert.equal(guestCountOf(2, 2), 4)
+    assert.equal(guestComposition(0, 2), null)
+    assert.equal(guestComposition(2, -1), null)
+    assert.equal(guestComposition(1.5, 0.5), null)
+    assert.equal(guestComposition(18, 8), null)
+    assert.equal(guestComposition(3, 1, 2), null)
+    assert.equal(guestCountOf(0, 0), 0)
+    assert.equal(guestCountOf(18, 8), 0)
+    assert.deepEqual(guestDraftFromParams('1', '1'), { adults: 1, children: 1, guestCount: 2 })
+    assert.deepEqual(guestDraftFromParams('0', '2'), { adults: 2, children: 2, guestCount: 4 })
+    assert.deepEqual(guestDraftFromParams('18', '8'), { adults: 2, children: 0, guestCount: 2 })
   })
 
   it('accepts a 1–30 night stay and rejects a 31st night', () => {
@@ -111,6 +131,8 @@ describe('stay helpers', () => {
     }
     assert.equal(quoteMatchesSearch(quote, search), true)
     assert.equal(quoteMatchesSearch(quote, { ...search, guestCount: 3 }), false)
+    assert.equal(quoteMatchesSearch(quote, { ...search, adults: 1, children: 1 }), false)
+    assert.equal(quoteMatchesSearch({ ...quote, adults: 1, children: 1 }, { ...search, adults: 1, children: 1 }), true)
     assert.equal(quoteMatchesSearch(quote, { ...search, roomTypeId: 'other-room' }), false)
     assert.equal(quoteMatchesSearch(quote, { ...search, ratePlanId: 'other-plan' }), false)
     assert.equal(quoteMatchesSearch(quote, { ...search, ratePlanId: null }), false)
@@ -250,5 +272,48 @@ describe('stay helpers', () => {
     assert.equal(shouldRequestQuote(false, '2026-12-15|2026-12-17|2|room|plan'), false)
     assert.equal(shouldRequestQuote(true, ''), false)
     assert.equal(shouldRequestQuote(true, '2026-12-15|2026-12-17|2|room|plan'), true)
+  })
+
+  it('sends the same adult and child split on the quote and the intent', () => {
+    const quoteBody = publicQuoteBody({
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      adults: 2,
+      children: 2,
+      roomTypeId,
+      ratePlanId,
+    })
+    assert.deepEqual(quoteBody, {
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      guestCount: 4,
+      adults: 2,
+      children: 2,
+      roomTypeId,
+      ratePlanId,
+    })
+    assert.equal(quoteBody && 'discountAmount' in quoteBody, false)
+    assert.equal(publicQuoteBody({ ...quoteBody!, adults: 0, children: 4 }), null)
+    const issued = { ...quote, guestCount: 4, adults: 2, children: 2, totalAmount: '9600.00' }
+    assert.deepEqual(intentStayFromQuote(issued), { adults: 2, children: 2, guestCount: 4 })
+    assert.equal(intentStayFromQuote({ ...issued, children: 1 }), null)
+    assert.equal(issued.totalAmount, '9600.00')
+  })
+
+  it('drops a quote when the guest split changes even if the total count stays the same', () => {
+    const shared = {
+      hotel: 'dakh',
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      roomTypeId,
+      ratePlanId,
+      kind: 'ROOM',
+    }
+    const twoAdults = quoteRequestKey({ ...shared, adults: 2, children: 0 })
+    const oneChild = quoteRequestKey({ ...shared, adults: 1, children: 1 })
+    assert.notEqual(twoAdults, oneChild)
+    assert.equal(twoAdults.includes('|2|2|0|'), true)
+    assert.equal(oneChild.includes('|2|1|1|'), true)
+    assert.equal(quoteRequestKey({ ...shared, adults: 0, children: 2 }), '')
   })
 })

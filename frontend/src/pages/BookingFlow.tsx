@@ -13,6 +13,7 @@ import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
 import {
   guestCountOf,
+  guestDraftFromParams,
   guestFieldErrors,
   guestFormIsValid,
   isQuoteFresh,
@@ -26,6 +27,7 @@ import {
   useStaySearch,
   type GuestFieldErrors,
 } from '../lib/publicBooking'
+import { bookingSubmitBlockReason, ROOM_SELECTION_HEADING, ROOM_SELECTION_INSTRUCTION } from '../lib/publicBooking/bookingSelection'
 import { calendarRejectsStay, reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
 import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase } from '../lib/catalog/categories'
@@ -48,12 +50,13 @@ import type { PublicAvailabilityRoomType } from '../lib/publicBooking/types'
 function draftFromParams(params: URLSearchParams): BookingDraft {
   const from = params.get('from') || ''
   const to = params.get('to') && from && params.get('to')! > from ? params.get('to')! : ''
+  const guests = guestDraftFromParams(params.get('adults'), params.get('children'))
   return {
     ...emptyDraft,
     checkIn: from,
     checkOut: to,
-    adults: Math.max(1, Number(params.get('adults') || 2) || 2),
-    children: Math.max(0, Number(params.get('children') || 0) || 0),
+    adults: guests.adults,
+    children: guests.children,
   }
 }
 
@@ -130,7 +133,8 @@ export function BookingFlow() {
   const search = useStaySearch(
     draft.checkIn,
     draft.checkOut,
-    guestCount,
+    draft.adults,
+    draft.children,
     identityReady ? draft.roomTypeId : '',
     identityReady ? draft.ratePlanId : '',
     hotelSlug ?? undefined,
@@ -153,6 +157,8 @@ export function BookingFlow() {
       checkIn: draft.checkIn,
       checkOut: draft.checkOut,
       guestCount,
+      adults: draft.adults,
+      children: draft.children,
     },
     hotelSlug ?? undefined,
   )
@@ -180,6 +186,19 @@ export function BookingFlow() {
     search.configured &&
     !roomRejected &&
     !roomMissing
+  const submitBlockReason = bookingSubmitBlockReason({
+    bookingEnabled,
+    step: checkout.step,
+    busy: checkout.busy,
+    searchable: search.searchable,
+    roomSelected: Boolean(draft.roomTypeId) && Boolean(search.selectedRoom),
+    availabilityStatus: search.availabilityStatus,
+    quoteStatus: search.quoteStatus,
+    quoteReady,
+    guestValid: guestFormIsValid(guest),
+    roomRejected,
+    roomMissing,
+  })
 
   const nextRate = selectedRatePlanId(search.selectedRoom)
   if (identityReady && search.selectedRoom && nextRate !== draft.ratePlanId) {
@@ -388,13 +407,17 @@ export function BookingFlow() {
         <div className="space-y-12 md:col-span-7">
           {locked ? null : (
             <fieldset className="border-0 p-0">
-              <legend className="font-display text-3xl">{category === 'houses' ? 'Обрати будинок' : 'Обрати кімнату'}</legend>
+              <legend className="font-display text-3xl text-clay">
+                {ROOM_SELECTION_HEADING[category === 'houses' ? 'house' : 'room']}
+              </legend>
+              <p className="mt-3 max-w-xl text-sm text-wood/70">{ROOM_SELECTION_INSTRUCTION}</p>
               <RoomOptions
                 rooms={bookableRooms}
                 selectedId={draft.roomTypeId}
                 status={roomListStatus}
                 error={search.availabilityError}
                 searchable={search.searchable}
+                place={category === 'houses' ? 'house' : 'room'}
                 roomLabel={labelForRoom}
                 onSelect={(room) =>
                   patch({
@@ -543,10 +566,16 @@ export function BookingFlow() {
                   Розрахунок застарів. Оберіть дати ще раз.
                 </p>
               ) : null}
+              {submitBlockReason ? (
+                <p className="mt-4 text-sm text-wood/70" id="booking-submit-reason">
+                  {submitBlockReason}
+                </p>
+              ) : null}
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+                aria-describedby={submitBlockReason ? 'booking-submit-reason' : undefined}
+                className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
               >
                 {checkout.busy && checkout.step === 'creating_intent'
                   ? 'Надсилаємо…'

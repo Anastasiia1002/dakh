@@ -10,6 +10,7 @@ import {
 import { isBookingEnabled } from '../../lib/publicBooking/config'
 import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/display'
 import { DEMO_PRICE_COPY, isDemoNightlyAmount, isDemoQuotedStay, isDemoRate } from '../../lib/publicBooking/stay'
+import { roomListPresentation, roomOptionFrame, roomOptionMark, type RoomPlace } from '../../lib/publicBooking/bookingSelection'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
 import type { BookingDraft } from '../../lib/booking'
 import type {
@@ -186,6 +187,7 @@ export function RoomOptions({
   status,
   error,
   searchable,
+  place = 'room',
   onSelect,
   roomLabel,
 }: {
@@ -194,67 +196,76 @@ export function RoomOptions({
   status: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
   error: string
   searchable: boolean
+  place?: RoomPlace
   onSelect: (room: PublicAvailabilityRoomType) => void
   roomLabel?: (room: PublicAvailabilityRoomType) => string
 }) {
-  if (!searchable) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть дати, щоб побачити вільні кімнати.</p>
-  }
-  if (status === 'loading') {
-    return <p className="mt-6 text-sm text-wood/60">Шукаємо вільні кімнати…</p>
-  }
-  if (status === 'error') {
+  const presentation = roomListPresentation({ searchable, status, error, place })
+  if (presentation.state === 'need-dates' || presentation.state === 'loading') {
     return (
-      <p className="mt-6 text-sm text-clay" role="alert">
-        {error}
+      <p className="mt-6 border border-wood/15 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
+        {presentation.message}
       </p>
     )
   }
-  if (status === 'empty') {
+  if (presentation.state === 'error') {
     return (
-      <p className="mt-6 text-sm text-wood/70">
-        На ці дати немає вільних кімнат. Спробуйте інші дати або зменшіть кількість гостей.
+      <p className="mt-6 border border-clay/40 bg-beige px-4 py-4 text-sm text-clay" role="alert">
+        {presentation.message}
+      </p>
+    )
+  }
+  if (presentation.state === 'empty') {
+    return (
+      <p className="mt-6 border border-dashed border-wood/30 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
+        {presentation.message}
       </p>
     )
   }
 
   return (
-    <div className="mt-6 space-y-4">
-      {rooms.map((room) => (
-        <label
-          key={room.roomTypeId}
-          className={`grid cursor-pointer grid-cols-[96px_1fr] items-center gap-4 border p-3 ${
-            selectedId === room.roomTypeId ? 'border-clay' : 'border-wood/15'
-          }`}
-        >
-          <input
-            type="radio"
-            name="roomType"
-            value={room.roomTypeId}
-            checked={selectedId === room.roomTypeId}
-            onChange={() => onSelect(room)}
-            className="sr-only"
-          />
-          <span className="flex h-20 w-24 items-end bg-beige px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
-            {roomKindLabel(room.kind)}
-          </span>
-          <span>
-            <span className="block font-medium">{roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}</span>
-            <span className="text-sm text-wood/60">
-              до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
-              {room.availableCount}
-              {isBookingEnabled() &&
-              room.availableCount > 0 &&
-              room.nightlyStartingPrice &&
-              room.ratePlans.some((plan) => authoritativeStayTotal(plan))
-                ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба${
-                    isDemoNightlyAmount(room.nightlyStartingPrice) ? ' · демонстраційна, не комерційна' : ''
-                  }`
-                : ''}
+    <div className="mt-6 space-y-4" role="radiogroup" aria-label={place === 'house' ? 'Будинки' : 'Кімнати'}>
+      {rooms.map((room) => {
+        const selected = selectedId === room.roomTypeId
+        return (
+          <label
+            key={room.roomTypeId}
+            className={`grid cursor-pointer grid-cols-[96px_1fr] items-center gap-4 p-3 ${roomOptionFrame(selected)}`}
+          >
+            <input
+              type="radio"
+              name="roomType"
+              value={room.roomTypeId}
+              checked={selected}
+              onChange={() => onSelect(room)}
+              className="sr-only"
+            />
+            <span className="flex h-20 w-24 items-end bg-beige px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
+              {roomKindLabel(room.kind)}
             </span>
-          </span>
-        </label>
-      ))}
+            <span>
+              <span className="flex items-start justify-between gap-3">
+                <span className="block font-medium">{roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}</span>
+                <span className={`shrink-0 text-[0.68rem] tracking-[0.14em] uppercase ${selected ? 'text-clay' : 'text-wood/45'}`}>
+                  {roomOptionMark(selected)}
+                </span>
+              </span>
+              <span className="text-sm text-wood/60">
+                до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
+                {room.availableCount}
+                {isBookingEnabled() &&
+                room.availableCount > 0 &&
+                room.nightlyStartingPrice &&
+                room.ratePlans.some((plan) => authoritativeStayTotal(plan))
+                  ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба${
+                      isDemoNightlyAmount(room.nightlyStartingPrice) ? ' · демонстраційна, не комерційна' : ''
+                    }`
+                  : ''}
+              </span>
+            </span>
+          </label>
+        )
+      })}
     </div>
   )
 }

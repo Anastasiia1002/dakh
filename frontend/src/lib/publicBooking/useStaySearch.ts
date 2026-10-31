@@ -9,8 +9,11 @@ import {
   CAPACITY_BLOCK_COPY,
   findRatePlan,
   MISSING_PUBLIC_PRICE_COPY,
+  guestCountOf,
   offerableRatePlans,
+  publicQuoteBody,
   quoteMatchesSearch,
+  quoteRequestKey,
   roomAcceptsGuestCount,
   shouldApplyResponse,
   shouldRequestQuote,
@@ -32,13 +35,15 @@ export type StayRejectionEvent = {
 export function useStaySearch(
   checkIn: string,
   checkOut: string,
-  guestCount: number,
+  adults: number,
+  children: number,
   roomTypeId: string,
   ratePlanId: string,
   hotelSlug?: string,
   kind?: 'ROOM' | 'COTTAGE',
   quoteBlocked = false,
 ) {
+  const guestCount = guestCountOf(adults, children)
   const configured = isPublicApiConfigured()
   const bookingEnabled = isBookingEnabled()
   const searchable = stayIsSearchable(checkIn, checkOut, guestCount)
@@ -63,7 +68,7 @@ export function useStaySearch(
   const rejectionSerial = useRef(0)
   const rejectedQuoteKeys = useRef(new Set<string>())
 
-  const search = { checkIn, checkOut, guestCount, roomTypeId, ratePlanId }
+  const search = { checkIn, checkOut, guestCount, adults, children, roomTypeId, ratePlanId }
 
   const currentAvailability =
     availabilityReadyKey === availabilityKey && availability && availabilityMatchesSearch(availability, search)
@@ -80,7 +85,16 @@ export function useStaySearch(
   const selectedPlan = findRatePlan(selectedRoom, ratePlanId)
   const quoteKey =
     !quoteBlocked && searchable && configured && selectedPlan
-      ? `${availabilityKey}|${roomTypeId}|${selectedPlan.ratePlanId}`
+      ? quoteRequestKey({
+          hotel: requestedHotel,
+          checkIn,
+          checkOut,
+          adults,
+          children,
+          roomTypeId,
+          ratePlanId: selectedPlan.ratePlanId,
+          kind,
+        })
       : ''
 
   useLayoutEffect(() => {
@@ -133,21 +147,36 @@ export function useStaySearch(
       setQuoteReadyKey(requestedKey)
       return
     }
+    const body = publicQuoteBody({
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      roomTypeId,
+      ratePlanId: selectedPlan.ratePlanId,
+    })
+    if (!body) return
     const controller = new AbortController()
     publicBookingClient
-      .quote(
-        {
-          checkIn,
-          checkOut,
-          guestCount,
-          roomTypeId,
-          ratePlanId: selectedPlan.ratePlanId,
-        },
-        { signal: controller.signal },
-        requestedHotel,
-      )
+      .quote(body, { signal: controller.signal }, requestedHotel)
       .then((response) => {
         if (!shouldApplyResponse(requestedKey, latestQuoteKey.current)) return
+        if (
+          !quoteMatchesSearch(response, {
+            checkIn,
+            checkOut,
+            guestCount,
+            adults,
+            children,
+            roomTypeId,
+            ratePlanId: selectedPlan.ratePlanId,
+          })
+        ) {
+          setQuote(null)
+          setQuoteError('Сервер повернув інший склад гостей. Спробуйте ще раз.')
+          setQuoteReadyKey(requestedKey)
+          return
+        }
         setQuote(response)
         setQuoteError('')
         setQuoteReadyKey(requestedKey)
@@ -174,7 +203,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [bookingEnabled, checkIn, checkOut, guestCount, quoteKey, requestedHotel, roomTypeId, selectedPlan])
+  }, [adults, bookingEnabled, checkIn, checkOut, children, guestCount, quoteKey, requestedHotel, roomTypeId, selectedPlan])
 
   const currentQuote =
     quoteReadyKey === quoteKey && quote && quoteMatchesSearch(quote, search) ? quote : null
