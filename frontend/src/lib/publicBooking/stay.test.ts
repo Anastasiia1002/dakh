@@ -72,6 +72,7 @@ describe('stay helpers', () => {
   it('keeps adults and children as a sum and rejects an invalid split', () => {
     assert.deepEqual(guestComposition(1, 1), { adults: 1, children: 1, guestCount: 2 })
     assert.deepEqual(guestComposition(2, 0), { adults: 2, children: 0, guestCount: 2 })
+    assert.deepEqual(guestComposition(2, 1), { adults: 2, children: 1, guestCount: 3 })
     assert.deepEqual(guestComposition(2, 2), { adults: 2, children: 2, guestCount: 4 })
     assert.equal(guestCountOf(1, 1), 2)
     assert.equal(guestCountOf(2, 0), 2)
@@ -293,6 +294,26 @@ describe('stay helpers', () => {
       ratePlanId,
     })
     assert.equal(quoteBody && 'discountAmount' in quoteBody, false)
+    const twoAdults = publicQuoteBody({
+      checkIn: '2026-11-10',
+      checkOut: '2026-11-13',
+      adults: 2,
+      children: 0,
+      roomTypeId,
+      ratePlanId,
+    })
+    const withChild = publicQuoteBody({
+      checkIn: '2026-11-10',
+      checkOut: '2026-11-13',
+      adults: 2,
+      children: 1,
+      roomTypeId,
+      ratePlanId,
+    })
+    assert.equal(twoAdults?.guestCount, 2)
+    assert.equal(withChild?.guestCount, 3)
+    assert.equal(twoAdults && 'totalAmount' in twoAdults, false)
+    assert.equal(withChild && 'totalAmount' in withChild, false)
     assert.equal(publicQuoteBody({ ...quoteBody!, adults: 0, children: 4 }), null)
     const issued = { ...quote, guestCount: 4, adults: 2, children: 2, totalAmount: '9600.00' }
     assert.deepEqual(intentStayFromQuote(issued), { adults: 2, children: 2, guestCount: 4 })

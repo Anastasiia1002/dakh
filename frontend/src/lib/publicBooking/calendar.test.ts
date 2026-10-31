@@ -104,6 +104,80 @@ describe('availability calendar', () => {
     )
   })
 
+  it('keeps 10–13 November when the selected room cannot fit another child', () => {
+    const stay = { checkIn: '2026-11-10', checkOut: '2026-11-13' }
+    const days = indexCalendarDays(
+      [
+        room(
+          roomId,
+          ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map((date) =>
+            day(date, 'restricted', 1, 'occupancy'),
+          ),
+          2,
+        ),
+      ],
+      roomId,
+    )
+    assert.equal(days['2026-11-10']?.reason, 'occupancy')
+    assert.deepEqual(
+      reconcileStay({
+        status: 'ready',
+        hotelToday: '2026-10-31',
+        days,
+        ...stay,
+        roomScoped: true,
+      }),
+      stay,
+    )
+    assert.deepEqual(
+      reconcileStay({
+        status: 'ready',
+        hotelToday: '2026-10-31',
+        days,
+        ...stay,
+      }),
+      stay,
+    )
+    const bookable = indexCalendarDays(
+      [
+        room(
+          roomId,
+          ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map((date) => day(date, 'available', 1)),
+          2,
+        ),
+      ],
+      roomId,
+    )
+    assert.deepEqual(
+      reconcileStay({
+        status: 'ready',
+        hotelToday: '2026-10-31',
+        days: bookable,
+        ...stay,
+        roomScoped: true,
+      }),
+      stay,
+    )
+  })
+
+  it('keeps the same dates when a selected room is sold out', () => {
+    const stay = { checkIn: '2026-11-10', checkOut: '2026-11-13' }
+    const days = indexCalendarDays(
+      [room(roomId, ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map((date) => day(date, 'booked', 0, 'booking')))],
+      roomId,
+    )
+    assert.deepEqual(
+      reconcileStay({
+        status: 'ready',
+        hotelToday: '2026-10-31',
+        days,
+        ...stay,
+        roomScoped: true,
+      }),
+      stay,
+    )
+  })
+
   it('keeps a selected stay while the calendar is loading or the night is outside the loaded month', () => {
     assert.deepEqual(
       reconcileStay({

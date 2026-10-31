@@ -170,12 +170,20 @@ export function reconcileStay(input: {
   blockedCheckIns?: ReadonlySet<string>
   blockedRanges?: ReadonlySet<string>
   earliestCheckIn?: string | null
+  /** One room's calendar. Its occupancy or sold-out nights are not a reason to drop the stay. */
+  roomScoped?: boolean
 }) {
   if (input.blockedCheckIns?.has(input.checkIn)) return { checkIn: '', checkOut: '' }
   if (input.status !== 'ready' || !input.hotelToday || !input.checkIn) {
     if (input.checkOut && input.blockedRanges?.has(stayKey(input.checkIn, input.checkOut))) {
       return { checkIn: input.checkIn, checkOut: '' }
     }
+    return { checkIn: input.checkIn, checkOut: input.checkOut }
+  }
+  if (
+    (input.roomScoped && input.checkIn >= input.hotelToday && stayShapeIsValid(input.checkIn, input.checkOut)) ||
+    selectionRejectedOnlyForOccupancy(input.days, input.checkIn, input.checkOut)
+  ) {
     return { checkIn: input.checkIn, checkOut: input.checkOut }
   }
   const checkInKnown = Boolean(input.days[input.checkIn])
@@ -273,6 +281,23 @@ function combineDays(date: string, options: readonly PublicCalendarDay[]): Publi
   }
   const chosen = options.find((day) => day.status === 'booked') ?? options.find((day) => day.status === 'restricted') ?? options[0]!
   return { ...chosen, date }
+}
+
+function selectionRejectedOnlyForOccupancy(
+  days: Record<string, PublicCalendarDay>,
+  checkIn: string,
+  checkOut: string,
+) {
+  const relevant = [checkIn, ...(checkOut ? stayNights(checkIn, checkOut) : [])]
+  if (checkOut) relevant.push(checkOut)
+  const known = relevant.map((date) => days[date]).filter((day) => day !== undefined)
+  return known.length > 0 && known.every((day) => day.status === 'restricted' && day.reason === 'occupancy')
+}
+
+function stayShapeIsValid(checkIn: string, checkOut: string) {
+  if (!checkOut) return true
+  const nights = nightsBetween(checkIn, checkOut)
+  return checkOut > checkIn && nights >= MIN_NIGHTS && nights <= MAX_NIGHTS
 }
 
 function stayNights(checkIn: string, checkOut: string) {

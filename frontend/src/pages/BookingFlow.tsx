@@ -94,7 +94,6 @@ export function BookingFlow() {
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
-  const [calendarReload, setCalendarReload] = useState(0)
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
@@ -103,14 +102,12 @@ export function BookingFlow() {
     guestCount,
     locked ? '' : draft.roomTypeId,
     hotelSlug ?? undefined,
-    calendarReload,
   )
   const mapped = useMappedRoomCalendar(
     handoff?.roomTypeSlug || handoff?.catalogSlug || '',
     locked ? calendarRange : null,
     guestCount,
     hotelSlug ?? undefined,
-    calendarReload,
   )
   const identityReady =
     !handoff ||
@@ -141,16 +138,7 @@ export function BookingFlow() {
     category === 'houses' ? 'COTTAGE' : 'ROOM',
     quoteBlocked,
   )
-  const stayGuard = useStayGuard(search.stayRejection, () => {
-    setCalendarReload((value) => value + 1)
-    setDraft((current) => ({
-      ...current,
-      checkIn: '',
-      checkOut: '',
-      ratePlanId: '',
-      roomTypeId: locked ? current.roomTypeId : '',
-    }))
-  })
+  const stayGuard = useStayGuard(search.stayRejection)
   const checkout = useBookingCheckout(
     {
       roomTypeId: draft.roomTypeId,
@@ -245,6 +233,7 @@ export function BookingFlow() {
       checkOut: draft.checkOut,
       blockedCheckIns: stayGuard.blockedCheckIns,
       blockedRanges: stayGuard.blockedRanges,
+      roomScoped: locked || Boolean(draft.roomTypeId),
     })
     if (next.checkIn === draft.checkIn && next.checkOut === draft.checkOut) return
     if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
@@ -265,6 +254,7 @@ export function BookingFlow() {
     checkout,
     draft.checkIn,
     draft.checkOut,
+    draft.roomTypeId,
     locked,
     stayGuard.blockedCheckIns,
     stayGuard.blockedRanges,
@@ -501,6 +491,7 @@ export function BookingFlow() {
             availabilityStatus={checkingIdentity ? 'loading' : search.availabilityStatus}
             availabilityError={search.availabilityError}
             roomLabel={requestedRoomLabel || undefined}
+            fitNote={activeCalendar.capacityNote}
             missingRoomCopy={
               locked
                 ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'

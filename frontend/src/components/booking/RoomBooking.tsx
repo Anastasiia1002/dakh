@@ -54,13 +54,12 @@ export function RoomBooking({
   const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(publicSlug))
   const [now, setNow] = useState(() => Date.now())
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
-  const [calendarReload, setCalendarReload] = useState(0)
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
-  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, guestCount, hotelSlug, calendarReload)
+  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, guestCount, hotelSlug)
   const quoteBlocked = calendarRejectsStay({
     status: calendar.status,
     hotelToday: calendar.hotelToday,
@@ -80,10 +79,7 @@ export function RoomBooking({
     category === 'houses' ? 'COTTAGE' : 'ROOM',
     quoteBlocked,
   )
-  const stayGuard = useStayGuard(search.stayRejection, () => {
-    setCalendarReload((value) => value + 1)
-    setDraft((current) => ({ ...current, checkIn: '', checkOut: '', ratePlanId: '' }))
-  })
+  const stayGuard = useStayGuard(search.stayRejection)
   const quoteReady = isQuoteFresh(search.quote, now)
 
   useEffect(() => {
@@ -110,6 +106,7 @@ export function RoomBooking({
       checkOut: draft.checkOut,
       blockedCheckIns: stayGuard.blockedCheckIns,
       blockedRanges: stayGuard.blockedRanges,
+      roomScoped: true,
     })
     if (next.checkIn === draft.checkIn && next.checkOut === draft.checkOut) return
     setDraft((current) => ({
@@ -218,6 +215,7 @@ export function RoomBooking({
           availabilityStatus={search.availabilityStatus}
           availabilityError={search.availabilityError}
           roomLabel={displayName}
+          fitNote={calendar.capacityNote}
           missingRoomCopy="На ці дати ця кімната недоступна. Іншу кімнату не підставляємо."
         />
         {bookingEnabled ? (

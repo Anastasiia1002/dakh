@@ -19,6 +19,13 @@ import type {
   PublicQuoteResponse,
 } from '../../lib/publicBooking/types'
 
+function childCountLabel(count: number) {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  const word = mod10 === 1 && mod100 !== 11 ? 'дитина' : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'дитини' : 'дітей'
+  return `${count} ${word}`
+}
+
 function fieldClass(error?: string) {
   return [
     'mt-1 w-full border-0 border-b bg-transparent py-2 outline-none',
@@ -343,6 +350,7 @@ export function QuoteSummary({
   availabilityStatus,
   availabilityError = '',
   roomLabel,
+  fitNote = '',
 }: {
   checkIn: string
   checkOut: string
@@ -359,6 +367,8 @@ export function QuoteSummary({
   availabilityStatus?: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
   availabilityError?: string
   roomLabel?: string
+  /** The selected room cannot hold this party. Dates stay selected. */
+  fitNote?: string
 }) {
   const roomName = room ? publicRoomLabel(room.name, room.kind, roomLabel) : roomLabel
   if (!checkIn || !checkOut || nights < 1) {
@@ -383,6 +393,19 @@ export function QuoteSummary({
         <p className="mt-6 text-sm text-clay" role="alert">
           {availabilityError || 'Не вдалося зв’язатися з сервером бронювання.'}
         </p>
+      )
+    }
+    if (fitNote) {
+      return (
+        <div className="mt-6 text-sm leading-relaxed text-wood/70">
+          {roomName ? <p className="font-medium">{roomName}</p> : null}
+          <p className={roomName ? 'mt-2' : undefined}>
+            {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {adults} дорослих
+            {kids ? `, ${childCountLabel(kids)}` : ''}
+          </p>
+          <p className="mt-2">{fitNote}</p>
+          <p className="mt-2">Дати заїзду й виїзду залишаються. Зменшіть кількість гостей або оберіть інше помешкання.</p>
+        </div>
       )
     }
     if (availabilityStatus === 'empty') {

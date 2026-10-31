@@ -1,24 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
+import type { StayRejectionKind } from './errors'
 import type { StayRejectionEvent } from './useStaySearch'
 
 const EMPTY = new Set<string>()
 
 /**
- * A quote can still fail after the calendar looked valid. Clear that selection
- * and ask for another date. Do not keep a local block: the refreshed calendar
- * is what decides whether the same day can be chosen again.
+ * A failed quote or a room that no longer fits explains itself.
+ * The selected dates stay so the guest can change the room or the party.
  */
-export function useStayGuard(rejection: StayRejectionEvent | null, onClear: () => void) {
+export function rejectionClearsDates(kind: StayRejectionKind): boolean {
+  return kind !== 'check-in' && kind !== 'range' && kind !== 'guests'
+}
+
+export function useStayGuard(rejection: StayRejectionEvent | null) {
   const [notice, setNotice] = useState('')
   const seen = useRef(0)
-  const onClearRef = useRef(onClear)
-  onClearRef.current = onClear
 
   useEffect(() => {
-    if (!rejection || rejection.id === seen.current || rejection.kind === 'guests') return
+    if (!rejection || rejection.id === seen.current) return
     seen.current = rejection.id
     setNotice(rejection.message)
-    onClearRef.current()
   }, [rejection])
 
   return {
