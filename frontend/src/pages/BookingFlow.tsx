@@ -276,7 +276,7 @@ export function BookingFlow() {
     if (checkout.step !== 'confirmed') return
     clearBookingHandoff()
     const token = readStoredConfirmationToken()
-    if (token) navigate(`/bronuvannya/pidtverdzhennya/${encodeURIComponent(token)}`, { replace: true })
+    if (token) navigate('/bronuvannya/pidtverdzhennya', { replace: true })
   }, [checkout.step, navigate])
 
   function patch(next: Partial<BookingDraft>) {

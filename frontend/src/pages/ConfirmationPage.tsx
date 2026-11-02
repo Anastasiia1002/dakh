@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatDate, formatMoneyAmount } from '../lib/format'
 import { publicBookingClient, recoverEmailError } from '../lib/publicBooking'
 import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/config'
@@ -18,7 +18,8 @@ import type { PublicBookingConfirmationResponse } from '../lib/publicBooking/typ
 
 export function ConfirmationPage() {
   const { token: routeToken = '' } = useParams()
-  const token = decodeURIComponent(routeToken) || readStoredConfirmationToken()
+  const navigate = useNavigate()
+  const token = readStoredConfirmationToken()
   const validToken = isConfirmationToken(token) ? token : ''
   const storedIntent = readStoredIntent()
   const [confirmation, setConfirmation] = useState<PublicBookingConfirmationResponse | null>(null)
@@ -34,6 +35,11 @@ export function ConfirmationPage() {
       : 'Підтвердження не знайдено. Успіх не показуємо з локальних даних.'
   const bookingEnabled = isBookingEnabled()
   const loading = bookingEnabled && Boolean(validToken) && !resolved
+
+  useEffect(() => {
+    if (!routeToken) return
+    navigate('/bronuvannya/pidtverdzhennya', { replace: true })
+  }, [navigate, routeToken])
 
   useEffect(() => {
     if (!bookingEnabled || !validToken) return
