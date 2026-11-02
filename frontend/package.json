@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build && tsx scripts/copy-pages-fallback.ts",
     "build:staging": "tsc -b && vite build --mode staging && tsx scripts/copy-pages-fallback.ts",
     "lint": "oxlint",
-    "test": "tsx --tsconfig tsconfig.tests.json --test src/lib/publicBooking/*.test.ts src/lib/catalog/*.test.ts src/lib/siteBase.test.ts src/lib/ukrainian.test.ts",
+    "test": "tsx --tsconfig tsconfig.tests.json --test src/lib/publicBooking/*.test.ts src/lib/catalog/*.test.ts src/lib/siteBase.test.ts src/lib/ukrainian.test.ts src/lib/contactForm.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
