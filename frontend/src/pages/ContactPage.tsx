@@ -206,7 +206,7 @@ export function ContactPage() {
 
         <section className="flex flex-col" aria-label="Адреса і як доїхати">
           <Row label="Адреса">
-            <a href={site.map.directions} target="_blank" rel="noreferrer" className={tap}>
+            <a href={site.map.place} target="_blank" rel="noreferrer" className={tap}>
               {site.address}
               <br />
               {site.region}

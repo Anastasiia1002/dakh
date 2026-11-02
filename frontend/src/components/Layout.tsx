@@ -162,7 +162,7 @@ export function Layout() {
               {site.email}
             </a>
             <p className="mt-3 text-[0.68rem] text-wood/55">Адреса</p>
-            <a href={site.map.directions} target="_blank" rel="noreferrer" className="mt-1 block py-1">
+            <a href={site.map.place} target="_blank" rel="noreferrer" className="mt-1 block py-1">
               {site.address}
               <br />
               {site.region}

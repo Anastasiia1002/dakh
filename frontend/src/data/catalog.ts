@@ -35,6 +35,25 @@ export type Dish = {
 const photo = (id: string, w = 1600) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`
 
+const latitude = 48.1369194
+const longitude = 25.36198
+
+function mapCoordinate(value: number) {
+  return String(Math.round(value * 1e7) / 1e7)
+}
+
+function googleDirectionsUrl(lat: number, lng: number) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${mapCoordinate(lat)}%2C${mapCoordinate(lng)}`
+}
+
+function openStreetMapEmbed(lat: number, lng: number) {
+  const west = mapCoordinate(lng - 0.02)
+  const south = mapCoordinate(lat - 0.01)
+  const east = mapCoordinate(lng + 0.02)
+  const north = mapCoordinate(lat + 0.01)
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${west}%2C${south}%2C${east}%2C${north}&layer=mapnik&marker=${mapCoordinate(lat)}%2C${mapCoordinate(lng)}`
+}
+
 export const site = {
   hotel: 'DAKH',
   restaurant: 'DAKH',
@@ -51,11 +70,11 @@ export const site = {
   restaurantBooking: 'https://dakh-myhovo.choiceqr.com/booking',
   restaurantDelivery: 'https://dakh-myhovo.choiceqr.com/delivery',
   map: {
-    lat: 48.1509479,
-    lng: 25.379971,
-    directions: 'https://www.google.com/maps/dir/?api=1&destination=48.1509479,25.379971',
-    embed:
-      'https://www.openstreetmap.org/export/embed.html?bbox=25.359971%2C48.140948%2C25.399971%2C48.160948&layer=mapnik&marker=48.1509479%2C25.379971',
+    lat: latitude,
+    lng: longitude,
+    place: 'https://maps.app.goo.gl/AWwFzLHT6x8xuu8P8',
+    directions: googleDirectionsUrl(latitude, longitude),
+    embed: openStreetMapEmbed(latitude, longitude),
   },
 }
 
