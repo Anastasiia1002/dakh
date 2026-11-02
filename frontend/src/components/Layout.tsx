@@ -11,6 +11,7 @@ const nav = [
   { to: '/menu', label: 'Ресторан' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },
+  { to: '/moie-bronyuvannya', label: 'Моє бронювання' },
 ]
 
 const headerAction =
@@ -24,7 +25,7 @@ function HeaderActions({
   onNavigate?: () => void
 }) {
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       <a
         href={site.phoneHrefs[0]}
         className={`${headerAction} border border-current`}
@@ -99,7 +100,7 @@ export function Layout() {
         ) : null}
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 lg:gap-5">
           <DakhLogo tone={tone} compact />
-          <nav className="hidden min-w-0 items-center gap-5 text-[0.72rem] font-medium tracking-[0.14em] uppercase lg:flex xl:gap-8 xl:tracking-[0.16em]">
+          <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[0.68rem] font-medium tracking-[0.12em] uppercase lg:flex xl:gap-x-6 xl:text-[0.72rem] xl:tracking-[0.14em]">
             {nav.map((item) => (
               <NavLink
                 key={item.to}

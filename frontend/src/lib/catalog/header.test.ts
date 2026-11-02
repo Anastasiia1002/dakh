@@ -14,6 +14,8 @@ describe('site header', () => {
     assert.match(html, /aria-label="Відкрити меню"/)
     assert.match(html, /aria-controls="site-menu"/)
     assert.match(html, /aria-expanded="false"/)
+    assert.match(html, /Моє бронювання/)
+    assert.match(html, /\/moie-bronyuvannya/)
     assert.equal(html.includes('id="site-menu"'), false)
   })
 })
