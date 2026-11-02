@@ -8,7 +8,9 @@ import type {
   PublicQuoteRequest,
   PublicQuoteResponse,
   PublicRateType,
+  PublicServiceSelection,
 } from './types'
+import { canonicalServiceSelection, serviceSelectionKey } from './publicServices'
 import { DATE_PATTERN, MAX_GUESTS, MAX_NIGHTS, MIN_GUESTS, MIN_NIGHTS } from './types'
 
 export type StaySearch = {
@@ -19,6 +21,7 @@ export type StaySearch = {
   children?: number
   roomTypeId?: string
   ratePlanId?: string | null
+  servicesKey?: string
 }
 
 export type GuestComposition = {
@@ -68,9 +71,11 @@ export function publicQuoteBody(input: {
   children: number
   roomTypeId: string
   ratePlanId: string
+  services?: readonly PublicServiceSelection[]
 }): PublicQuoteRequest | null {
   const split = guestComposition(input.adults, input.children)
   if (!split) return null
+  const services = canonicalServiceSelection(input.services)
   return {
     checkIn: input.checkIn,
     checkOut: input.checkOut,
@@ -79,6 +84,7 @@ export function publicQuoteBody(input: {
     children: split.children,
     roomTypeId: input.roomTypeId,
     ratePlanId: input.ratePlanId,
+    ...(services.length > 0 ? { services } : {}),
   }
 }
 
@@ -100,6 +106,7 @@ export function quoteRequestKey(input: {
   roomTypeId: string
   ratePlanId: string
   kind?: string
+  servicesKey?: string
 }) {
   const split = guestComposition(input.adults, input.children)
   if (!split) return ''
@@ -113,6 +120,7 @@ export function quoteRequestKey(input: {
     input.kind ?? '',
     input.roomTypeId,
     input.ratePlanId,
+    input.servicesKey ?? '',
   ].join('|')
 }
 
@@ -403,6 +411,7 @@ export function quoteMatchesSearch(quote: PublicQuoteResponse, search: StaySearc
     splitMatches &&
     quote.roomTypeId === search.roomTypeId &&
     Boolean(search.ratePlanId) &&
-    quote.ratePlanId === search.ratePlanId
+    quote.ratePlanId === search.ratePlanId &&
+    serviceSelectionKey(quote.services) === (search.servicesKey ?? '')
   )
 }

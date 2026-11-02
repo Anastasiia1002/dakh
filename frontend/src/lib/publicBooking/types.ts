@@ -148,6 +148,36 @@ export interface PublicCalendarResponse {
   roomTypes: PublicCalendarRoomType[]
 }
 
+export interface PublicServiceSelection {
+  serviceId: string
+  quantity: number
+}
+
+export interface PublicServiceCatalogItem {
+  id: string
+  name: string
+  description: string | null
+  price: string
+  currency: 'UAH'
+  chargeBasis: 'PER_STAY'
+  minQuantity: number | null
+  maxQuantity: number | null
+}
+
+export interface PublicServiceCatalogResponse {
+  currency: 'UAH'
+  items: PublicServiceCatalogItem[]
+}
+
+export interface PublicQuoteServiceLine {
+  serviceId: string
+  name: string
+  quantity: number
+  unitPrice: string
+  totalPrice: string
+  currency: 'UAH'
+}
+
 export interface PublicQuoteRequest {
   checkIn: string
   checkOut: string
@@ -156,6 +186,7 @@ export interface PublicQuoteRequest {
   children: number
   roomTypeId: string
   ratePlanId: string
+  services?: PublicServiceSelection[]
 }
 
 export interface PublicQuoteNight {
@@ -173,6 +204,8 @@ export interface PublicQuoteResponse {
   roomTypeId: string
   ratePlanId: string
   nights: PublicQuoteNight[]
+  services?: PublicQuoteServiceLine[]
+  servicesTotal?: string
   totalAmount: string
   currency: SupportedCurrency
   quoteToken: string
@@ -198,6 +231,7 @@ export interface CreateBookingIntentRequest {
   acceptedTotalAmount: string
   guest: PublicGuestContact
   guestComment?: string
+  services?: PublicServiceSelection[]
 }
 
 export interface PublicBookingIntentResponse {
@@ -220,16 +254,31 @@ export interface ConfirmEmailVerificationRequest {
   quoteToken?: string
 }
 
+export type PublicBookingStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'CHECKED_IN'
+  | 'CHECKED_OUT'
+  | 'CANCELLED'
+  | 'NO_SHOW'
+
+export type GuestPaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+
 export interface PublicBookingConfirmationResponse {
-  status: 'CONFIRMED'
+  status: PublicBookingStatus
   bookingReference: string
   checkIn: string
   checkOut: string
   guestCount: number
+  adults?: number
+  children?: number
   roomTypeId: string
   roomTypeName: string
+  roomNumber?: string | null
   totalAmount: string
   currency: SupportedCurrency
+  services?: PublicQuoteServiceLine[]
+  paymentStatus?: GuestPaymentStatus
   confirmationToken?: string
 }
 

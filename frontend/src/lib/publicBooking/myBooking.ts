@@ -1,8 +1,9 @@
+import { partySummary } from '../ukrainian'
 import { publicBookingClient, type PublicBookingClient } from './client'
 import { isConfirmationToken } from './checkout'
 import { errorCopy, isPublicApiError } from './errors'
 import { stayNights } from './stay'
-import type { PublicBookingConfirmationResponse } from './types'
+import type { GuestPaymentStatus, PublicBookingConfirmationResponse, PublicBookingStatus } from './types'
 
 export const LOOKUP_EMPTY_COPY = 'Вставте код доступу з підтвердження.'
 export const LOOKUP_INVALID_COPY = 'Код не підходить. Перевірте його і спробуйте ще раз.'
@@ -11,14 +12,42 @@ export const LOOKUP_UNAVAILABLE_COPY = 'Зараз не можемо показ�
 
 export type GuestBookingView = {
   reference: string
-  statusLabel: 'Підтверджено'
+  status: PublicBookingStatus
+  statusLabel: string
+  cancelled: boolean
   accommodation: string
+  roomNumber: string | null
   checkIn: string
   checkOut: string
   nights: number | null
+  adults: number | null
+  children: number | null
   guests: string
   totalAmount: string
   currency: 'UAH'
+  services: Array<{ serviceId: string; name: string; quantity: number; totalPrice: string }>
+  paymentLabel: string | null
+}
+
+export function guestStatusLabel(status: string) {
+  return STATUS_LABELS[status as PublicBookingStatus] ?? ''
+}
+
+const STATUS_LABELS: Record<PublicBookingStatus, string> = {
+  PENDING: 'Очікує підтвердження',
+  CONFIRMED: 'Підтверджено',
+  CHECKED_IN: 'Заселено',
+  CHECKED_OUT: 'Виселено',
+  CANCELLED: 'Скасовано',
+  NO_SHOW: 'Не заїхав',
+}
+
+const PAYMENT_LABELS: Record<GuestPaymentStatus, string> = {
+  UNPAID: 'Не оплачено',
+  PENDING: 'Очікує оплату',
+  PAID: 'Оплачено',
+  FAILED: 'Оплату не проведено',
+  REFUNDED: 'Повернено',
 }
 
 export function normalizeAccessCode(value: string) {
@@ -37,23 +66,44 @@ export function guestBookingView(
   accommodation: string,
   guestLabel: string,
 ): GuestBookingView | null {
-  if (response.status !== 'CONFIRMED' || response.currency !== 'UAH') return null
+  const statusLabel = STATUS_LABELS[response.status]
+  if (!statusLabel || response.currency !== 'UAH') return null
   const reference = response.bookingReference.trim()
   const name = accommodation.trim()
   if (!reference || !name || !response.checkIn || !response.checkOut) return null
   if (!Number.isInteger(response.guestCount) || response.guestCount < 1) return null
+  const adults = integerOrNull(response.adults)
+  const children = integerOrNull(response.children)
   const nights = stayNights(response.checkIn, response.checkOut)
   return {
     reference,
-    statusLabel: 'Підтверджено',
+    status: response.status,
+    statusLabel,
+    cancelled: response.status === 'CANCELLED',
     accommodation: name,
+    roomNumber: response.roomNumber?.trim() || null,
     checkIn: response.checkIn,
     checkOut: response.checkOut,
     nights: nights > 0 ? nights : null,
-    guests: guestLabel,
+    adults,
+    children,
+    guests: adults != null && children != null ? partySummary(adults, children) : guestLabel,
     totalAmount: response.totalAmount,
     currency: 'UAH',
+    services: (response.services ?? [])
+      .filter((line) => line.name.trim() && line.quantity > 0)
+      .map((line) => ({
+        serviceId: line.serviceId,
+        name: line.name,
+        quantity: line.quantity,
+        totalPrice: line.totalPrice,
+      })),
+    paymentLabel: response.paymentStatus ? PAYMENT_LABELS[response.paymentStatus] : null,
   }
+}
+
+function integerOrNull(value: number | undefined) {
+  return typeof value === 'number' && Number.isInteger(value) ? value : null
 }
 
 export function lookupFailureCopy(error: unknown) {

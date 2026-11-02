@@ -136,17 +136,36 @@ export function MyBookingPage() {
       {view ? (
         <div className="mt-10 min-w-0 bg-beige p-4 sm:p-6" role="status">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">{view.statusLabel}</p>
-          <p className="mt-4 break-words font-display text-3xl leading-tight sm:text-4xl">{view.accommodation}</p>
+          {view.cancelled ? (
+            <p className="mt-3 text-sm text-clay">Це бронювання скасоване. Дати й сума нижче — останні дані з сервера.</p>
+          ) : null}
+          <p className="mt-4 break-words font-display text-3xl leading-tight sm:text-4xl">
+            {view.accommodation}
+            {view.roomNumber ? ` · № ${view.roomNumber}` : ''}
+          </p>
           <p className="mt-4 text-sm text-wood/70">
             {formatDate(view.checkIn)} — {formatDate(view.checkOut)}
             {view.nights ? ` · ${view.nights} н.` : ''} · {view.guests}
           </p>
+          {view.services.length > 0 ? (
+            <ul className="mt-4 space-y-1 text-sm text-wood/70">
+              {view.services.map((line) => (
+                <li key={line.serviceId} className="flex justify-between gap-4">
+                  <span className="min-w-0 break-words">
+                    {line.name} · {line.quantity}
+                  </span>
+                  <span className="shrink-0">{formatMoneyAmount(line.totalPrice)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <p className="mt-6 break-all text-sm">
             Номер бронювання: <span className="font-medium">{view.reference}</span>
           </p>
           <p className="mt-6 font-display text-3xl">{formatMoneyAmount(view.totalAmount)}</p>
+          {view.paymentLabel ? <p className="mt-2 text-sm text-wood/70">{view.paymentLabel}</p> : null}
           <p className="mt-2 text-[0.72rem] text-wood/55">
-            Сума проживання в {view.currency}. Дати, гості й сума щойно отримані з сервера. Оплату на сайті не стягнуто.
+            Сума в {view.currency}. Дати, гості, послуги й сума щойно отримані з сервера. Оплату на сайті не стягнуто.
           </p>
           <div className="mt-6 text-sm text-wood/70">
             <p>{site.hotel}</p>

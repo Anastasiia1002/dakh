@@ -7,7 +7,8 @@ import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
 import { DEMO_PRICE_COPY, isDemoStayTotal, stayNights } from '../lib/publicBooking/stay'
-import { guestCountLabel } from '../lib/ukrainian'
+import { guestStatusLabel } from '../lib/publicBooking/myBooking'
+import { partySummary, guestCountLabel } from '../lib/ukrainian'
 import {
   isConfirmationToken,
   readStoredConfirmationToken,
@@ -95,14 +96,35 @@ export function ConfirmationPage() {
 
       {bookingEnabled && !loading && confirmation ? (
         <div className="mt-10 bg-beige p-6">
-          <p className="text-[0.7rem] tracking-[0.16em] uppercase">Підтверджено</p>
+          <p className="text-[0.7rem] tracking-[0.16em] uppercase">
+            {guestStatusLabel(confirmation.status) || 'Підтверджено'}
+          </p>
+          {confirmation.status === 'CANCELLED' ? (
+            <p className="mt-3 text-sm text-clay">Це бронювання скасоване.</p>
+          ) : null}
           <p className="mt-4 font-display text-4xl">
             {readRoomDisplayName(confirmation.roomTypeId) ??
               (isHiddenInventoryLabel(confirmation.roomTypeName) ? 'Кімната' : confirmation.roomTypeName)}
+            {confirmation.roomNumber ? ` · № ${confirmation.roomNumber}` : ''}
           </p>
           <p className="mt-4 text-sm text-wood/70">
-            {formatDate(confirmation.checkIn)} — {formatDate(confirmation.checkOut)} · {guestCountLabel(confirmation.guestCount)}
+            {formatDate(confirmation.checkIn)} — {formatDate(confirmation.checkOut)} ·{' '}
+            {Number.isInteger(confirmation.adults) && Number.isInteger(confirmation.children)
+              ? partySummary(confirmation.adults!, confirmation.children!)
+              : guestCountLabel(confirmation.guestCount)}
           </p>
+          {(confirmation.services ?? []).length > 0 ? (
+            <ul className="mt-4 space-y-1 text-sm text-wood/70">
+              {confirmation.services?.map((line) => (
+                <li key={line.serviceId} className="flex justify-between gap-4">
+                  <span>
+                    {line.name} · {line.quantity}
+                  </span>
+                  <span>{formatMoneyAmount(line.totalPrice)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <p className="mt-6 text-sm">
             Номер бронювання:{' '}
             <span className="font-medium">{confirmation.bookingReference}</span>

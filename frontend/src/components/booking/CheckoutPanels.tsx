@@ -161,6 +161,14 @@ export function PriceChangePanel({
             <span>{formatMoneyAmount(night.price)}</span>
           </li>
         ))}
+        {(quote.services ?? []).map((line) => (
+          <li key={line.serviceId} className="flex justify-between gap-4">
+            <span className="min-w-0 break-words">
+              {line.name} · {line.quantity}
+            </span>
+            <span className="shrink-0">{formatMoneyAmount(line.totalPrice)}</span>
+          </li>
+        ))}
       </ul>
       <button
         type="button"
@@ -503,6 +511,14 @@ export function QuoteSummary({
           <li key={night.date} className="flex justify-between gap-4">
             <span>{formatDate(night.date)}</span>
             <span>{formatMoneyAmount(night.price)}</span>
+          </li>
+        ))}
+        {(quote.services ?? []).map((line) => (
+          <li key={line.serviceId} className="flex justify-between gap-4">
+            <span className="min-w-0 break-words">
+              {line.name} · {line.quantity}
+            </span>
+            <span className="shrink-0">{formatMoneyAmount(line.totalPrice)}</span>
           </li>
         ))}
       </ul>

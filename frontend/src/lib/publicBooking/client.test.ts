@@ -306,7 +306,10 @@ describe('PublicBookingClient', () => {
           confirmationToken: 'c'.repeat(24),
         })
       }
-      if (url.includes('/bookings/confirmation/')) {
+      if (url.endsWith('/bookings/confirmation') && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body)) as { confirmationToken?: string }
+        assert.equal(body.confirmationToken, 'c'.repeat(24))
+        assert.equal(url.includes('c'.repeat(24)), false)
         return jsonResponse({
           status: 'CONFIRMED',
           bookingReference: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',

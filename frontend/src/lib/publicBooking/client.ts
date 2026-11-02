@@ -18,6 +18,7 @@ import type {
   PublicQuoteRequest,
   PublicQuoteResponse,
   PublicRecoverConfirmationResponse,
+  PublicServiceCatalogResponse,
   RecoverConfirmationRequest,
 } from './types'
 
@@ -156,6 +157,10 @@ export class PublicBookingClient {
     return this.request<PublicCalendarResponse>(`${this.hotelPath('/availability/calendar', hotelSlug)}?${params}`, init)
   }
 
+  services(init: RequestInit = {}, hotelSlug?: string): Promise<PublicServiceCatalogResponse> {
+    return this.request<PublicServiceCatalogResponse>(this.hotelPath('/services', hotelSlug), init)
+  }
+
   quote(body: PublicQuoteRequest, init: RequestInit = {}, hotelSlug?: string): Promise<PublicQuoteResponse> {
     const refused = this.writeRefusal()
     if (refused) return refused
@@ -231,10 +236,12 @@ export class PublicBookingClient {
   confirmation(token: string, init: RequestInit = {}): Promise<PublicBookingConfirmationResponse> {
     const refused = this.writeRefusal()
     if (refused) return refused
-    return this.request<PublicBookingConfirmationResponse>(
-      `/bookings/confirmation/${encodeURIComponent(token)}`,
-      init,
-    )
+    return this.request<PublicBookingConfirmationResponse>('/bookings/confirmation', {
+      ...init,
+      method: 'POST',
+      cache: init.cache ?? 'no-store',
+      body: JSON.stringify({ confirmationToken: token }),
+    })
   }
 
   recoverConfirmation(

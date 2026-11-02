@@ -65,6 +65,7 @@ const SAFE_COPY: Record<string, string> = {
   RATE_PLAN_NOT_FOUND: 'Цей тариф недоступний.',
   IDEMPOTENCY_CONFLICT: 'Заявку вже надіслано з іншими даними. Оновіть сторінку.',
   PUBLIC_BOOKING_UNAVAILABLE: 'Публічне бронювання зараз недоступне.',
+  SERVICE_NOT_BOOKABLE: 'Цю послугу зараз не можна додати. Оновіть список і спробуйте без неї.',
   EMAIL_DELIVERY_FAILED: 'Не вдалося надіслати лист. Спробуйте ще раз.',
 }
 

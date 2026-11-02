@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../components/BookingCalendar'
 import {
@@ -8,6 +8,7 @@ import {
   QuoteSummary,
   RoomOptions,
 } from '../components/booking/CheckoutPanels'
+import { ServiceOptions } from '../components/booking/ServiceOptions'
 import { emptyDraft, type BookingDraft } from '../lib/booking'
 import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
@@ -28,6 +29,8 @@ import {
   useStaySearch,
   type GuestFieldErrors,
 } from '../lib/publicBooking'
+import { selectedServiceLines } from '../lib/publicBooking/publicServices'
+import { usePublicServices } from '../lib/publicBooking/usePublicServices'
 import { bookingSubmitBlockReason, ROOM_SELECTION_HEADING, ROOM_SELECTION_INSTRUCTION } from '../lib/publicBooking/bookingSelection'
 import { calendarRejectsStay, reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
@@ -121,6 +124,12 @@ export function BookingFlow() {
       bookingHotelMatchesCategory(handoff.hotelSlug, category))
   const roomRejected = Boolean(handoff && mapped.status !== 'loading' && !identityReady)
   const activeCalendar = locked ? mapped : calendar
+  const catalog = usePublicServices(hotelSlug ?? undefined)
+  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>({})
+  const serviceLines = useMemo(
+    () => selectedServiceLines(serviceQuantities, catalog.items),
+    [catalog.items, serviceQuantities],
+  )
   const quoteBlocked = calendarRejectsStay({
     status: activeCalendar.status,
     hotelToday: activeCalendar.hotelToday,
@@ -139,6 +148,7 @@ export function BookingFlow() {
     hotelSlug ?? undefined,
     category === 'houses' ? 'COTTAGE' : 'ROOM',
     quoteBlocked,
+    serviceLines,
   )
   const stayGuard = useStayGuard(search.stayRejection)
   const checkout = useBookingCheckout(
@@ -441,6 +451,24 @@ export function BookingFlow() {
                 </Link>
               </div>
             </div>
+          ) : null}
+
+          {bookingEnabled && catalog.status === 'loading' ? (
+            <p className="text-sm text-wood/60">Завантажуємо додаткові послуги…</p>
+          ) : null}
+          {bookingEnabled && catalog.status !== 'loading' ? (
+            <ServiceOptions
+              items={catalog.items}
+              quantities={serviceQuantities}
+              onChange={(serviceId, quantity) =>
+                setServiceQuantities((current) => {
+                  const next = { ...current }
+                  if (quantity == null) delete next[serviceId]
+                  else next[serviceId] = quantity
+                  return next
+                })
+              }
+            />
           ) : null}
 
           {bookingEnabled ? (

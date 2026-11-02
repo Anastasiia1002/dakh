@@ -297,6 +297,17 @@ describe('stay helpers', () => {
       ratePlanId,
     })
     assert.equal(quoteBody && 'discountAmount' in quoteBody, false)
+    assert.equal(quoteBody && 'services' in quoteBody, false)
+    const withService = publicQuoteBody({
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      adults: 2,
+      children: 0,
+      roomTypeId,
+      ratePlanId,
+      services: [{ serviceId: 'svc-1', quantity: 2 }],
+    })
+    assert.deepEqual(withService?.services, [{ serviceId: 'svc-1', quantity: 2 }])
     const twoAdults = publicQuoteBody({
       checkIn: '2026-11-10',
       checkOut: '2026-11-13',

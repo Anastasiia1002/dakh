@@ -20,7 +20,15 @@ import {
   shouldRequestQuote,
   stayIsSearchable,
 } from './stay'
-import type { PublicAvailabilityResponse, PublicAvailabilityRoomType, PublicQuoteResponse } from './types'
+import { serviceSelectionKey } from './publicServices'
+import type {
+  PublicAvailabilityResponse,
+  PublicAvailabilityRoomType,
+  PublicQuoteResponse,
+  PublicServiceSelection,
+} from './types'
+
+const EMPTY_SERVICE_LINES: readonly PublicServiceSelection[] = []
 
 type Status = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
 
@@ -43,6 +51,7 @@ export function useStaySearch(
   hotelSlug?: string,
   kind?: 'ROOM' | 'COTTAGE',
   quoteBlocked = false,
+  serviceLines: readonly PublicServiceSelection[] = EMPTY_SERVICE_LINES,
 ) {
   const guestCount = guestCountOf(adults, children)
   const configured = isPublicApiConfigured()
@@ -69,7 +78,8 @@ export function useStaySearch(
   const rejectionSerial = useRef(0)
   const rejectedQuoteKeys = useRef(new Set<string>())
 
-  const search = { checkIn, checkOut, guestCount, adults, children, roomTypeId, ratePlanId }
+  const servicesKey = serviceSelectionKey(serviceLines)
+  const search = { checkIn, checkOut, guestCount, adults, children, roomTypeId, ratePlanId, servicesKey }
 
   const currentAvailability =
     availabilityReadyKey === availabilityKey && availability && availabilityMatchesSearch(availability, search)
@@ -95,6 +105,7 @@ export function useStaySearch(
           roomTypeId,
           ratePlanId: selectedPlan.ratePlanId,
           kind,
+          servicesKey,
         })
       : ''
 
@@ -157,6 +168,7 @@ export function useStaySearch(
       children,
       roomTypeId,
       ratePlanId: selectedPlan.ratePlanId,
+      services: serviceLines,
     })
     if (!body) return
     const controller = new AbortController()
@@ -176,7 +188,11 @@ export function useStaySearch(
           })
         ) {
           setQuote(null)
-          setQuoteError('Сервер повернув інший склад гостей. Спробуйте ще раз.')
+          setQuoteError(
+            serviceSelectionKey(response.services) === servicesKey
+              ? 'Сервер повернув інший склад гостей. Спробуйте ще раз.'
+              : 'Сервер повернув інший набір послуг. Спробуйте ще раз.',
+          )
           setQuoteReadyKey(requestedKey)
           return
         }
@@ -206,7 +222,7 @@ export function useStaySearch(
       })
 
     return () => controller.abort()
-  }, [adults, bookingEnabled, checkIn, checkOut, children, guestCount, quoteKey, requestedHotel, roomTypeId, selectedPlan])
+  }, [adults, bookingEnabled, checkIn, checkOut, children, guestCount, quoteKey, requestedHotel, roomTypeId, selectedPlan, serviceLines, servicesKey])
 
   const currentQuote =
     quoteReadyKey === quoteKey && quote && quoteMatchesSearch(quote, search) ? quote : null

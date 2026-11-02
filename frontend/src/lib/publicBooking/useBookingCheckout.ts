@@ -16,6 +16,7 @@ import {
 } from './checkout'
 import { errorCopy, isAbortError, isPublicApiError, quoteFromPriceChanged, retryAfterSeconds } from './errors'
 import { guestCommentForIntent, toGuestContact } from './guest'
+import { quoteServiceSelection } from './publicServices'
 import { intentStayFromQuote } from './stay'
 import type {
   PublicBookingConfirmationResponse,
@@ -106,6 +107,7 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
       setError('Склад гостей у розрахунку не збігається. Оновіть розрахунок перед заявкою.')
       return null
     }
+    const services = quoteServiceSelection(quote)
     const created = await publicBookingClient.createIntent(
       {
         checkIn: quote.checkIn,
@@ -119,6 +121,7 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
         acceptedTotalAmount: quote.totalAmount,
         guest: toGuestContact(guest),
         guestComment: guestCommentForIntent(guest.comment ?? ''),
+        ...(services ? { services } : {}),
       },
       { idempotencyKey: idempotencyKey.current },
       hotelSlug,

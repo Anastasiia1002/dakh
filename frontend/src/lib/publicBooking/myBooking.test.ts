@@ -63,12 +63,40 @@ describe('guest booking lookup', () => {
     assert.equal(updated?.guests, '2 гості')
   })
 
-  it('does not invent adults, children, services, or a non-confirmed status', () => {
-    assert.equal(guestBookingView(confirmation({ status: 'CANCELLED' as 'CONFIRMED' }), 'Кімната', '2 гості'), null)
+  it('shows a cancelled booking, party, services, and payment from the server', () => {
     assert.equal(guestBookingView(confirmation({ currency: 'EUR' as 'UAH' }), 'Кімната', '2 гості'), null)
-    const view = guestBookingView(confirmation(), 'Кімната', guestCountLabel(4))
-    assert.equal(JSON.stringify(view).includes('adults'), false)
-    assert.equal(JSON.stringify(view).includes('services'), false)
+    const cancelled = guestBookingView(
+      confirmation({
+        status: 'CANCELLED',
+        adults: 2,
+        children: 1,
+        roomNumber: '14',
+        paymentStatus: 'UNPAID',
+        services: [
+          {
+            serviceId: 'svc-1',
+            name: 'Сніданок',
+            quantity: 2,
+            unitPrice: '100.00',
+            totalPrice: '200.00',
+            currency: 'UAH',
+          },
+        ],
+      }),
+      'Кімната',
+      guestCountLabel(3),
+    )
+    assert.equal(cancelled?.statusLabel, 'Скасовано')
+    assert.equal(cancelled?.cancelled, true)
+    assert.equal(cancelled?.guests, '2 дорослих, 1 дитина')
+    assert.equal(cancelled?.roomNumber, '14')
+    assert.equal(cancelled?.services[0]?.totalPrice, '200.00')
+    assert.equal(cancelled?.paymentLabel, 'Не оплачено')
+    assert.equal(JSON.stringify(cancelled).includes(TOKEN), false)
+    const withoutParty = guestBookingView(confirmation(), 'Кімната', guestCountLabel(4))
+    assert.equal(withoutParty?.adults, null)
+    assert.equal(withoutParty?.services.length, 0)
+    assert.equal(withoutParty?.paymentLabel, null)
   })
 
   it('uses one message for an unknown code and a different one for rate limiting', () => {
@@ -109,6 +137,8 @@ describe('guest booking lookup', () => {
     assert.equal(page.includes('sessionStorage'), false)
     assert.equal(page.includes('gtag'), false)
     assert.match(lookup, /cache: 'no-store'/)
+    assert.match(readFileSync(new URL('./client.ts', import.meta.url), 'utf8'), /method: 'POST'/)
+    assert.equal(readFileSync(new URL('./client.ts', import.meta.url), 'utf8').includes('/bookings/confirmation/${'), false)
     assert.match(page, /type=\{revealed \? 'text' : 'password'\}/)
     assert.match(app, /path="\/moie-bronyuvannya"/)
   })
