@@ -7,6 +7,7 @@ import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
 import { DEMO_PRICE_COPY, isDemoStayTotal, stayNights } from '../lib/publicBooking/stay'
+import { guestCountLabel } from '../lib/ukrainian'
 import {
   isConfirmationToken,
   readStoredConfirmationToken,
@@ -100,8 +101,7 @@ export function ConfirmationPage() {
               (isHiddenInventoryLabel(confirmation.roomTypeName) ? 'Кімната' : confirmation.roomTypeName)}
           </p>
           <p className="mt-4 text-sm text-wood/70">
-            {formatDate(confirmation.checkIn)} — {formatDate(confirmation.checkOut)} · {confirmation.guestCount}{' '}
-            {confirmation.guestCount === 1 ? 'гість' : 'гостей'}
+            {formatDate(confirmation.checkIn)} — {formatDate(confirmation.checkOut)} · {guestCountLabel(confirmation.guestCount)}
           </p>
           <p className="mt-6 text-sm">
             Номер бронювання:{' '}

@@ -15,8 +15,9 @@ import {
   type DayVisual,
 } from '../lib/publicBooking/calendar'
 import { calendarPopoverWidth, calendarUsesTwoMonths } from '../lib/publicBooking/roomIdentity'
-import { MAX_GUESTS } from '../lib/publicBooking/types'
-import type { PublicCalendarDay } from '../lib/publicBooking/types'
+import { guestPanelFrame } from '../lib/publicBooking/guestPanel'
+import { MAX_GUESTS, type PublicCalendarDay } from '../lib/publicBooking/types'
+import { adultCountLabel, childCountLabel, guestCountLabel } from '../lib/ukrainian'
 import {
   addMonths,
   formatDate,
@@ -78,7 +79,9 @@ export function BookingCalendar({
   const now = new Date()
   const root = useRef<HTMLDivElement>(null)
   const [panel, setPanel] = useState<Panel>(null)
+  const guestButton = useRef<HTMLButtonElement>(null)
   const [place, setPlace] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
+  const [guestPlace, setGuestPlace] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
   const [hover, setHover] = useState('')
   const [focusIso, setFocusIso] = useState('')
   const [cursor, setCursor] = useState(() => ({
@@ -169,6 +172,35 @@ export function BookingCalendar({
     }
   }, [panel, align])
 
+  useLayoutEffect(() => {
+    if (panel !== 'guests') return
+    function updateGuestPlace() {
+      const el = guestButton.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const next = guestPanelFrame(
+        { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+        { width: window.innerWidth, height: window.innerHeight },
+      )
+      setGuestPlace((current) =>
+        current &&
+        current.top === next.top &&
+        current.left === next.left &&
+        current.width === next.width &&
+        current.maxHeight === next.maxHeight
+          ? current
+          : next,
+      )
+    }
+    updateGuestPlace()
+    window.addEventListener('resize', updateGuestPlace)
+    window.addEventListener('scroll', updateGuestPlace, true)
+    return () => {
+      window.removeEventListener('resize', updateGuestPlace)
+      window.removeEventListener('scroll', updateGuestPlace, true)
+    }
+  }, [panel])
+
   const dateLabel =
     checkIn && checkOut
       ? `${formatDayMonth(checkIn)} — ${formatDayMonth(checkOut)}`
@@ -176,7 +208,7 @@ export function BookingCalendar({
         ? `${formatDayMonth(checkIn)} — Дата виїзду`
         : 'Дата заїзду — Дата виїзду'
 
-  const guestLabel = `${adults} ${adults === 1 ? 'дорослий' : 'дорослих'} · ${kids} ${ukPlural(kids, 'дитина', 'дитини', 'дітей')} · 1 номер`
+  const guestLabel = `${adultCountLabel(adults)} · ${childCountLabel(kids)} · 1 номер`
 
   function allowCheckIn(iso: string) {
     if (readOnly || blockedCheckIns?.has(iso)) return false
@@ -231,8 +263,10 @@ export function BookingCalendar({
           <CalendarIcon />
         </button>
         <button
+          ref={guestButton}
           type="button"
           aria-expanded={panel === 'guests'}
+          aria-haspopup="dialog"
           onClick={() => setPanel((value) => (value === 'guests' ? null : 'guests'))}
           className="flex min-h-14 items-center justify-between gap-4 border-t border-[#c4a35a] px-5 py-4 text-left @min-[20rem]:border-t-0"
         >
@@ -240,7 +274,7 @@ export function BookingCalendar({
             <span className="block text-[0.68rem] font-medium tracking-[0.14em] uppercase text-wood/55">
               Виберіть місткість
             </span>
-            <span className="mt-1 block text-sm">{guestLabel}</span>
+            <span className="mt-1 block text-sm text-balance">{guestLabel}</span>
           </span>
           <PersonIcon />
         </button>
@@ -322,8 +356,18 @@ export function BookingCalendar({
       </div>
       ) : null}
 
-      {panel === 'guests' ? (
-        <div className="absolute right-0 z-40 mt-2 w-full max-w-sm border border-wood/10 bg-linen p-5 shadow-[0_16px_40px_rgba(91,56,43,0.12)]">
+      {panel === 'guests' && guestPlace ? (
+        <div
+          role="dialog"
+          aria-label="Кількість гостей"
+          className="fixed z-50 overflow-y-auto overscroll-contain border border-wood/10 bg-linen p-5 shadow-[0_16px_40px_rgba(91,56,43,0.12)]"
+          style={{
+            top: guestPlace.top,
+            left: guestPlace.left,
+            width: guestPlace.width,
+            maxHeight: guestPlace.maxHeight,
+          }}
+        >
           <Stepper
             label="Дорослі"
             value={adults}
@@ -340,8 +384,7 @@ export function BookingCalendar({
           />
           <Stepper label="Помешкання" value={1} min={1} max={1} onChange={() => undefined} />
           <p className="mt-3 text-[0.72rem] text-wood/50">
-            Разом {guestTotal} {ukPlural(guestTotal, 'гість', 'гості', 'гостей')}. Одна заявка — одне
-            помешкання.
+            Разом {guestCountLabel(guestTotal)}. Одна заявка — одне помешкання.
           </p>
         </div>
       ) : null}
@@ -544,7 +587,7 @@ function Stepper({
   onChange: (value: number) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-6 border-b border-wood/10 py-3 last:border-0">
+    <div className="flex items-center justify-between gap-3 border-b border-wood/10 py-3 last:border-0">
       <span className="text-sm">{label}</span>
       <div className="flex items-center gap-3">
         <button
@@ -637,15 +680,6 @@ function CalendarLegend({
       </p>
     </div>
   )
-}
-
-function ukPlural(count: number, one: string, few: string, many: string) {
-  const abs = Math.abs(count) % 100
-  const last = abs % 10
-  if (abs > 10 && abs < 20) return many
-  if (last === 1) return one
-  if (last >= 2 && last <= 4) return few
-  return many
 }
 
 function CalendarIcon() {

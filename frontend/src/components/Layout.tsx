@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
 import { DakhLogo } from './BrandMarks'
@@ -51,9 +51,36 @@ function ScrollToTop() {
 
 export function Layout() {
   const { pathname } = useLocation()
+  const [menuPath, setMenuPath] = useState(pathname)
   const [open, setOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  if (menuPath !== pathname) {
+    setMenuPath(pathname)
+    setOpen(false)
+  }
   const overHero = pathname === '/' || pathname === '/menu'
   const tone = overHero ? 'linen' : 'wood'
+
+  useEffect(() => {
+    if (!open) return
+    menuRef.current?.querySelector<HTMLElement>('a, button')?.focus()
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      menuButtonRef.current?.focus()
+    }
+    function closeOnDesktop(event: MediaQueryListEvent) {
+      if (event.matches) setOpen(false)
+    }
+    const desktop = window.matchMedia('(min-width: 1024px)')
+    document.addEventListener('keydown', onKey)
+    desktop.addEventListener('change', closeOnDesktop)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      desktop.removeEventListener('change', closeOnDesktop)
+    }
+  }, [open])
 
   return (
     <div className="min-h-screen bg-linen text-wood">
@@ -70,9 +97,9 @@ export function Layout() {
             Тестовий режим. 2 000 ₴ за ніч — демонстраційна ціна, не комерційна. Оплата не стягується.
           </p>
         ) : null}
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 md:gap-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 lg:gap-5">
           <DakhLogo tone={tone} compact />
-          <nav className="hidden items-center gap-8 text-[0.72rem] font-medium tracking-[0.16em] uppercase md:flex">
+          <nav className="hidden min-w-0 items-center gap-5 text-[0.72rem] font-medium tracking-[0.14em] uppercase lg:flex xl:gap-8 xl:tracking-[0.16em]">
             {nav.map((item) => (
               <NavLink
                 key={item.to}
@@ -88,16 +115,18 @@ export function Layout() {
           <div className="flex shrink-0 items-center gap-2">
             <a
               href={site.phoneHrefs[0]}
-              className={`${headerAction} border border-current md:hidden`}
+              className={`${headerAction} border border-current lg:hidden`}
               aria-label={`Подзвонити ${site.phones[0]}`}
             >
               Подзвонити
             </a>
-            <HeaderActions className="hidden md:flex" />
+            <HeaderActions className="hidden lg:flex" />
             <button
+              ref={menuButtonRef}
               type="button"
-              className="md:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center lg:hidden"
               aria-expanded={open}
+              aria-controls="site-menu"
               aria-label={open ? 'Закрити меню' : 'Відкрити меню'}
               onClick={() => setOpen((value) => !value)}
             >
@@ -107,13 +136,17 @@ export function Layout() {
           </div>
         </div>
         {open ? (
-          <div className="mx-6 border border-wood/10 bg-linen px-6 py-6 text-wood md:hidden">
+          <div
+            id="site-menu"
+            ref={menuRef}
+            className="mx-6 border border-wood/10 bg-linen px-6 py-6 text-wood lg:hidden"
+          >
             {nav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className="block py-2 text-sm tracking-[0.12em] uppercase"
+                className="flex min-h-11 items-center py-2 text-sm tracking-[0.12em] uppercase"
               >
                 {item.label}
               </NavLink>

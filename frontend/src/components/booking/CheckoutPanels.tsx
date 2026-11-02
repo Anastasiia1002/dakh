@@ -12,19 +12,13 @@ import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/displa
 import { DEMO_PRICE_COPY, isDemoNightlyAmount, isDemoQuotedStay, isDemoRate } from '../../lib/publicBooking/stay'
 import { roomListPresentation, roomOptionFrame, roomOptionMark, type RoomPlace } from '../../lib/publicBooking/bookingSelection'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
+import { guestCountLabel, partySummary } from '../../lib/ukrainian'
 import type { BookingDraft } from '../../lib/booking'
 import type {
   PublicAvailabilityRatePlan,
   PublicAvailabilityRoomType,
   PublicQuoteResponse,
 } from '../../lib/publicBooking/types'
-
-function childCountLabel(count: number) {
-  const mod10 = count % 10
-  const mod100 = count % 100
-  const word = mod10 === 1 && mod100 !== 11 ? 'дитина' : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'дитини' : 'дітей'
-  return `${count} ${word}`
-}
 
 function fieldClass(error?: string) {
   return [
@@ -371,6 +365,7 @@ export function QuoteSummary({
   fitNote?: string
 }) {
   const roomName = room ? publicRoomLabel(room.name, room.kind, roomLabel) : roomLabel
+  const guests = partySummary(adults, kids)
   if (!checkIn || !checkOut || nights < 1) {
     return (
       <div className="mt-6 text-sm">
@@ -400,8 +395,7 @@ export function QuoteSummary({
         <div className="mt-6 text-sm leading-relaxed text-wood/70">
           {roomName ? <p className="font-medium">{roomName}</p> : null}
           <p className={roomName ? 'mt-2' : undefined}>
-            {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {adults} дорослих
-            {kids ? `, ${childCountLabel(kids)}` : ''}
+            {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guests}
           </p>
           <p className="mt-2">{fitNote}</p>
           <p className="mt-2">Дати заїзду й виїзду залишаються. Зменшіть кількість гостей або оберіть інше помешкання.</p>
@@ -427,8 +421,7 @@ export function QuoteSummary({
       <div className="mt-6 text-sm leading-relaxed text-wood/70">
         <p className="font-medium">{roomName}</p>
         <p className="mt-2">
-          {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
-          {guestCount === 1 ? 'гість' : 'гостей'}
+          {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCountLabel(guestCount)}
         </p>
         <p className="mt-2">
           {room.availableCount < 1
@@ -448,8 +441,7 @@ export function QuoteSummary({
         <div className="mt-6 text-sm leading-relaxed text-wood/70">
           <p className="font-medium">{roomName}</p>
           <p className="mt-2">
-            {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCount}{' '}
-            {guestCount === 1 ? 'гість' : 'гостей'}
+            {formatDate(checkIn)} — {formatDate(checkOut)} · {nights} н. · {guestCountLabel(guestCount)}
           </p>
           <p className="mt-2">На ці дати немає повної суми за проживання. Тестову ціну не показуємо.</p>
         </div>
@@ -464,8 +456,7 @@ export function QuoteSummary({
           {formatDate(checkIn)} — {formatDate(checkOut)}
         </p>
         <p className="mt-1 text-wood/70">
-          {adults} дорослих
-          {kids ? `, ${kids} дітей` : ''} · {nights} н. · вільних {room.availableCount}
+          {guests} · {nights} н. · вільних {room.availableCount}
         </p>
         <p className="mt-6 font-display text-3xl">{formatMoneyAmount(total)}</p>
         <p className="mt-2 text-[0.72rem] text-wood/55">
@@ -505,8 +496,7 @@ export function QuoteSummary({
         {formatDate(quote.checkIn)} — {formatDate(quote.checkOut)}
       </p>
       <p className="mt-1 text-wood/70">
-        {adults} дорослих
-        {kids ? `, ${kids} дітей` : ''} · {quote.nights.length} н.
+        {guests} · {quote.nights.length} н.
       </p>
       <ul className="mt-4 space-y-1 text-wood/70">
         {quote.nights.map((night) => (
