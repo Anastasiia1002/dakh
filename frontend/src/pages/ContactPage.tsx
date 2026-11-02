@@ -1,42 +1,27 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { site } from '../data/catalog'
 import { emailError } from '../lib/email'
+import {
+  CONTACT_ACCEPTED_COPY,
+  canSubmitContact,
+  contactFailureCopy,
+  emptyContactFields,
+  fieldsAfterContactResult,
+  postContactMessage,
+  validateContact,
+  type ContactFields,
+  type ContactErrors,
+} from '../lib/contactForm'
 import { formatUaMobile, uaMobileError } from '../lib/phone'
+import { resolvePublicApiBaseUrl } from '../lib/publicBooking/config'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
-type Fields = {
-  name: string
-  phone: string
-  email: string
-  message: string
-}
+type Fields = ContactFields
+type Errors = ContactErrors
 
-type Errors = Partial<Record<keyof Fields, string>>
-
-const emptyFields: Fields = { name: '', phone: '', email: '', message: '' }
-
-function validate(values: Fields): Errors {
-  const errors: Errors = {}
-  const name = values.name.trim()
-  const message = values.message.trim()
-
-  if (!name) errors.name = 'Вкажіть ім’я.'
-  else if (name.length < 2) errors.name = 'Ім’я має мати щонайменше дві літери.'
-  else if (!/\p{L}/u.test(name)) errors.name = 'Ім’я має містити літери.'
-
-  const phoneError = uaMobileError(values.phone)
-  if (phoneError) errors.phone = phoneError
-
-  const mailError = emailError(values.email)
-  if (mailError) errors.email = mailError
-
-  if (!message) errors.message = 'Напишіть, про що йдеться.'
-  else if (message.length < 8) errors.message = 'Трохи більше деталей — хоча б кілька слів.'
-
-  return errors
-}
+const emptyFields = emptyContactFields
 
 function fieldClass(error?: string) {
   return [
@@ -85,18 +70,24 @@ const cta =
   'inline-flex w-full items-center justify-center bg-clay px-8 py-3 text-center text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen'
 
 export function ContactPage() {
-  const [sent, setSent] = useState(false)
+  const [accepted, setAccepted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [company, setCompany] = useState('')
   const [values, setValues] = useState<Fields>(emptyFields)
   const [errors, setErrors] = useState<Errors>({})
   const [attempted, setAttempted] = useState(false)
   const [phoneChecked, setPhoneChecked] = useState(false)
   const [emailChecked, setEmailChecked] = useState(false)
+  const sendingRef = useRef(false)
+  const idempotencyRef = useRef<string | null>(null)
+  const fingerprintRef = useRef('')
 
   function update<Key extends keyof Fields>(key: Key, value: string) {
     setValues((current) => {
       const next = { ...current, [key]: value }
       if (attempted || (key === 'phone' && phoneChecked) || (key === 'email' && emailChecked)) {
-        setErrors(validate(next))
+        setErrors(validateContact(next))
       }
       return next
     })
@@ -108,7 +99,7 @@ export function ContactPage() {
     if (formatted) {
       setValues((current) => ({ ...current, phone: formatted }))
       setErrors((current) => {
-        const next = validate({ ...values, phone: formatted })
+        const next = validateContact({ ...values, phone: formatted })
         return attempted ? next : { ...current, phone: undefined }
       })
       return
@@ -131,14 +122,15 @@ export function ContactPage() {
       return
     }
     setErrors((current) => {
-      const next = validate({ ...values, email: trimmed })
+      const next = validateContact({ ...values, email: trimmed })
       return attempted ? next : { ...current, email: undefined }
     })
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const nextErrors = validate(values)
+    if (!canSubmitContact(sendingRef.current)) return
+    const nextErrors = validateContact(values)
     setAttempted(true)
     setErrors(nextErrors)
     const first = (['name', 'phone', 'email', 'message'] as const).find((key) => nextErrors[key])
@@ -147,22 +139,39 @@ export function ContactPage() {
       return
     }
 
-    const note = {
+    const submission = {
       name: values.name.trim(),
       phone: formatUaMobile(values.phone) || values.phone.trim(),
       email: values.email.trim().toLowerCase(),
       message: values.message.trim(),
-      at: new Date().toISOString(),
+      company,
     }
-    const key = 'dakh-messages'
-    const prev = JSON.parse(localStorage.getItem(key) || '[]') as unknown[]
-    localStorage.setItem(key, JSON.stringify([note, ...prev]))
-    setSent(true)
-    setValues(emptyFields)
-    setErrors({})
-    setAttempted(false)
-    setPhoneChecked(false)
-    setEmailChecked(false)
+    const fingerprint = JSON.stringify(submission)
+    if (fingerprintRef.current !== fingerprint || !idempotencyRef.current) {
+      fingerprintRef.current = fingerprint
+      idempotencyRef.current = crypto.randomUUID()
+    }
+    sendingRef.current = true
+    setSending(true)
+    setNotice('')
+    const result = await postContactMessage(submission, {
+      baseUrl: resolvePublicApiBaseUrl(),
+      idempotencyKey: idempotencyRef.current,
+    })
+    sendingRef.current = false
+    setSending(false)
+    if (result.ok) {
+      setAccepted(true)
+      setValues(fieldsAfterContactResult(values, true))
+      setErrors({})
+      setAttempted(false)
+      setPhoneChecked(false)
+      setEmailChecked(false)
+      setCompany('')
+      return
+    }
+    setValues(fieldsAfterContactResult(values, false))
+    setNotice(contactFailureCopy(result.kind))
   }
 
   return (
@@ -235,9 +244,9 @@ export function ContactPage() {
         </section>
       </div>
 
-      {sent ? (
-        <p className="mt-20 max-w-2xl bg-beige px-6 py-8 text-sm leading-relaxed">
-          Дякуємо. Ми прочитаємо повідомлення й відповімо на вказаний телефон або пошту.
+      {accepted ? (
+        <p className="mt-20 max-w-2xl bg-beige px-6 py-8 text-sm leading-relaxed" role="status">
+          {CONTACT_ACCEPTED_COPY}
         </p>
       ) : (
         <form noValidate onSubmit={submit} className="mt-20 grid gap-6 border-t border-wood/10 pt-16">
@@ -293,10 +302,22 @@ export function ContactPage() {
               />
             </FormField>
           </div>
-          <FormField label="Що потрібно" error={errors.message}>
+          <div hidden>
+            <input
+              name="company"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              value={company}
+              onChange={(event) => setCompany(event.target.value)}
+            />
+          </div>
+          <FormField label="Що потрібно" required error={errors.message}>
             <textarea
               name="message"
               rows={4}
+              required
+              aria-required="true"
               placeholder="Наприклад: стіл на п’ятьох у суботу або кімната на дві ночі"
               value={values.message}
               aria-invalid={Boolean(errors.message)}
@@ -304,8 +325,18 @@ export function ContactPage() {
               className={fieldClass(errors.message)}
             />
           </FormField>
-          <button type="submit" className={`${cta} justify-self-start md:w-auto`}>
-            Надіслати
+          {notice ? (
+            <p className="text-sm leading-relaxed text-clay" role="alert">
+              {notice}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={!canSubmitContact(sending)}
+            aria-busy={sending}
+            className={`${cta} min-h-11 justify-self-start disabled:opacity-60 md:w-auto`}
+          >
+            {sending ? 'Надсилаємо…' : 'Надіслати'}
           </button>
         </form>
       )}
