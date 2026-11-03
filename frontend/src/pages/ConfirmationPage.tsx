@@ -8,7 +8,7 @@ import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
 import { DEMO_PRICE_COPY, isDemoStayTotal, stayNights } from '../lib/publicBooking/stay'
 import { guestStatusLabel } from '../lib/publicBooking/myBooking'
-import { partySummary, guestCountLabel } from '../lib/ukrainian'
+import { knownPartySummary, guestCountLabel } from '../lib/ukrainian'
 import {
   isConfirmationToken,
   readStoredConfirmationToken,
@@ -115,9 +115,11 @@ export function ConfirmationPage() {
           </p>
           <p className="mt-4 text-sm text-wood/70">
             {formatDate(confirmation.checkIn)} — {formatDate(confirmation.checkOut)} ·{' '}
-            {Number.isInteger(confirmation.adults) && Number.isInteger(confirmation.children)
-              ? partySummary(confirmation.adults!, confirmation.children!)
-              : guestCountLabel(confirmation.guestCount)}
+            {knownPartySummary(
+              Number.isInteger(confirmation.adults) ? confirmation.adults! : null,
+              Number.isInteger(confirmation.children) ? confirmation.children! : null,
+              confirmation.guestCount,
+            ) ?? guestCountLabel(confirmation.guestCount)}
           </p>
           {(confirmation.services ?? []).length > 0 ? (
             <ul className="mt-4 space-y-1 text-sm text-wood/70">
@@ -133,8 +135,9 @@ export function ConfirmationPage() {
           ) : null}
           <p className="mt-6 text-sm">
             Номер бронювання:{' '}
-            <span className="font-medium">{confirmation.bookingReference}</span>
+            <span className="font-medium break-all">{confirmation.bookingReference}</span>
           </p>
+          {validToken ? <IssuedAccessCode code={validToken} /> : null}
           <p className="mt-6 font-display text-3xl">{formatMoneyAmount(confirmation.totalAmount)}</p>
           <p className="mt-2 text-[0.72rem] text-wood/55">Сума в {confirmation.currency}. Дані з сервера.</p>
           {isDemoStayTotal(confirmation.totalAmount, stayNights(confirmation.checkIn, confirmation.checkOut)) ? (
@@ -188,5 +191,45 @@ export function ConfirmationPage() {
         {bookingEnabled ? 'До бронювання' : 'До кімнат'}
       </Link>
     </section>
+  )
+}
+
+function IssuedAccessCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div className="mt-6">
+      <label htmlFor="issued-access-code" className="text-sm">
+        Код доступу
+      </label>
+      <p className="mt-1 text-[0.72rem] leading-relaxed text-wood/55">
+        Це не номер бронювання. Збережіть код, щоб відкрити бронювання пізніше.
+      </p>
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <input
+          id="issued-access-code"
+          readOnly
+          value={code}
+          className="access-code min-h-11 w-full min-w-0 border-0 border-b border-wood/25 bg-transparent py-2 font-medium break-all"
+          onFocus={(event) => event.currentTarget.select()}
+        />
+        <button
+          type="button"
+          className="min-h-11 shrink-0 px-4 text-left text-[0.72rem] tracking-[0.12em] uppercase text-wood"
+          onClick={() => void copy()}
+        >
+          {copied ? 'Скопійовано' : 'Копіювати'}
+        </button>
+      </div>
+    </div>
   )
 }

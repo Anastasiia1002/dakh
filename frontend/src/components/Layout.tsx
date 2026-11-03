@@ -5,14 +5,15 @@ import { DakhLogo } from './BrandMarks'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
-const nav = [
+const headerNav = [
   { to: '/rooms', label: 'Кімнати' },
   { to: '/houses', label: 'Будинки' },
   { to: '/menu', label: 'Ресторан' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },
-  { to: '/moie-bronyuvannya', label: 'Моє бронювання' },
 ]
+
+const footerNav = [...headerNav, { to: '/moie-bronyuvannya', label: 'Моє бронювання' }]
 
 const headerAction =
   'inline-flex items-center justify-center px-4 py-2.5 text-[0.68rem] font-semibold tracking-[0.16em] uppercase md:px-5 md:text-[0.72rem]'
@@ -101,7 +102,7 @@ export function Layout() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 lg:gap-5">
           <DakhLogo tone={tone} compact />
           <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[0.68rem] font-medium tracking-[0.12em] uppercase lg:flex xl:gap-x-6 xl:text-[0.72rem] xl:tracking-[0.14em]">
-            {nav.map((item) => (
+            {headerNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -142,7 +143,7 @@ export function Layout() {
             ref={menuRef}
             className="mx-6 border border-wood/10 bg-linen px-6 py-6 text-wood lg:hidden"
           >
-            {nav.map((item) => (
+            {headerNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -171,8 +172,8 @@ export function Layout() {
           </div>
           <div className="text-sm">
             <p className="kicker mb-3 text-[0.68rem] text-wood/55">Навігація</p>
-            {nav.map((item) => (
-              <Link key={item.to} to={item.to} className="block py-1">
+            {footerNav.map((item) => (
+              <Link key={item.to} to={item.to} className="block min-h-11 py-2 sm:min-h-0 sm:py-1">
                 {item.label}
               </Link>
             ))}

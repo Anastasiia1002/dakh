@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { adultCountLabel, childCountLabel, guestCountLabel, partySummary } from './ukrainian'
+import { adultCountLabel, childCountLabel, guestCountLabel, knownPartySummary, partySummary } from './ukrainian'
 
 describe('Ukrainian guest pluralization', () => {
   it('declines children', () => {
@@ -32,7 +32,14 @@ describe('Ukrainian guest pluralization', () => {
     assert.equal(guestCountLabel(5), '5 гостей')
     assert.equal(guestCountLabel(11), '11 гостей')
     assert.equal(guestCountLabel(21), '21 гість')
-    assert.equal(partySummary(2, 1), '2 дорослих, 1 дитина')
+    assert.equal(partySummary(2, 0), '2 дорослих')
+    assert.equal(partySummary(2, 1), '2 дорослих · 1 дитина')
+    assert.equal(partySummary(3, 2), '3 дорослих · 2 дітей')
+    assert.equal(partySummary(1, 3), '1 дорослий · 3 дітей')
     assert.equal(partySummary(1, 0), '1 дорослий')
+    assert.equal(knownPartySummary(2, 1, 3), '2 дорослих · 1 дитина')
+    assert.equal(knownPartySummary(2, 0, 2), '2 дорослих')
+    assert.equal(knownPartySummary(null, null, 3), null)
+    assert.equal(knownPartySummary(1, 0, 3), null)
   })
 })

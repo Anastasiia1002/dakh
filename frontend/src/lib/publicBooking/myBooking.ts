@@ -1,12 +1,16 @@
-import { partySummary } from '../ukrainian'
+import { knownPartySummary } from '../ukrainian'
 import { publicBookingClient, type PublicBookingClient } from './client'
 import { isConfirmationToken } from './checkout'
 import { errorCopy, isPublicApiError } from './errors'
 import { stayNights } from './stay'
 import type { GuestPaymentStatus, PublicBookingConfirmationResponse, PublicBookingStatus } from './types'
 
+const BOOKING_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export const LOOKUP_EMPTY_COPY = 'Вставте код доступу з підтвердження.'
 export const LOOKUP_INVALID_COPY = 'Код не підходить. Перевірте його і спробуйте ще раз.'
+export const LOOKUP_REFERENCE_COPY =
+  'Це номер бронювання, а не код доступу. Код доступу без дефісів. Він є на екрані підтвердження і в листі.'
 export const LOOKUP_RATE_COPY = 'Забагато запитів — спробуйте пізніше.'
 export const LOOKUP_UNAVAILABLE_COPY = 'Зараз не можемо показати бронювання. Спробуйте ще раз.'
 
@@ -57,6 +61,7 @@ export function normalizeAccessCode(value: string) {
 export function accessCodeError(value: string) {
   const code = normalizeAccessCode(value)
   if (!code) return LOOKUP_EMPTY_COPY
+  if (BOOKING_REFERENCE.test(code)) return LOOKUP_REFERENCE_COPY
   if (!isConfirmationToken(code)) return LOOKUP_INVALID_COPY
   return null
 }
@@ -87,7 +92,7 @@ export function guestBookingView(
     nights: nights > 0 ? nights : null,
     adults,
     children,
-    guests: adults != null && children != null ? partySummary(adults, children) : guestLabel,
+    guests: knownPartySummary(adults, children, response.guestCount) ?? guestLabel,
     totalAmount: response.totalAmount,
     currency: 'UAH',
     services: (response.services ?? [])
@@ -111,6 +116,7 @@ export function lookupFailureCopy(error: unknown) {
     if (
       error.message === LOOKUP_EMPTY_COPY ||
       error.message === LOOKUP_INVALID_COPY ||
+      error.message === LOOKUP_REFERENCE_COPY ||
       error.message === LOOKUP_UNAVAILABLE_COPY
     ) {
       return error.message

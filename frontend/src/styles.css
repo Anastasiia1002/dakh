@@ -28,8 +28,24 @@ body {
 }
 
 ::selection {
-  background: var(--color-beige);
-  color: var(--color-wood);
+  background: var(--color-wood);
+  color: var(--color-linen);
+}
+
+.access-code {
+  color-scheme: light;
+  caret-color: var(--color-wood);
+}
+
+.access-code:focus-visible {
+  outline: 2px solid var(--color-clay);
+  outline-offset: 3px;
+}
+
+.access-code::selection,
+.access-code::-moz-selection {
+  background: var(--color-wood);
+  color: var(--color-linen);
 }
 
 em {

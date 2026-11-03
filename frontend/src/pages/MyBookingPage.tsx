@@ -107,7 +107,7 @@ export function MyBookingPage() {
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? 'booking-access-error' : undefined}
               onChange={(event) => setCode(event.target.value)}
-              className="min-h-11 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+              className="access-code min-h-11 w-full min-w-0 border-0 border-b border-wood/25 bg-transparent py-2 break-all outline-none"
             />
             <button
               type="button"

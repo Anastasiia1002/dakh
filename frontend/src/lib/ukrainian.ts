@@ -26,7 +26,26 @@ export function guestCountLabel(count: number) {
   return `${count} ${ukrainianPlural(count, { one: 'гість', few: 'гості', many: 'гостей' })}`
 }
 
+/** Booking line: 1 дорослий, otherwise N дорослих; 1 дитина, otherwise N дітей. */
 export function partySummary(adults: number, children: number) {
-  if (children > 0) return `${adultCountLabel(adults)}, ${childCountLabel(children)}`
-  return adultCountLabel(adults)
+  const adultLabel = adults === 1 ? '1 дорослий' : `${adults} дорослих`
+  if (!Number.isInteger(children) || children <= 0) return adultLabel
+  const childLabel = children === 1 ? '1 дитина' : `${children} дітей`
+  return `${adultLabel} · ${childLabel}`
+}
+
+/** Returns the split only when stored adults and children add up to the total. */
+export function knownPartySummary(adults: number | null, children: number | null, guestCount: number) {
+  if (
+    adults == null ||
+    children == null ||
+    !Number.isInteger(adults) ||
+    !Number.isInteger(children) ||
+    adults < 1 ||
+    children < 0 ||
+    adults + children !== guestCount
+  ) {
+    return null
+  }
+  return partySummary(adults, children)
 }

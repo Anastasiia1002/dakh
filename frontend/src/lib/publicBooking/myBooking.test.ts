@@ -6,6 +6,7 @@ import {
   LOOKUP_EMPTY_COPY,
   LOOKUP_INVALID_COPY,
   LOOKUP_RATE_COPY,
+  LOOKUP_REFERENCE_COPY,
   accessCodeError,
   guestBookingView,
   lookupFailureCopy,
@@ -36,6 +37,7 @@ describe('guest booking lookup', () => {
   it('rejects an empty or short access code before any request', () => {
     assert.equal(accessCodeError('   '), LOOKUP_EMPTY_COPY)
     assert.equal(accessCodeError('short-code'), LOOKUP_INVALID_COPY)
+    assert.equal(accessCodeError('11111111-1111-4111-8111-111111111111'), LOOKUP_REFERENCE_COPY)
     assert.equal(accessCodeError(`  ${TOKEN}  `), null)
   })
 
@@ -70,6 +72,7 @@ describe('guest booking lookup', () => {
         status: 'CANCELLED',
         adults: 2,
         children: 1,
+        guestCount: 3,
         roomNumber: '14',
         paymentStatus: 'UNPAID',
         services: [
@@ -88,7 +91,11 @@ describe('guest booking lookup', () => {
     )
     assert.equal(cancelled?.statusLabel, 'Скасовано')
     assert.equal(cancelled?.cancelled, true)
-    assert.equal(cancelled?.guests, '2 дорослих, 1 дитина')
+    assert.equal(cancelled?.guests, '2 дорослих · 1 дитина')
+    const adultsOnly = guestBookingView(confirmation({ adults: 2, children: 0, guestCount: 2 }), 'Кімната', '2 гості')
+    assert.equal(adultsOnly?.guests, '2 дорослих')
+    const unmatched = guestBookingView(confirmation({ adults: 1, children: 0, guestCount: 4 }), 'Кімната', '4 гості')
+    assert.equal(unmatched?.guests, '4 гості')
     assert.equal(cancelled?.roomNumber, '14')
     assert.equal(cancelled?.services[0]?.totalPrice, '200.00')
     assert.equal(cancelled?.paymentLabel, 'Не оплачено')
@@ -109,6 +116,29 @@ describe('guest booking lookup', () => {
       LOOKUP_RATE_COPY,
     )
     assert.equal(lookupFailureCopy(new Error('Failed to fetch')), 'Не вдалося зв’язатися з сервером бронювання.')
+    assert.equal(
+      lookupFailureCopy(new PublicApiError({ statusCode: 503, error: 'INTERNAL_ERROR', message: 'down' })),
+      'Сервер бронювання тимчасово недоступний. Спробуйте пізніше.',
+    )
+    assert.notEqual(
+      lookupFailureCopy(new PublicApiError({ statusCode: 503, error: 'INTERNAL_ERROR', message: 'down' })),
+      LOOKUP_INVALID_COPY,
+    )
+    assert.equal(lookupFailureCopy(new Error(LOOKUP_REFERENCE_COPY)), LOOKUP_REFERENCE_COPY)
+  })
+
+  it('does not send a booking reference to the lookup', async () => {
+    let called = false
+    await assert.rejects(
+      lookupGuestBooking('11111111-1111-4111-8111-111111111111', () => 'Кімната', guestCountLabel, {
+        confirmation() {
+          called = true
+          return Promise.resolve(confirmation())
+        },
+      }),
+      (error: unknown) => error instanceof Error && error.message === LOOKUP_REFERENCE_COPY,
+    )
+    assert.equal(called, false)
   })
 
   it('requests the booking with no-store and returns no token', async () => {
@@ -146,6 +176,20 @@ describe('guest booking lookup', () => {
     assert.equal(bookingFlow.includes('/bronuvannya/pidtverdzhennya/${'), false)
     assert.match(bookingFlow, /navigate\('\/bronuvannya\/pidtverdzhennya', \{ replace: true \}\)/)
     assert.equal(confirmationPage.includes('decodeURIComponent(routeToken)'), false)
+    assert.match(confirmationPage, /id="issued-access-code"/)
+    assert.match(confirmationPage, /Копіювати/)
+    assert.equal(confirmationPage.includes('navigator.clipboard.writeText'), true)
+    assert.equal(confirmationPage.includes('localStorage'), false)
+    assert.match(page, /className="access-code/)
+    const styles = readFileSync(new URL('../../styles.css', import.meta.url), 'utf8')
+    assert.match(styles, /\.access-code::selection/)
+    assert.match(styles, /background: var\(--color-wood\)/)
+    assert.match(styles, /color: var\(--color-linen\)/)
+    const layout = readFileSync(new URL('../../components/Layout.tsx', import.meta.url), 'utf8')
+    assert.match(layout, /footerNav/)
+    assert.equal(layout.includes("to: '/moie-bronyuvannya'"), true)
+    const headerSource = layout.slice(0, layout.indexOf('footerNav'))
+    assert.equal(headerSource.includes('/moie-bronyuvannya'), false)
     assert.match(confirmationPage, /navigate\('\/bronuvannya\/pidtverdzhennya', \{ replace: true \}\)/)
   })
 })
