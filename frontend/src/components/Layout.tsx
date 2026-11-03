@@ -16,7 +16,7 @@ const headerNav = [
 const footerNav = [...headerNav, { to: '/moie-bronyuvannya', label: 'Моє бронювання' }]
 
 const headerAction =
-  'inline-flex items-center justify-center px-4 py-2.5 text-[0.68rem] font-semibold tracking-[0.16em] uppercase md:px-5 md:text-[0.72rem]'
+  'inline-flex min-h-11 items-center justify-center px-4 py-2.5 text-[0.68rem] font-semibold tracking-[0.16em] uppercase md:px-5 md:text-[0.72rem]'
 
 function HeaderActions({
   className = '',
@@ -40,6 +40,17 @@ function HeaderActions({
         </Link>
       ) : null}
     </div>
+  )
+}
+
+function MenuIcon({ open }: { open: boolean }) {
+  const bar = 'absolute left-0 h-0.5 w-5 bg-current transition duration-200'
+  return (
+    <span className="relative block h-4 w-5" aria-hidden="true">
+      <span className={`${bar} ${open ? 'top-[7px] rotate-45' : 'top-0'}`} />
+      <span className={`${bar} top-[7px] ${open ? 'opacity-0' : 'opacity-100'}`} />
+      <span className={`${bar} ${open ? 'top-[7px] -rotate-45' : 'top-[14px]'}`} />
+    </span>
   )
 }
 
@@ -72,14 +83,22 @@ export function Layout() {
       setOpen(false)
       menuButtonRef.current?.focus()
     }
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (menuRef.current?.contains(target) || menuButtonRef.current?.contains(target)) return
+      setOpen(false)
+    }
     function closeOnDesktop(event: MediaQueryListEvent) {
       if (event.matches) setOpen(false)
     }
     const desktop = window.matchMedia('(min-width: 1024px)')
     document.addEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPointerDown)
     desktop.addEventListener('change', closeOnDesktop)
     return () => {
       document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointerDown)
       desktop.removeEventListener('change', closeOnDesktop)
     }
   }, [open])
@@ -90,8 +109,8 @@ export function Layout() {
       <header
         className={
           overHero
-            ? 'absolute inset-x-0 top-0 z-30 text-linen'
-            : 'sticky top-0 z-30 border-b border-wood/10 bg-linen/95 text-wood'
+            ? `absolute inset-x-0 top-0 text-linen ${open ? 'z-[60]' : 'z-30'}`
+            : `sticky top-0 border-b border-wood/10 bg-linen/95 text-wood ${open ? 'z-[60]' : 'z-30'}`
         }
       >
         {bookingEnabled ? (
@@ -99,7 +118,7 @@ export function Layout() {
             Тестовий режим. 2 000 ₴ за ніч — демонстраційна ціна, не комерційна. Оплата не стягується.
           </p>
         ) : null}
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5 lg:gap-5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-3 sm:px-6 sm:py-5 lg:gap-5">
           <DakhLogo tone={tone} compact />
           <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[0.68rem] font-medium tracking-[0.12em] uppercase lg:flex xl:gap-x-6 xl:text-[0.72rem] xl:tracking-[0.14em]">
             {headerNav.map((item) => (
@@ -117,7 +136,7 @@ export function Layout() {
           <div className="flex shrink-0 items-center gap-2">
             <a
               href={site.phoneHrefs[0]}
-              className={`${headerAction} border border-current lg:hidden`}
+              className="inline-flex min-h-11 items-center justify-center border border-current px-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase lg:hidden"
               aria-label={`Подзвонити ${site.phones[0]}`}
             >
               Подзвонити
@@ -126,14 +145,14 @@ export function Layout() {
             <button
               ref={menuButtonRef}
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center lg:hidden"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center lg:hidden"
               aria-expanded={open}
               aria-controls="site-menu"
+              aria-haspopup="true"
               aria-label={open ? 'Закрити меню' : 'Відкрити меню'}
               onClick={() => setOpen((value) => !value)}
             >
-              <span className="block h-px w-6 bg-current" />
-              <span className="mt-2 block h-px w-6 bg-current" />
+              <MenuIcon open={open} />
             </button>
           </div>
         </div>
@@ -141,7 +160,7 @@ export function Layout() {
           <div
             id="site-menu"
             ref={menuRef}
-            className="mx-6 border border-wood/10 bg-linen px-6 py-6 text-wood lg:hidden"
+            className="relative z-[60] mx-4 mb-4 overflow-hidden border border-wood/10 bg-linen px-5 py-4 text-wood shadow-[0_16px_40px_rgba(91,56,43,0.16)] sm:mx-6 lg:hidden"
           >
             {headerNav.map((item) => (
               <NavLink

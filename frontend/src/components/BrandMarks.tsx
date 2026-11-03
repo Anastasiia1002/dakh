@@ -21,7 +21,7 @@ export function DakhLogo({
       <img
         src={logoSrc[tone]}
         alt=""
-        className={compact ? 'h-11 w-auto md:h-12' : 'h-[4.75rem] w-auto'}
+        className={compact ? 'h-10 w-auto max-w-[6.5rem] sm:h-11 sm:max-w-none md:h-12' : 'h-[4.75rem] w-auto'}
       />
       {compact ? null : (
         <span className="mt-2 text-[0.58rem] font-medium tracking-[0.22em] uppercase text-wood">
