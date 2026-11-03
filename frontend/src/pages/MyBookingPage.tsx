@@ -89,11 +89,14 @@ export function MyBookingPage() {
           {BOOKING_DISABLED_COPY}
         </p>
       ) : (
-        <form noValidate onSubmit={onSubmit} className="mt-10">
-          <label htmlFor="booking-access-code" className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        <form noValidate onSubmit={onSubmit} className="mt-6">
+          <label
+            htmlFor="booking-access-code"
+            className="text-[0.62rem] tracking-[0.14em] text-wood/55 uppercase"
+          >
             Код доступу
           </label>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="mt-1.5 flex items-center gap-2 rounded-sm border border-wood/15 bg-beige/40 px-2.5 focus-within:border-clay/70">
             <input
               id="booking-access-code"
               name="booking-access-code"
@@ -108,19 +111,19 @@ export function MyBookingPage() {
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? 'booking-access-error' : undefined}
               onChange={(event) => setCode(event.target.value)}
-              className="access-code min-h-11 w-full min-w-0 border-0 border-b border-wood/25 bg-transparent py-2 break-all outline-none"
+              className="access-code min-h-11 min-w-0 flex-1 overflow-x-auto border-0 bg-transparent py-2 text-[13px] leading-5 outline-none"
             />
             <button
               type="button"
-              className="min-h-11 shrink-0 px-2 text-left text-[0.72rem] tracking-[0.12em] uppercase text-wood/70"
+              className="shrink-0 text-[0.68rem] tracking-[0.08em] text-wood/70 uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
               aria-pressed={revealed}
               onClick={() => setRevealed((value) => !value)}
             >
-              {revealed ? 'Сховати код' : 'Показати код'}
+              {revealed ? 'Сховати' : 'Показати'}
             </button>
           </div>
           {error ? (
-            <p id="booking-access-error" className="mt-4 text-sm text-clay" role="alert">
+            <p id="booking-access-error" className="mt-2 max-w-xl text-[13px] leading-snug text-clay" role="alert">
               {error}
             </p>
           ) : null}

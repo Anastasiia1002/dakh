@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatDate, formatMoneyAmount } from '../lib/format'
 import { publicBookingClient, recoverEmailError } from '../lib/publicBooking'
@@ -195,42 +195,101 @@ export function ConfirmationPage() {
 }
 
 function IssuedAccessCode({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false)
+  const [notice, setNotice] = useState(0)
+  const copied = notice > 0
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(0), 1600)
+    return () => window.clearTimeout(timer)
+  }, [notice])
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(code)
-      setCopied(true)
+      setNotice((value) => value + 1)
     } catch {
-      setCopied(false)
+      setNotice(0)
     }
   }
 
   return (
-    <div className="mt-6">
-      <label htmlFor="issued-access-code" className="text-sm">
-        Код доступу
-      </label>
-      <p className="mt-1 text-[0.72rem] leading-relaxed text-wood/55">
-        Це не номер бронювання. Той самий код є в листі, у рядку «Код доступу до підтвердження». Збережіть його: без
-        цього коду бронювання пізніше не відкриється.
+    <div className="mt-4">
+      <p className="text-[0.72rem] leading-snug text-wood/55">
+        Це не номер бронювання. Той самий код є в листі, у рядку «Код доступу до підтвердження».
       </p>
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <input
-          id="issued-access-code"
-          readOnly
-          value={code}
-          className="access-code min-h-11 w-full min-w-0 border-0 border-b border-wood/25 bg-transparent py-2 font-medium break-all"
-          onFocus={(event) => event.currentTarget.select()}
-        />
-        <button
-          type="button"
-          className="min-h-11 shrink-0 px-4 text-left text-[0.72rem] tracking-[0.12em] uppercase text-wood"
-          onClick={() => void copy()}
-        >
-          {copied ? 'Скопійовано' : 'Копіювати'}
-        </button>
+      <div className="mt-2 rounded-sm border border-wood/15 bg-linen px-2.5 py-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <label
+            htmlFor="issued-access-code"
+            className="text-[0.62rem] leading-none tracking-[0.14em] text-wood/55 uppercase"
+          >
+            Код доступу
+          </label>
+          <button
+            type="button"
+            className="group relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm text-wood hover:bg-beige/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
+            aria-label="Копіювати код"
+            onClick={() => void copy()}
+          >
+            <CopyIcon />
+            {copied ? (
+              <span
+                role="status"
+                className="absolute top-1/2 right-[calc(100%+6px)] z-10 -translate-y-1/2 rounded-sm bg-wood px-2 py-1 text-[11px] leading-none whitespace-nowrap text-linen"
+              >
+                Скопійовано
+              </span>
+            ) : (
+              <span
+                role="tooltip"
+                className="copy-code-tip pointer-events-none absolute top-1/2 right-[calc(100%+6px)] z-10 -translate-y-1/2 rounded-sm bg-wood px-2 py-1 text-[11px] leading-none whitespace-nowrap text-linen"
+              >
+                Копіювати код
+              </span>
+            )}
+          </button>
+        </div>
+        <IssuedCodeValue code={code} />
       </div>
     </div>
+  )
+}
+
+function IssuedCodeValue({ code }: { code: string }) {
+  const field = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const element = field.current
+    if (!element) return
+    const fit = () => {
+      element.style.height = 'auto'
+      element.style.height = `${element.scrollHeight}px`
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [code])
+
+  return (
+    <textarea
+      ref={field}
+      id="issued-access-code"
+      readOnly
+      rows={1}
+      value={code}
+      wrap="soft"
+      className="access-code mt-1 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[13px] leading-5 break-all text-wood outline-none"
+      onFocus={(event) => event.currentTarget.select()}
+    />
+  )
+}
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+      <rect x="8" y="8" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5 15.5 V6.5 A1.5 1.5 0 0 1 6.5 5 H15.5" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   )
 }

@@ -39,7 +39,17 @@ body {
 
 .access-code:focus-visible {
   outline: 2px solid var(--color-clay);
-  outline-offset: 3px;
+  outline-offset: 2px;
+}
+
+.copy-code-tip {
+  display: none;
+}
+
+.group:hover > .copy-code-tip,
+.group:focus > .copy-code-tip,
+.group:focus-visible > .copy-code-tip {
+  display: block;
 }
 
 .access-code::selection,
