@@ -6,11 +6,15 @@ import { stayNights } from './stay'
 import type { GuestPaymentStatus, PublicBookingConfirmationResponse, PublicBookingStatus } from './types'
 
 const BOOKING_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const COMPACT_BOOKING_REFERENCE = /^[0-9a-f]{32}$/i
 
 export const LOOKUP_EMPTY_COPY = 'Вставте код доступу з підтвердження.'
 export const LOOKUP_INVALID_COPY = 'Код не підходить. Перевірте його і спробуйте ще раз.'
-export const LOOKUP_REFERENCE_COPY =
-  'Це номер бронювання, а не код доступу. Код доступу без дефісів. Він є на екрані підтвердження і в листі.'
+export const ACCESS_CODE_FIND_COPY =
+  'Код доступу показано окремо на екрані підтвердження і в листі, у рядку «Код доступу до підтвердження». Номер бронювання його не замінює.'
+export const LOOKUP_REFERENCE_COPY = `Це номер бронювання, а не код доступу. ${ACCESS_CODE_FIND_COPY}`
+export const MISSING_SESSION_COPY =
+  'Код доступу в цьому вікні вже недоступний. Він був на екрані одразу після бронювання і в листі, у рядку «Код доступу до підтвердження». Номер бронювання його не замінює.'
 export const LOOKUP_RATE_COPY = 'Забагато запитів — спробуйте пізніше.'
 export const LOOKUP_UNAVAILABLE_COPY = 'Зараз не можемо показати бронювання. Спробуйте ще раз.'
 
@@ -61,7 +65,7 @@ export function normalizeAccessCode(value: string) {
 export function accessCodeError(value: string) {
   const code = normalizeAccessCode(value)
   if (!code) return LOOKUP_EMPTY_COPY
-  if (BOOKING_REFERENCE.test(code)) return LOOKUP_REFERENCE_COPY
+  if (BOOKING_REFERENCE.test(code) || COMPACT_BOOKING_REFERENCE.test(code)) return LOOKUP_REFERENCE_COPY
   if (!isConfirmationToken(code)) return LOOKUP_INVALID_COPY
   return null
 }

@@ -7,7 +7,7 @@ import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
 import { DEMO_PRICE_COPY, isDemoStayTotal, stayNights } from '../lib/publicBooking/stay'
-import { guestStatusLabel } from '../lib/publicBooking/myBooking'
+import { guestStatusLabel, MISSING_SESSION_COPY } from '../lib/publicBooking/myBooking'
 import { knownPartySummary, guestCountLabel } from '../lib/ukrainian'
 import {
   isConfirmationToken,
@@ -32,7 +32,7 @@ export function ConfirmationPage() {
     ? lookupError
     : token
       ? 'Посилання на підтвердження недійсне.'
-      : 'Підтвердження не знайдено. Успіх не показуємо з локальних даних.'
+      : MISSING_SESSION_COPY
   const bookingEnabled = isBookingEnabled()
   const loading = bookingEnabled && Boolean(validToken) && !resolved
 
@@ -212,7 +212,8 @@ function IssuedAccessCode({ code }: { code: string }) {
         Код доступу
       </label>
       <p className="mt-1 text-[0.72rem] leading-relaxed text-wood/55">
-        Це не номер бронювання. Збережіть код, щоб відкрити бронювання пізніше.
+        Це не номер бронювання. Той самий код є в листі, у рядку «Код доступу до підтвердження». Збережіть його: без
+        цього коду бронювання пізніше не відкриється.
       </p>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
         <input

@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isConfirmationToken, isOtpCode, isQuoteFresh, shouldStartCheckout, storedIntentMatchesStay } from './checkout'
+import {
+  clearStoredConfirmationToken,
+  isConfirmationToken,
+  isOtpCode,
+  isQuoteFresh,
+  readStoredConfirmationToken,
+  shouldStartCheckout,
+  storedIntentMatchesStay,
+  writeStoredConfirmationToken,
+} from './checkout'
 import { quoteFromPriceChanged, retryAfterSeconds } from './errors'
 import { PublicApiError } from './errors'
 
@@ -24,6 +33,36 @@ describe('checkout helpers', () => {
     assert.equal(isQuoteFresh(quote, Date.parse('2026-12-01T12:14:00.000Z')), true)
     assert.equal(isQuoteFresh(quote, Date.parse('2026-12-01T12:16:00.000Z')), false)
     assert.equal(isQuoteFresh({ ...quote, quoteToken: 'short' }), false)
+  })
+
+  it('keeps an issued access code for a refresh and drops it when the session is gone', () => {
+    const memory = new Map<string, string>()
+    const sessionStorage = {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        memory.set(key, value)
+      },
+      removeItem: (key: string) => {
+        memory.delete(key)
+      },
+    }
+    const previous = (globalThis as { window?: unknown }).window
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: { sessionStorage } })
+    try {
+      assert.equal(readStoredConfirmationToken(), '')
+      const token = `${'A'.repeat(20)}-${'b'.repeat(22)}`
+      writeStoredConfirmationToken(token)
+      assert.equal(readStoredConfirmationToken(), token)
+      assert.equal(readStoredConfirmationToken(), token)
+      clearStoredConfirmationToken()
+      assert.equal(readStoredConfirmationToken(), '')
+    } finally {
+      if (previous === undefined) {
+        delete (globalThis as { window?: unknown }).window
+      } else {
+        Object.defineProperty(globalThis, 'window', { configurable: true, value: previous })
+      }
+    }
   })
 
   it('accepts a 6-digit OTP and a long enough confirmation token', () => {

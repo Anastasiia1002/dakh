@@ -38,6 +38,12 @@ describe('guest booking lookup', () => {
     assert.equal(accessCodeError('   '), LOOKUP_EMPTY_COPY)
     assert.equal(accessCodeError('short-code'), LOOKUP_INVALID_COPY)
     assert.equal(accessCodeError('11111111-1111-4111-8111-111111111111'), LOOKUP_REFERENCE_COPY)
+    assert.equal(accessCodeError('11111111111141118111111111111111'), LOOKUP_REFERENCE_COPY)
+    assert.equal(accessCodeError('11111111111141118111111111111111'.toUpperCase()), LOOKUP_REFERENCE_COPY)
+    assert.equal(LOOKUP_REFERENCE_COPY.includes('без дефісів'), false)
+    const issued = `${'A'.repeat(20)}-${'b'.repeat(22)}`
+    assert.equal(issued.length, 43)
+    assert.equal(accessCodeError(issued), null)
     assert.equal(accessCodeError(`  ${TOKEN}  `), null)
   })
 
@@ -129,16 +135,20 @@ describe('guest booking lookup', () => {
 
   it('does not send a booking reference to the lookup', async () => {
     let called = false
-    await assert.rejects(
-      lookupGuestBooking('11111111-1111-4111-8111-111111111111', () => 'Кімната', guestCountLabel, {
-        confirmation() {
-          called = true
-          return Promise.resolve(confirmation())
-        },
-      }),
-      (error: unknown) => error instanceof Error && error.message === LOOKUP_REFERENCE_COPY,
-    )
-    assert.equal(called, false)
+    const client = {
+      confirmation() {
+        called = true
+        return Promise.resolve(confirmation())
+      },
+    }
+    for (const code of ['11111111-1111-4111-8111-111111111111', '11111111111141118111111111111111']) {
+      called = false
+      await assert.rejects(
+        lookupGuestBooking(code, () => 'Кімната', guestCountLabel, client),
+        (error: unknown) => error instanceof Error && error.message === LOOKUP_REFERENCE_COPY,
+      )
+      assert.equal(called, false)
+    }
   })
 
   it('requests the booking with no-store and returns no token', async () => {
@@ -177,6 +187,8 @@ describe('guest booking lookup', () => {
     assert.match(bookingFlow, /navigate\('\/bronuvannya\/pidtverdzhennya', \{ replace: true \}\)/)
     assert.equal(confirmationPage.includes('decodeURIComponent(routeToken)'), false)
     assert.match(confirmationPage, /id="issued-access-code"/)
+    assert.match(confirmationPage, /Код доступу до підтвердження/)
+    assert.match(confirmationPage, /MISSING_SESSION_COPY/)
     assert.match(confirmationPage, /Копіювати/)
     assert.equal(confirmationPage.includes('navigator.clipboard.writeText'), true)
     assert.equal(confirmationPage.includes('localStorage'), false)
