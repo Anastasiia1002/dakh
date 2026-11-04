@@ -53,8 +53,29 @@ export function isOtpCode(value: string) {
   return OTP_PATTERN.test(value.trim())
 }
 
+const SHORT_ACCESS_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+/** Short codes fold case and separators. Longer legacy tokens are only trimmed. */
+export function canonicalAccessCode(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.length > 14) return trimmed
+  const body = trimmed.replace(/[\s-]/g, '')
+  if (body.length !== 12) return trimmed
+  const upper = body.toUpperCase()
+  if (![...upper].every((character) => SHORT_ACCESS_ALPHABET.includes(character))) return trimmed
+  return `${upper.slice(0, 4)}-${upper.slice(4, 8)}-${upper.slice(8)}`
+}
+
+export function isShortAccessCode(value: string) {
+  return /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}(?:-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}){2}$/.test(
+    canonicalAccessCode(value),
+  )
+}
+
 export function isConfirmationToken(value: string) {
-  return value.length >= MIN_CONFIRMATION_TOKEN && value.length <= MAX_CONFIRMATION_TOKEN
+  const code = canonicalAccessCode(value)
+  if (isShortAccessCode(code)) return true
+  return code.length >= MIN_CONFIRMATION_TOKEN && code.length <= MAX_CONFIRMATION_TOKEN
 }
 
 export function newIdempotencyKey() {

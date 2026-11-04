@@ -2,8 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { PublicApiError } from './errors'
+import { canonicalAccessCode } from './checkout'
 import {
   LOOKUP_EMPTY_COPY,
+  LOOKUP_FORMAT_COPY,
   LOOKUP_INVALID_COPY,
   LOOKUP_RATE_COPY,
   LOOKUP_REFERENCE_COPY,
@@ -11,6 +13,7 @@ import {
   guestBookingView,
   lookupFailureCopy,
   lookupGuestBooking,
+  normalizeAccessCode,
 } from './myBooking'
 import type { PublicBookingConfirmationResponse } from './types'
 import { guestCountLabel } from '../ukrainian'
@@ -37,6 +40,9 @@ describe('guest booking lookup', () => {
   it('rejects an empty or short access code before any request', () => {
     assert.equal(accessCodeError('   '), LOOKUP_EMPTY_COPY)
     assert.equal(accessCodeError('short-code'), LOOKUP_INVALID_COPY)
+    assert.equal(accessCodeError('abcd-efgh-jklm'), null)
+    assert.equal(accessCodeError('abcd efgh jklm'), null)
+    assert.equal(accessCodeError('ABCD-EFGH-JKL0'), LOOKUP_INVALID_COPY)
     assert.equal(accessCodeError('11111111-1111-4111-8111-111111111111'), LOOKUP_REFERENCE_COPY)
     assert.equal(accessCodeError('11111111111141118111111111111111'), LOOKUP_REFERENCE_COPY)
     assert.equal(accessCodeError('11111111111141118111111111111111'.toUpperCase()), LOOKUP_REFERENCE_COPY)
@@ -44,6 +50,9 @@ describe('guest booking lookup', () => {
     const issued = `${'A'.repeat(20)}-${'b'.repeat(22)}`
     assert.equal(issued.length, 43)
     assert.equal(accessCodeError(issued), null)
+    assert.equal(normalizeAccessCode(`  ${issued}`), issued)
+    assert.equal(normalizeAccessCode(' abcd-efgh-jklm '), 'ABCD-EFGH-JKLM')
+    assert.equal(canonicalAccessCode('abcd-efgh-jkl0'), 'abcd-efgh-jkl0')
     assert.equal(accessCodeError(`  ${TOKEN}  `), null)
   })
 
@@ -195,6 +204,8 @@ describe('guest booking lookup', () => {
     assert.match(confirmationPage, /text-\[13px\]/)
     assert.equal(confirmationPage.includes('navigator.clipboard.writeText'), true)
     assert.equal(confirmationPage.includes('localStorage'), false)
+    assert.match(page, /LOOKUP_FORMAT_COPY/)
+    assert.equal(LOOKUP_FORMAT_COPY.includes('ABCD-EFGH-JKLM'), true)
     assert.match(page, /className="access-code/)
     const styles = readFileSync(new URL('../../styles.css', import.meta.url), 'utf8')
     assert.match(styles, /\.access-code::selection/)

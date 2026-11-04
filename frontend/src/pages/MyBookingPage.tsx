@@ -5,6 +5,7 @@ import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
 import {
   accessCodeError,
+  LOOKUP_FORMAT_COPY,
   lookupFailureCopy,
   lookupGuestBooking,
   normalizeAccessCode,
@@ -96,6 +97,7 @@ export function MyBookingPage() {
           >
             Код доступу
           </label>
+          <p className="mt-1 max-w-xl text-[13px] leading-snug text-wood/55">{LOOKUP_FORMAT_COPY}</p>
           <div className="mt-1.5 flex items-center gap-2 rounded-sm border border-wood/15 bg-beige/40 px-2.5 focus-within:border-clay/70">
             <input
               id="booking-access-code"

@@ -70,6 +70,8 @@ describe('checkout helpers', () => {
     assert.equal(isOtpCode('12345'), false)
     assert.equal(isConfirmationToken('c'.repeat(24)), true)
     assert.equal(isConfirmationToken('short'), false)
+    assert.equal(isConfirmationToken('abcd-efgh-jklm'), true)
+    assert.equal(isConfirmationToken('11111111-1111-4111-8111-111111111111'), true)
   })
 
   it('reads PRICE_CHANGED details.quote and retryAfterSeconds', () => {

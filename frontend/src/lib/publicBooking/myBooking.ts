@@ -1,6 +1,6 @@
 import { knownPartySummary } from '../ukrainian'
 import { publicBookingClient, type PublicBookingClient } from './client'
-import { isConfirmationToken } from './checkout'
+import { canonicalAccessCode, isConfirmationToken } from './checkout'
 import { errorCopy, isPublicApiError } from './errors'
 import { stayNights } from './stay'
 import type { GuestPaymentStatus, PublicBookingConfirmationResponse, PublicBookingStatus } from './types'
@@ -9,6 +9,7 @@ const BOOKING_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 const COMPACT_BOOKING_REFERENCE = /^[0-9a-f]{32}$/i
 
 export const LOOKUP_EMPTY_COPY = 'Вставте код доступу з підтвердження.'
+export const LOOKUP_FORMAT_COPY = 'Новий код має вигляд ABCD-EFGH-JKLM. Раніше виданий довгий код теж підходить.'
 export const LOOKUP_INVALID_COPY = 'Код не підходить. Перевірте його і спробуйте ще раз.'
 export const ACCESS_CODE_FIND_COPY =
   'Код доступу показано окремо на екрані підтвердження і в листі, у рядку «Код доступу до підтвердження». Номер бронювання його не замінює.'
@@ -59,7 +60,7 @@ const PAYMENT_LABELS: Record<GuestPaymentStatus, string> = {
 }
 
 export function normalizeAccessCode(value: string) {
-  return value.trim()
+  return canonicalAccessCode(value)
 }
 
 export function accessCodeError(value: string) {

@@ -11,6 +11,7 @@ import { guestStatusLabel, MISSING_SESSION_COPY } from '../lib/publicBooking/myB
 import { knownPartySummary, guestCountLabel } from '../lib/ukrainian'
 import {
   isConfirmationToken,
+  isShortAccessCode,
   readStoredConfirmationToken,
   readStoredIntent,
 } from '../lib/publicBooking/checkout'
@@ -279,7 +280,9 @@ function IssuedCodeValue({ code }: { code: string }) {
       rows={1}
       value={code}
       wrap="soft"
-      className="access-code mt-1 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[13px] leading-5 break-all text-wood outline-none"
+      className={`access-code mt-1 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 leading-5 text-wood outline-none ${
+        isShortAccessCode(code) ? 'text-center font-mono text-[15px] tracking-[0.22em]' : 'text-[13px] break-all'
+      }`}
       onFocus={(event) => event.currentTarget.select()}
     />
   )
