@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { AmenityIcon } from './AmenityIcon'
+import { cardAmenities } from '../lib/catalog/amenities'
 import { capacityLabel, cardTitle, kindLabel, publicSummary } from '../lib/catalog/display'
 import { accommodationHref } from '../lib/catalog/routes'
 import type { PublicAccommodation } from '../lib/publicBooking/types'
@@ -14,6 +16,7 @@ export function RoomCard({
   const to = accommodationHref(accommodation)
   const summary = publicSummary(accommodation.description)
   const title = cardTitle(accommodation.name, accommodation.maxGuests)
+  const amenities = cardAmenities(accommodation.amenities)
 
   return (
     <article className="group">
@@ -32,6 +35,16 @@ export function RoomCard({
         </Link>
       </h3>
       {summary ? <p className="mt-2 line-clamp-3 text-sm text-wood/75">{summary}</p> : null}
+      {amenities.length > 0 ? (
+        <ul className="mt-3 flex max-w-full flex-wrap gap-x-3 gap-y-1">
+          {amenities.map((amenity) => (
+            <li key={amenity.key} className="inline-flex min-w-0 items-center gap-1.5 text-xs text-wood/75">
+              <AmenityIcon iconKey={amenity.iconKey} className="size-3.5 shrink-0" />
+              <span className="break-words">{amenity.label}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-4 flex items-baseline justify-between gap-4">
         <p className="text-sm font-medium">{capacityLabel(accommodation.maxGuests)}</p>
         <Link

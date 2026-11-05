@@ -1,18 +1,95 @@
-import type { AmenityIcon as IconName } from '../data/catalog'
-
-const paths: Record<IconName, string> = {
-  breakfast: 'M4 12h16M6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5M5 16h14',
-  linen: 'M4 7h16v10H4zM4 11h16',
-  bath: 'M5 12h14v5H5zM7 12V8a2 2 0 0 1 4 0',
-  window: 'M5 5h14v14H5zM12 5v14M5 12h14',
-  quiet: 'M8 9v6M12 7v10M16 10v4',
-  garden: 'M12 20V10M7 14c3-6 10-6 10 0',
+const FAMILIES: Record<string, string> = {
+  wifi: 'M5 12.5c3.5-3.5 10.5-3.5 14 0M8 15.5c2-2 6-2 8 0M12 18.5h.01',
+  flame: 'M12 3s5 4 5 8a5 5 0 1 1-10 0c0-2 1.5-4 2.5-5 0 2 1.5 3 2.5 3 0-3 0-6 0-6z',
+  utensils: 'M8 3v8a2 2 0 1 0 4 0V3M10 11v10M16 3v18M16 8h3a2 2 0 0 1 0 4h-3',
+  car: 'M4 16v2M20 16v2M5 16l1.5-5h11L19 16M6 16h12M7.5 16a1 1 0 1 0 0 .01M16.5 16a1 1 0 1 0 0 .01',
+  trees: 'M12 21V11M8 21h8M12 11 7 16h3L7 21M12 11l5 5h-3l3 5M12 4l3 5H9z',
+  waves: 'M3 15c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2M3 10c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2',
+  bath: 'M5 12h14v3a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4zM7 12V7a2 2 0 0 1 2-2',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  shield: 'M12 3 5 6v6c0 4 3 6.5 7 8 4-1.5 7-4 7-8V6z',
+  book: 'M5 4h6a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3zM19 4h-6a3 3 0 0 0-3 3v13h6a3 3 0 0 1 3 3z',
+  lock: 'M8 11V8a4 4 0 0 1 8 0v3M7 11h10v9H7z',
+  plug: 'M8 7v4M16 7v4M7 11h10v3a5 5 0 0 1-10 0zM12 19v2',
+  bed: 'M3 18V8M21 18V12H3M7 12V9h6v3',
+  coffee: 'M6 8h10v6a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4zM16 9h2a2 2 0 0 1 0 4h-2',
 }
 
-export function AmenityIcon({ name }: { name: IconName }) {
+const KEY_FAMILY: Record<string, keyof typeof FAMILIES> = {
+  wifi: 'wifi',
+  'dedicated-workspace': 'wifi',
+  fireplace: 'flame',
+  heater: 'flame',
+  sauna: 'flame',
+  'fire-pit': 'flame',
+  barbecue: 'flame',
+  firewood: 'flame',
+  'fire-starters': 'flame',
+  'bbq-equipment': 'flame',
+  kitchen: 'utensils',
+  refrigerator: 'utensils',
+  microwave: 'utensils',
+  'cooking-utensils': 'utensils',
+  tableware: 'utensils',
+  'electric-stove': 'utensils',
+  'dining-table': 'utensils',
+  'outdoor-kitchen': 'utensils',
+  'free-on-site-parking': 'car',
+  'free-off-site-parking': 'car',
+  'forest-view': 'trees',
+  'mountain-view': 'trees',
+  'nearby-forest': 'trees',
+  'nearby-mountains': 'trees',
+  backyard: 'trees',
+  'sea-view': 'waves',
+  'estuary-view': 'waves',
+  'lake-view': 'waves',
+  'river-view': 'waves',
+  'nearby-river': 'waves',
+  'nearby-lake': 'waves',
+  'waterfront-promenade': 'waves',
+  'swimming-pool': 'waves',
+  toiletries: 'bath',
+  'hair-dryer': 'bath',
+  'hot-tub': 'bath',
+  jacuzzi: 'bath',
+  shampoo: 'bath',
+  'shower-gel': 'bath',
+  'hot-water': 'bath',
+  'washing-machine': 'bath',
+  'cleaning-supplies': 'bath',
+  'private-terrace': 'sun',
+  'outdoor-furniture': 'sun',
+  'sun-umbrellas': 'sun',
+  'solar-panels': 'sun',
+  'air-conditioning': 'sun',
+  fan: 'sun',
+  cctv: 'shield',
+  'fire-extinguisher': 'shield',
+  'first-aid-kit': 'shield',
+  'carbon-monoxide-detector': 'shield',
+  'smoke-detector': 'shield',
+  books: 'book',
+  'game-console': 'book',
+  projector: 'book',
+  'smart-lock': 'lock',
+  generator: 'plug',
+  inverter: 'plug',
+  'bed-linen': 'bed',
+  hangers: 'bed',
+  'blackout-curtains': 'bed',
+  'long-term-stays': 'bed',
+  coffee: 'coffee',
+  tea: 'coffee',
+  kettle: 'coffee',
+  'wine-glasses': 'coffee',
+}
+
+export function AmenityIcon({ iconKey, className }: { iconKey: string; className?: string }) {
+  const family = KEY_FAMILY[iconKey] ?? 'shield'
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-clay" fill="none" strokeWidth="1.4">
-      <path d={paths[name]} />
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d={FAMILIES[family]} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
