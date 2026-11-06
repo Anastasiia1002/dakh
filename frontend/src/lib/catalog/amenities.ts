@@ -66,3 +66,12 @@ export function amenityGroups(amenities: readonly PublicAmenity[] | undefined) {
     items: items.filter((item) => item.category === category),
   })).filter((group) => group.items.length > 0)
 }
+
+/** Detail-page preview: guest-relevant keys first, then catalog order. Never invents keys. */
+export function detailPreviewAmenities(amenities: readonly PublicAmenity[] | undefined, limit = 8) {
+  return cardAmenities(amenities, limit)
+}
+
+export function showAmenityGroupHeading(itemCount: number) {
+  return itemCount > 1
+}

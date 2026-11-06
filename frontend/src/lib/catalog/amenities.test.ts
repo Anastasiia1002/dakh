@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { RoomCard } from '../../components/RoomCard'
 import { AccommodationCopy } from '../../pages/RoomPage'
 import type { PublicAccommodation, PublicAmenity } from '../publicBooking/types'
-import { amenityGroups, cardAmenities } from './amenities'
+import { amenityGroups, cardAmenities, detailPreviewAmenities, showAmenityGroupHeading } from './amenities'
 
 const cover = { url: 'https://photos.example/cover.webp', alt: 'Обкладинка', sortOrder: 0 }
 
@@ -67,13 +67,53 @@ describe('public amenities', () => {
       createElement(AccommodationCopy, { room: { ...room, amenities: assigned } }),
     )
     const hidden = markup(createElement(AccommodationCopy, { room }))
-    assert.match(shown, /Зручності/)
-    assert.match(shown, /Краєвиди/)
+    assert.match(shown, /Світла кімната[\s\S]*Зручності/)
+    assert.match(shown, /Зручності[\s\S]*Заїзд і виїзд/)
+    assert.equal((shown.match(/id="amenities-heading"/g) ?? []).length, 1)
     assert.match(shown, /Вид на ліс/)
-    assert.match(shown, /Поруч/)
     assert.match(shown, />Ліс</)
-    assert.doesNotMatch(shown, /Надворі|Безпека/)
+    assert.doesNotMatch(shown, /Краєвиди|Поруч|Надворі|Безпека/)
     assert.doesNotMatch(hidden, /Зручності|Камін|Вид на ліс/)
     assert.match(hidden, /Світла кімната/)
+  })
+
+  it('headings appear only for categories with more than one amenity', () => {
+    assert.equal(showAmenityGroupHeading(1), false)
+    assert.equal(showAmenityGroupHeading(2), true)
+    const twoViews = markup(
+      createElement(AccommodationCopy, {
+        room: {
+          ...room,
+          amenities: [
+            ...assigned,
+            amenity({ key: 'lake-view', label: 'Вид на озеро', category: 'VIEW', iconKey: 'lake-view', sortOrder: 6 }),
+          ],
+        },
+      }),
+    )
+    assert.match(twoViews, /Краєвиди/)
+    assert.match(twoViews, /Вид на ліс/)
+    assert.match(twoViews, /Вид на озеро/)
+  })
+
+  it('previews guest-relevant amenities first and keeps every assigned key available', () => {
+    const many = Array.from({ length: 10 }, (_, index) =>
+      amenity({
+        key: `item-${index}`,
+        label: `Зручність ${index}`,
+        category: 'OTHER',
+        iconKey: 'generator',
+        sortOrder: index,
+      }),
+    )
+    many.push(amenity({ key: 'wifi', label: 'Wi-Fi', category: 'INTERNET_WORKSPACE', iconKey: 'wifi', sortOrder: 99 }))
+    const preview = detailPreviewAmenities(many, 8).map((item) => item.key)
+    assert.equal(preview[0], 'wifi')
+    assert.equal(preview.length, 8)
+    assert.equal(amenityGroups(many).flatMap((group) => group.items).length, 11)
+    const html = markup(createElement(AccommodationCopy, { room: { ...room, amenities: many } }))
+    assert.match(html, /Показати всі зручності/)
+    assert.match(html, /Wi-Fi/)
+    assert.equal((html.match(/id="amenities-heading"/g) ?? []).length, 1)
   })
 })

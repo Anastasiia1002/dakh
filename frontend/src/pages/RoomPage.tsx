@@ -5,7 +5,7 @@ import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { site } from '../data/catalog'
-import { amenityGroups } from '../lib/catalog/amenities'
+import { amenityGroups, detailPreviewAmenities, showAmenityGroupHeading } from '../lib/catalog/amenities'
 import {
   capacityLabel,
   galleryImages,
@@ -89,9 +89,8 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
       ) : null}
 
       {detail.status === 'ready' && room ? (
-        <div className="mx-auto mt-8 max-w-6xl space-y-8 px-4 sm:px-6">
+        <div className="mx-auto mt-8 max-w-6xl px-4 sm:px-6">
           <AccommodationFacts room={room} />
-          <AmenitiesSection amenities={room.amenities} />
         </div>
       ) : null}
 
@@ -175,46 +174,49 @@ const AMENITY_PREVIEW = 8
 
 export function AmenitiesSection({ amenities }: { amenities: readonly PublicAmenity[] | undefined }) {
   const [expanded, setExpanded] = useState(false)
-  const groups = amenityGroups(amenities)
-  const items = groups.flatMap((group) => group.items)
+  const items = amenityGroups(amenities).flatMap((group) => group.items)
   if (items.length === 0) return null
-  const visible = new Set((expanded ? items : items.slice(0, AMENITY_PREVIEW)).map((item) => item.key))
+  const preview = detailPreviewAmenities(items, AMENITY_PREVIEW)
+  const canToggle = items.length > preview.length
+  const collapsed = canToggle && !expanded
+  const shown = collapsed ? preview : items
+  const groups = collapsed ? [{ category: 'PREVIEW', label: '', items: shown }] : amenityGroups(shown)
   return (
     <section aria-labelledby="amenities-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 id="amenities-heading" className="font-display text-4xl leading-tight">
           Зручності
         </h2>
-        {items.length > AMENITY_PREVIEW ? (
+        {canToggle ? (
           <button
             type="button"
-            className="text-sm underline decoration-wood/30 underline-offset-4"
+            className="min-h-11 text-sm underline decoration-wood/30 underline-offset-4 focus-visible:ring-2 focus-visible:ring-wood/40 focus-visible:outline-none"
             aria-expanded={expanded}
+            aria-controls="amenities-list"
             onClick={() => setExpanded((value) => !value)}
           >
             {expanded ? 'Згорнути' : 'Показати всі зручності'}
           </button>
         ) : null}
       </div>
-      <div className="mt-6 space-y-6">
-        {groups.map((group) => {
-          const shown = group.items.filter((item) => visible.has(item.key))
-          if (shown.length === 0) return null
-          return (
-            <div key={group.category}>
-              <h3 className="text-[0.72rem] font-medium tracking-[0.14em] uppercase text-wood/55">{group.label}</h3>
-              <ul className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-                {shown.map((item) => (
-                  <li key={item.key} className="flex min-w-0 items-center gap-2 text-sm text-wood/85">
-                    <AmenityIcon iconKey={item.iconKey} className="size-4 shrink-0" />
-                    <span className="break-words">{item.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )
+      <ul id="amenities-list" className="mt-6 grid grid-cols-2 gap-x-5 gap-y-3 lg:grid-cols-3">
+        {groups.flatMap((group) => {
+          const heading = Boolean(group.label) && showAmenityGroupHeading(group.items.length)
+          return [
+            heading ? (
+              <li key={`${group.category}-heading`} className="col-span-2 list-none pt-1 lg:col-span-3">
+                <h3 className="text-[0.72rem] font-medium tracking-[0.14em] uppercase text-wood/55">{group.label}</h3>
+              </li>
+            ) : null,
+            ...group.items.map((item) => (
+              <li key={item.key} className="flex min-h-11 min-w-0 items-center gap-2.5 text-sm leading-snug text-wood/85">
+                <AmenityIcon iconKey={item.iconKey} className="size-5 shrink-0 text-wood/70" />
+                <span className="min-w-0 break-words">{item.label}</span>
+              </li>
+            )),
+          ]
         })}
-      </div>
+      </ul>
     </section>
   )
 }
@@ -222,10 +224,11 @@ export function AmenitiesSection({ amenities }: { amenities: readonly PublicAmen
 export function AccommodationStory({ room }: { room: PublicAccommodation }) {
   const paragraphs = publicDescription(room.description).split(/\n\n/).filter(Boolean)
   const policy = stayPolicyLine(room.description) ?? `Заїзд з ${site.checkIn}. Виїзд до ${site.checkOut}.`
+  const hasAmenities = (room.amenities?.length ?? 0) > 0
   return (
-    <div className="max-w-[40rem]">
+    <div>
       {paragraphs.length > 0 ? (
-        <section>
+        <section className="max-w-[40rem]">
           <h2 className="font-display text-4xl leading-tight">Про помешкання</h2>
           <div className="mt-6 space-y-5 text-base leading-8 text-wood/85">
             {paragraphs.map((paragraph) => (
@@ -234,7 +237,12 @@ export function AccommodationStory({ room }: { room: PublicAccommodation }) {
           </div>
         </section>
       ) : null}
-      <section className={paragraphs.length > 0 ? 'mt-12' : undefined}>
+      {hasAmenities ? (
+        <div className={paragraphs.length > 0 ? 'mt-12' : undefined}>
+          <AmenitiesSection amenities={room.amenities} />
+        </div>
+      ) : null}
+      <section className={`max-w-[40rem] ${paragraphs.length > 0 || hasAmenities ? 'mt-12' : ''}`}>
         <h2 className="font-display text-4xl leading-tight">Заїзд і виїзд</h2>
         <p className="mt-6 text-base leading-8 text-wood/85">{policy}</p>
       </section>
@@ -250,11 +258,6 @@ export function AccommodationCopy({ room }: { room: PublicAccommodation }) {
       <div className="mt-6">
         <AccommodationFacts room={room} />
       </div>
-      {room.amenities && room.amenities.length > 0 ? (
-        <div className="mt-8">
-          <AmenitiesSection amenities={room.amenities} />
-        </div>
-      ) : null}
       <div className="mt-10">
         <AccommodationStory room={room} />
       </div>
