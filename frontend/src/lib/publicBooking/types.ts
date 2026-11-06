@@ -22,6 +22,14 @@ export interface PublicAccommodationImage {
  * Public accommodation record.
  * Fields match GET /hotels/:hotelSlug/accommodations and the detail response.
  */
+export interface PublicAmenity {
+  key: string
+  label: string
+  category: string
+  iconKey: string
+  sortOrder: number
+}
+
 export interface PublicAccommodation {
   id: string
   slug: string
@@ -31,6 +39,8 @@ export interface PublicAccommodation {
   maxGuests: number
   images: PublicAccommodationImage[]
   cover: PublicAccommodationImage
+  /** Assigned amenities. Missing on an older catalog response means none are shown. */
+  amenities?: PublicAmenity[]
   hotelSlug: PublicHotelSlug
 }
 

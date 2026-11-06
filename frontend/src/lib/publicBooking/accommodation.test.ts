@@ -120,6 +120,32 @@ describe('public accommodation catalog', () => {
     assertCatalogRecord(result)
   })
 
+  it('keeps assigned amenities and drops admin-only amenity fields', async () => {
+    const body = accommodation('dakh', 'dakh-room-14-1', 'ROOM', 4)
+    const fetchMock: typeof fetch = async () =>
+      jsonResponse({
+        ...body,
+        amenities: [
+          {
+            id: 'secret',
+            key: 'wifi',
+            label: 'Wi-Fi',
+            labelUk: 'Wi-Fi',
+            category: 'INTERNET_WORKSPACE',
+            iconKey: 'wifi',
+            sortOrder: 1,
+            isActive: true,
+          },
+        ],
+      })
+    const result = await client(fetchMock).getAccommodation('dakh', 'dakh-room-14-1')
+    assert.deepEqual(result.amenities, [
+      { key: 'wifi', label: 'Wi-Fi', category: 'INTERNET_WORKSPACE', iconKey: 'wifi', sortOrder: 1 },
+    ])
+    assert.equal(JSON.stringify(result.amenities).includes('isActive'), false)
+    assert.equal(JSON.stringify(result.amenities).includes('secret'), false)
+  })
+
   it('waits for a slow catalog response instead of returning an empty list', async () => {
     const fetchMock: typeof fetch = async () => {
       await new Promise((resolve) => setTimeout(resolve, 40))

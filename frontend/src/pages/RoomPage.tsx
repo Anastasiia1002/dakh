@@ -1,9 +1,11 @@
 import { lazy, Suspense, useState, type UIEvent } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { AmenityIcon } from '../components/AmenityIcon'
 import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { site } from '../data/catalog'
+import { amenityGroups } from '../lib/catalog/amenities'
 import {
   capacityLabel,
   galleryImages,
@@ -21,7 +23,7 @@ import {
 } from '../lib/catalog/categories'
 import { catalogRedirect } from '../lib/catalog/routes'
 import { useAccommodation, useAccommodationList } from '../lib/catalog/useAccommodations'
-import type { PublicAccommodation, PublicAccommodationImage } from '../lib/publicBooking/types'
+import type { PublicAccommodation, PublicAccommodationImage, PublicAmenity } from '../lib/publicBooking/types'
 
 const ActiveRoomBooking =
   import.meta.env?.VITE_BOOKING_ENABLED === 'true'
@@ -87,8 +89,9 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
       ) : null}
 
       {detail.status === 'ready' && room ? (
-        <div className="mx-auto mt-8 max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto mt-8 max-w-6xl space-y-8 px-4 sm:px-6">
           <AccommodationFacts room={room} />
+          <AmenitiesSection amenities={room.amenities} />
         </div>
       ) : null}
 
@@ -168,6 +171,54 @@ export function AccommodationFacts({ room }: { room: PublicAccommodation }) {
   )
 }
 
+const AMENITY_PREVIEW = 8
+
+export function AmenitiesSection({ amenities }: { amenities: readonly PublicAmenity[] | undefined }) {
+  const [expanded, setExpanded] = useState(false)
+  const groups = amenityGroups(amenities)
+  const items = groups.flatMap((group) => group.items)
+  if (items.length === 0) return null
+  const visible = new Set((expanded ? items : items.slice(0, AMENITY_PREVIEW)).map((item) => item.key))
+  return (
+    <section aria-labelledby="amenities-heading">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2 id="amenities-heading" className="font-display text-4xl leading-tight">
+          Зручності
+        </h2>
+        {items.length > AMENITY_PREVIEW ? (
+          <button
+            type="button"
+            className="text-sm underline decoration-wood/30 underline-offset-4"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? 'Згорнути' : 'Показати всі зручності'}
+          </button>
+        ) : null}
+      </div>
+      <div className="mt-6 space-y-6">
+        {groups.map((group) => {
+          const shown = group.items.filter((item) => visible.has(item.key))
+          if (shown.length === 0) return null
+          return (
+            <div key={group.category}>
+              <h3 className="text-[0.72rem] font-medium tracking-[0.14em] uppercase text-wood/55">{group.label}</h3>
+              <ul className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+                {shown.map((item) => (
+                  <li key={item.key} className="flex min-w-0 items-center gap-2 text-sm text-wood/85">
+                    <AmenityIcon iconKey={item.iconKey} className="size-4 shrink-0" />
+                    <span className="break-words">{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export function AccommodationStory({ room }: { room: PublicAccommodation }) {
   const paragraphs = publicDescription(room.description).split(/\n\n/).filter(Boolean)
   const policy = stayPolicyLine(room.description) ?? `Заїзд з ${site.checkIn}. Виїзд до ${site.checkOut}.`
@@ -199,6 +250,11 @@ export function AccommodationCopy({ room }: { room: PublicAccommodation }) {
       <div className="mt-6">
         <AccommodationFacts room={room} />
       </div>
+      {room.amenities && room.amenities.length > 0 ? (
+        <div className="mt-8">
+          <AmenitiesSection amenities={room.amenities} />
+        </div>
+      ) : null}
       <div className="mt-10">
         <AccommodationStory room={room} />
       </div>
