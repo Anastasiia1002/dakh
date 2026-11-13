@@ -217,5 +217,8 @@ describe('guest booking lookup', () => {
     const headerSource = layout.slice(0, layout.indexOf('footerNav'))
     assert.equal(headerSource.includes('/moie-bronyuvannya'), false)
     assert.match(confirmationPage, /navigate\('\/bronuvannya\/pidtverdzhennya', \{ replace: true \}\)/)
+    assert.match(confirmationPage, /writeStoredConfirmationToken\(routeCode\)/)
+    assert.match(confirmationPage, /markInvalidConfirmationRoute\(\)/)
+    assert.match(confirmationPage, /confirmationLookupCopy/)
   })
 })

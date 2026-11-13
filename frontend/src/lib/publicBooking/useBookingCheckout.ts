@@ -90,11 +90,18 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
       return result
     }
     setStep('looking_up')
-    const confirmed = await publicBookingClient.confirmation(token)
-    setConfirmation(confirmed)
+    setError('')
+    try {
+      const lookedUp = await publicBookingClient.confirmation(token)
+      setConfirmation(lookedUp)
+    } catch (caught) {
+      if (isAbortError(caught)) throw caught
+      // OTP already created the booking. Keep that payload and open the confirmation page.
+      setConfirmation(result)
+    }
     setStep('confirmed')
     setError('')
-    return confirmed
+    return result
   }
 
   async function createIntentFromQuote(quote: PublicQuoteResponse, guest: GuestInput) {

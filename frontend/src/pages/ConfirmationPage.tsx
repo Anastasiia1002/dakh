@@ -5,22 +5,29 @@ import { publicBookingClient, recoverEmailError } from '../lib/publicBooking'
 import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/config'
 import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
 import { readRoomDisplayName } from '../lib/publicBooking/handoff'
-import { errorCopy, isAbortError } from '../lib/publicBooking/errors'
+import { confirmationLookupCopy, errorCopy, isAbortError } from '../lib/publicBooking/errors'
 import { DEMO_PRICE_COPY, isDemoStayTotal, stayNights } from '../lib/publicBooking/stay'
 import { guestStatusLabel, MISSING_SESSION_COPY } from '../lib/publicBooking/myBooking'
 import { knownPartySummary, guestCountLabel } from '../lib/ukrainian'
 import {
+  canonicalAccessCode,
+  clearInvalidConfirmationRoute,
+  hasInvalidConfirmationRoute,
   isConfirmationToken,
   isShortAccessCode,
+  markInvalidConfirmationRoute,
   readStoredConfirmationToken,
   readStoredIntent,
+  writeStoredConfirmationToken,
 } from '../lib/publicBooking/checkout'
 import type { PublicBookingConfirmationResponse } from '../lib/publicBooking/types'
 
 export function ConfirmationPage() {
   const { token: routeToken = '' } = useParams()
   const navigate = useNavigate()
-  const token = readStoredConfirmationToken()
+  const storedToken = readStoredConfirmationToken()
+  const routeCode = isConfirmationToken(routeToken) ? canonicalAccessCode(routeToken) : ''
+  const token = storedToken || routeCode
   const validToken = isConfirmationToken(token) ? token : ''
   const storedIntent = readStoredIntent()
   const [confirmation, setConfirmation] = useState<PublicBookingConfirmationResponse | null>(null)
@@ -31,7 +38,7 @@ export function ConfirmationPage() {
   const [recoverBusy, setRecoverBusy] = useState(false)
   const error = validToken
     ? lookupError
-    : token
+    : token || hasInvalidConfirmationRoute() || (Boolean(routeToken) && !routeCode)
       ? 'Посилання на підтвердження недійсне.'
       : MISSING_SESSION_COPY
   const bookingEnabled = isBookingEnabled()
@@ -39,8 +46,10 @@ export function ConfirmationPage() {
 
   useEffect(() => {
     if (!routeToken) return
+    if (routeCode) writeStoredConfirmationToken(routeCode)
+    else markInvalidConfirmationRoute()
     navigate('/bronuvannya/pidtverdzhennya', { replace: true })
-  }, [navigate, routeToken])
+  }, [navigate, routeCode, routeToken])
 
   useEffect(() => {
     if (!bookingEnabled || !validToken) return
@@ -51,18 +60,19 @@ export function ConfirmationPage() {
         if (cancelled) return
         setConfirmation(result)
         setLookupError('')
+        clearInvalidConfirmationRoute()
         setResolved(true)
       })
       .catch((caught: unknown) => {
         if (cancelled || isAbortError(caught)) return
         setConfirmation(null)
-        setLookupError(errorCopy(caught))
+        setLookupError(confirmationLookupCopy(caught, Boolean(storedIntent)))
         setResolved(true)
       })
     return () => {
       cancelled = true
     }
-  }, [bookingEnabled, validToken])
+  }, [bookingEnabled, storedIntent, validToken])
 
   async function recover(event: FormEvent) {
     event.preventDefault()
@@ -82,7 +92,7 @@ export function ConfirmationPage() {
       await publicBookingClient.recoverConfirmation(storedIntent.intentId, { email: recoverEmail.trim() })
       setRecoverHint('Якщо пошта збігається з заявкою, перевірте скриньку.')
     } catch (caught) {
-      setRecoverHint(errorCopy(caught))
+        setRecoverHint(errorCopy(caught))
     } finally {
       setRecoverBusy(false)
     }
