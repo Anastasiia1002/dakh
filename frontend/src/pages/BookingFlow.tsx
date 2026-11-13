@@ -31,10 +31,17 @@ import {
 } from '../lib/publicBooking'
 import { selectedServiceLines } from '../lib/publicBooking/publicServices'
 import { usePublicServices } from '../lib/publicBooking/usePublicServices'
-import { bookingSubmitBlockReason, ROOM_SELECTION_HEADING, ROOM_SELECTION_INSTRUCTION } from '../lib/publicBooking/bookingSelection'
+import {
+  bookableAvailabilityRooms,
+  bookingSubmitBlockReason,
+  groupAvailabilityRooms,
+  ROOM_SELECTION_HEADING,
+  ROOM_SELECTION_INSTRUCTION,
+} from '../lib/publicBooking/bookingSelection'
 import { calendarRejectsStay, reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
-import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase } from '../lib/catalog/categories'
+import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase, toPublicAccommodationSlug } from '../lib/catalog/categories'
+import { useAccommodationList } from '../lib/catalog/useAccommodations'
 import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../lib/publicBooking/config'
 import { publicRoomLabel } from '../lib/publicBooking/display'
 import {
@@ -125,6 +132,20 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const roomRejected = Boolean(handoff && mapped.status !== 'loading' && !identityReady)
   const activeCalendar = locked ? mapped : calendar
   const catalog = usePublicServices(hotelSlug ?? undefined)
+  const listedRooms = useAccommodationList('rooms')
+  const listedHouses = useAccommodationList('houses')
+  const catalogCovers = useMemo(() => {
+    const covers = new Map<string, { url: string; coverKey: string; alt: string }>()
+    for (const item of [...listedRooms.items, ...listedHouses.items]) {
+      const category = item.kind === 'COTTAGE' ? 'houses' : 'rooms'
+      covers.set(item.id, {
+        url: item.cover.url,
+        coverKey: toPublicAccommodationSlug(category, item.slug),
+        alt: item.cover.alt || item.name,
+      })
+    }
+    return covers
+  }, [listedHouses.items, listedRooms.items])
   const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>({})
   const serviceLines = useMemo(
     () => selectedServiceLines(serviceQuantities, catalog.items),
@@ -146,7 +167,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     identityReady ? draft.roomTypeId : '',
     identityReady ? draft.ratePlanId : '',
     hotelSlug ?? undefined,
-    category === 'houses' ? 'COTTAGE' : 'ROOM',
+    locked ? (category === 'houses' ? 'COTTAGE' : 'ROOM') : undefined,
     quoteBlocked,
     serviceLines,
   )
@@ -338,21 +359,17 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     return publicRoomLabel(room.name, room.kind)
   }
 
-  const bookableRooms = (search.availability?.roomTypes ?? [])
-    .filter(
-      (room) =>
-        room.kind === (category === 'houses' ? 'COTTAGE' : 'ROOM') &&
-        room.availableCount > 0 &&
-        roomAcceptsAdults(room, draft.adults),
-    )
-    .map((room) => {
+  const bookableRooms = bookableAvailabilityRooms(search.availability?.roomTypes ?? [], draft.adults, roomAcceptsAdults).map(
+    (room) => {
       const ratePlans = offerableRatePlans(room.ratePlans)
       return {
         ...room,
         ratePlans,
         nightlyStartingPrice: selectEligibleRatePlan(ratePlans)?.nightlyStartingPrice ?? null,
       }
-    })
+    },
+  )
+  const groupedRooms = groupAvailabilityRooms(bookableRooms)
   const roomListStatus =
     search.availabilityStatus === 'ready' && bookableRooms.length === 0 ? 'empty' : search.availabilityStatus
 
@@ -374,7 +391,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             : 0
   const steps = [
     { label: 'Дати', hint: 'Заїзд і виїзд' },
-    { label: locked ? 'Помешкання' : 'Обрати', hint: locked ? 'Уже обрано' : 'Вільні кімнати' },
+    { label: locked ? 'Помешкання' : 'Обрати', hint: locked ? 'Уже обрано' : 'Доступні помешкання' },
     { label: 'Контакти', hint: 'Ім’я і пошта' },
     { label: 'Код', hint: 'Лист на пошту' },
   ]
@@ -445,9 +462,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
         <div className="space-y-12 md:col-span-7">
           {locked ? null : (
             <fieldset className="border-0 p-0">
-              <legend className="font-display text-3xl text-clay">
-                {ROOM_SELECTION_HEADING[category === 'houses' ? 'house' : 'room']}
-              </legend>
+              <legend className="font-display text-3xl text-clay">{ROOM_SELECTION_HEADING.room}</legend>
               <p className="mt-3 max-w-xl text-sm text-wood/70">{ROOM_SELECTION_INSTRUCTION}</p>
               <RoomOptions
                 rooms={bookableRooms}
@@ -455,8 +470,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 status={roomListStatus}
                 error={search.availabilityError}
                 searchable={search.searchable}
-                place={category === 'houses' ? 'house' : 'room'}
+                place="room"
                 roomLabel={labelForRoom}
+                covers={catalogCovers}
+                emptyHouses={search.searchable && roomListStatus === 'ready' && groupedRooms.houses.length === 0}
                 onSelect={(room) =>
                   patch({
                     roomTypeId: room.roomTypeId,
@@ -561,7 +578,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             missingRoomCopy={
               locked
                 ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
-                : 'Оберіть кімнату зі списку вільних.'
+                : 'Оберіть помешкання зі списку доступних.'
             }
           />
 

@@ -13,6 +13,7 @@ import {
   publicDescription,
   publicTitle,
   stayPolicyLine,
+  titleIncludesCapacity,
 } from '../lib/catalog/display'
 import {
   apiHotelSlug,
@@ -104,7 +105,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
             className="absolute inset-0 h-full w-full"
           />
           <div className="absolute inset-0 bg-wood/40" />
-          <div className="relative flex min-h-[42svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[56vh] md:px-10 md:pb-20">
+          <div className="relative mx-auto flex min-h-[42svh] w-full max-w-6xl flex-col justify-end px-4 pb-16 pt-28 sm:px-6 md:min-h-[56vh] md:pb-20">
             <nav aria-label="Шлях" className="text-[0.72rem] tracking-[0.12em] uppercase text-linen/75">
               <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <li>
@@ -120,11 +121,13 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
                 </li>
               </ol>
             </nav>
-            <p className="kicker mt-6 text-[0.68rem] text-linen/80">{kindLabel(room.kind)}</p>
+            <p className="kicker mt-5 text-[0.68rem] text-linen/80">{kindLabel(room.kind)}</p>
             <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.08] text-balance text-linen sm:text-5xl md:text-7xl">
               {title}
             </h1>
-            <p className="mt-4 text-sm text-linen/90">{capacityLabel(room.maxGuests)}</p>
+            {titleIncludesCapacity(room.name, room.maxGuests) ? null : (
+              <p className="mt-3 text-sm text-linen/90">{capacityLabel(room.maxGuests)}</p>
+            )}
             {highlights.length > 0 ? (
               <ul className="mt-4 flex max-w-xl flex-wrap gap-x-5 gap-y-1 text-sm text-linen/85">
                 {highlights.map((item) => (
