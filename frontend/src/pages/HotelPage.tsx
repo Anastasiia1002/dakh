@@ -41,7 +41,7 @@ export function HotelPage({ category }: { category: AccommodationCategory }) {
 
   return (
     <article>
-      <section className="photo-grain relative min-h-[38svh] md:min-h-[52vh]">
+      <section className="photo-grain relative min-h-[32svh] md:min-h-[52vh]">
         <Photo
           src={text.photo}
           alt={text.alt}
@@ -51,14 +51,14 @@ export function HotelPage({ category }: { category: AccommodationCategory }) {
           className={`absolute inset-0 h-full w-full ${text.crop}`}
         />
         <div className="absolute inset-0 bg-wood/35" />
-        <div className="relative flex min-h-[38svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[52vh] md:px-10 md:pb-20">
+        <div className="relative flex min-h-[32svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[52vh] md:px-10 md:pb-20">
           <p className="kicker text-[0.68rem] text-linen/80">{text.kicker}</p>
           <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] text-linen md:text-7xl">{text.title}</h1>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-linen/90">{text.lead}</p>
         </div>
       </section>
 
-      <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-6 md:-mt-12">
+      <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-6 pb-8 max-sm:pr-28 md:-mt-12">
         <StayBar />
       </div>
 
