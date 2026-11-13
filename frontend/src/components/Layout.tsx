@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
+import { DocumentHead } from './DocumentHead'
 import { DakhLogo } from './BrandMarks'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
@@ -105,6 +106,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-linen text-wood">
+      <DocumentHead />
       <ScrollToTop />
       <header
         className={
@@ -134,13 +136,22 @@ export function Layout() {
             ))}
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <a
-              href={site.phoneHrefs[0]}
-              className="inline-flex min-h-11 items-center justify-center border border-current px-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase lg:hidden"
-              aria-label={`Подзвонити ${site.phones[0]}`}
-            >
-              Подзвонити
-            </a>
+            {bookingEnabled ? (
+              <Link
+                to="/bronuvannya"
+                className={`${headerAction} bg-clay text-linen lg:hidden`}
+              >
+                Забронювати
+              </Link>
+            ) : (
+              <a
+                href={site.phoneHrefs[0]}
+                className="inline-flex min-h-11 items-center justify-center border border-current px-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase lg:hidden"
+                aria-label={`Подзвонити ${site.phones[0]}`}
+              >
+                Подзвонити
+              </a>
+            )}
             <HeaderActions className="hidden lg:flex" />
             <button
               ref={menuButtonRef}
@@ -178,7 +189,9 @@ export function Layout() {
       </header>
 
       <main>
-        <Outlet />
+        <Suspense fallback={<p className="px-6 pt-32 text-sm text-wood/60">Завантажуємо сторінку…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="relative mt-24 overflow-hidden border-t border-wood/10 bg-beige">

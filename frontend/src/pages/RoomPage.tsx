@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState, type UIEvent } from 'react'
-import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState, type UIEvent } from 'react'
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { AmenityIcon } from '../components/AmenityIcon'
 import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
@@ -23,6 +23,7 @@ import {
 } from '../lib/catalog/categories'
 import { catalogRedirect } from '../lib/catalog/routes'
 import { useAccommodation, useAccommodationList } from '../lib/catalog/useAccommodations'
+import { stayUrlFromSearch } from '../lib/publicBooking/stayUrl'
 import type { PublicAccommodation, PublicAccommodationImage, PublicAmenity } from '../lib/publicBooking/types'
 
 const ActiveRoomBooking =
@@ -44,6 +45,8 @@ export function RoomPage({ category }: { category: AccommodationCategory }) {
 }
 
 function AccommodationDetail({ category, apiSlug }: { category: AccommodationCategory; apiSlug: string }) {
+  const [params] = useSearchParams()
+  const stay = stayUrlFromSearch(params)
   const detail = useAccommodation(category, apiSlug)
   const related = useAccommodationList(category)
   const room = detail.item
@@ -129,7 +132,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
           <h2 className="font-display text-4xl">Спробуйте також</h2>
           <div className="mt-8 grid gap-10 md:grid-cols-2">
             {others.map((item) => (
-              <RoomCard key={item.id} accommodation={item} />
+              <RoomCard key={item.id} accommodation={item} stay={stay} />
             ))}
           </div>
         </section>
@@ -269,6 +272,15 @@ function EditorialGallery({ images, title }: { images: PublicAccommodationImage[
   const [active, setActive] = useState(0)
   const index = Math.min(active, images.length - 1)
   const selected = images[index]
+  useEffect(() => {
+    if (images.length < 2) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'ArrowRight') setActive((current) => (current + 1) % images.length)
+      if (event.key === 'ArrowLeft') setActive((current) => (current === 0 ? images.length - 1 : current - 1))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [images.length])
   if (!selected) return null
   const support = images
     .map((image, imageIndex) => ({ image, imageIndex }))
@@ -317,6 +329,26 @@ function EditorialGallery({ images, title }: { images: PublicAccommodationImage[
             priority
             className="absolute inset-0 h-full w-full"
           />
+          {images.length > 1 ? (
+            <div className="absolute inset-x-3 bottom-3 flex justify-between">
+              <button
+                type="button"
+                className="min-h-11 min-w-11 bg-linen/90 px-3 text-sm text-wood"
+                aria-label="Попереднє фото"
+                onClick={() => setActive((current) => (current === 0 ? images.length - 1 : current - 1))}
+              >
+                Назад
+              </button>
+              <button
+                type="button"
+                className="min-h-11 min-w-11 bg-linen/90 px-3 text-sm text-wood"
+                aria-label="Наступне фото"
+                onClick={() => setActive((current) => (current + 1) % images.length)}
+              >
+                Далі
+              </button>
+            </div>
+          ) : null}
         </div>
         {support.length > 0 ? (
           <div className={`grid min-h-0 gap-3 ${support.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>

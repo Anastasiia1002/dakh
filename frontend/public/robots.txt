@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /bronuvannya/pidtverdzhennya
+Disallow: /dakh/bronuvannya/pidtverdzhennya
+Disallow: /moie-bronyuvannya
+Disallow: /dakh/moie-bronyuvannya
+Disallow: /my-booking
+Disallow: /dakh/my-booking

@@ -21,7 +21,7 @@ export function RestaurantPage() {
             rel="noreferrer"
             className="mt-8 inline-block text-[0.75rem] tracking-[0.16em] uppercase underline decoration-wood/30 underline-offset-8"
           >
-            Відкрити меню
+            Переглянути меню
           </a>
         </div>
       </section>

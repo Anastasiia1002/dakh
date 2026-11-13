@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../BookingCalendar'
 import type { AccommodationCategory } from '../../lib/catalog/categories'
 import { emptyDraft, type BookingDraft } from '../../lib/booking'
@@ -20,11 +20,22 @@ import {
   rememberRoomDisplayName,
   type BookingHandoff,
 } from '../../lib/publicBooking/handoff'
+import { stayUrlFromSearch } from '../../lib/publicBooking/stayUrl'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
 import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
 import { QuoteSummary } from './CheckoutPanels'
 
-function draftFromHandoff(publicSlug: string): BookingDraft {
+function draftFromHandoff(publicSlug: string, params: URLSearchParams): BookingDraft {
+  const fromUrl = stayUrlFromSearch(params)
+  if (fromUrl.from && fromUrl.to) {
+    return {
+      ...emptyDraft,
+      checkIn: fromUrl.from,
+      checkOut: fromUrl.to,
+      adults: fromUrl.adults,
+      children: fromUrl.children,
+    }
+  }
   const saved = loadBookingHandoff()
   if (!saved || saved.catalogSlug !== publicSlug) return { ...emptyDraft, adults: 2 }
   return {
@@ -52,7 +63,8 @@ export function RoomBooking({
   hotelSlug: string
 }) {
   const navigate = useNavigate()
-  const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(publicSlug))
+  const [params] = useSearchParams()
+  const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(publicSlug, params))
   const [now, setNow] = useState(() => Date.now())
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
   const guestCount = guestCountOf(draft.adults, draft.children)
