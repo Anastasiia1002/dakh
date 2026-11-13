@@ -362,6 +362,23 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       ? search.availabilityError || search.quoteError || 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
       : ''
 
+  const step =
+    checkout.step === 'verify' || checkout.step === 'confirming' || checkout.step === 'looking_up'
+      ? 3
+      : checkout.step === 'confirmed'
+        ? 4
+        : search.searchable && (locked || Boolean(draft.roomTypeId))
+          ? 2
+          : search.searchable
+            ? 1
+            : 0
+  const steps = [
+    { label: 'Дати', hint: 'Заїзд і виїзд' },
+    { label: locked ? 'Помешкання' : 'Обрати', hint: locked ? 'Уже обрано' : 'Вільні кімнати' },
+    { label: 'Контакти', hint: 'Ім’я і пошта' },
+    { label: 'Код', hint: 'Лист на пошту' },
+  ]
+
   return (
     <section className={hideIntro ? 'contents' : 'mx-auto max-w-6xl px-6 pb-24 pt-32'}>
       {hideIntro ? null : (
@@ -373,15 +390,29 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       <p className="mt-5 max-w-xl text-sm text-wood/70">
         {bookingEnabled
           ? locked
-            ? 'Помешкання вже обрано. Дати й кількість гостей можна змінити тут, потім залишіть контакти. Ціну підтверджує сервер.'
-            : 'Оберіть дати й помешкання. Тариф підберемо за найнижчою сумою і покажемо умови. Після заявки надішлемо код на пошту.'
+            ? 'Помешкання вже обрано. Дати й гостей можна змінити, потім залиште контакти. Суму підтверджує сервер.'
+            : 'Оберіть дати, помешкання і контакти. Після заявки надішлемо код на пошту.'
           : BOOKING_DISABLED_COPY}
       </p>
+
+      {bookingEnabled ? (
+        <ol className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {steps.map((item, index) => (
+            <li
+              key={item.label}
+              className={`border px-3 py-3 ${index <= step ? 'border-wood/25 bg-linen' : 'border-wood/10 text-wood/50'}`}
+            >
+              <p className="text-[0.68rem] tracking-[0.14em] uppercase">{item.label}</p>
+              <p className="mt-1 text-sm">{item.hint}</p>
+            </li>
+          ))}
+        </ol>
+      ) : null}
 
       <p className="mt-10 text-sm text-wood/60">
         {search.searchable
           ? bookingEnabled
-            ? 'Оберіть дати, щоб перевірити доступність і вартість. Суму підтверджує сервер.'
+            ? 'Оберіть дати, щоб перевірити доступність і вартість.'
             : BOOKING_DISABLED_COPY
           : 'Спочатку оберіть заїзд і виїзд. Максимум 30 ночей.'}
       </p>
@@ -504,7 +535,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
         </div>
 
-        <aside className="h-fit bg-beige p-6 md:sticky md:top-8 md:col-span-5">
+        <aside className="h-fit border border-wood/10 bg-linen p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)] md:sticky md:top-8 md:col-span-5">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
           {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">

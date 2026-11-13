@@ -1,11 +1,12 @@
-import { lazy, Suspense, useEffect, useState, type UIEvent } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { AmenityIcon } from '../components/AmenityIcon'
 import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
+import { PhotoGallery } from '../components/PhotoGallery'
 import { RoomCard } from '../components/RoomCard'
 import { site } from '../data/catalog'
-import { amenityGroups, detailPreviewAmenities, showAmenityGroupHeading } from '../lib/catalog/amenities'
+import { amenityGroups, cardAmenities, detailPreviewAmenities, showAmenityGroupHeading } from '../lib/catalog/amenities'
 import {
   capacityLabel,
   galleryImages,
@@ -24,7 +25,7 @@ import {
 import { catalogRedirect } from '../lib/catalog/routes'
 import { useAccommodation, useAccommodationList } from '../lib/catalog/useAccommodations'
 import { stayUrlFromSearch } from '../lib/publicBooking/stayUrl'
-import type { PublicAccommodation, PublicAccommodationImage, PublicAmenity } from '../lib/publicBooking/types'
+import type { PublicAccommodation, PublicAmenity } from '../lib/publicBooking/types'
 
 const ActiveRoomBooking =
   import.meta.env?.VITE_BOOKING_ENABLED === 'true'
@@ -56,56 +57,76 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
   const listLabel = category === 'rooms' ? 'Кімнати' : 'Будинки'
   const title = room ? publicTitle(room.name, room.maxGuests) : ''
 
+  const opening = images[0]
+  const highlights = room ? cardAmenities(room.amenities, 3) : []
+
   return (
-    <article className="overflow-x-hidden">
-      {detail.status === 'ready' && room ? (
-        <header className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-10">
-          <nav aria-label="Шлях">
-            <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-wood/70">
-              <li>
-                <Link to="/" className="underline decoration-wood/25 underline-offset-4 hover:text-wood">
-                  Головна
-                </Link>
-              </li>
-              <li aria-hidden="true">/</li>
-              <li>
-                <Link to={listPath} className="underline decoration-wood/25 underline-offset-4 hover:text-wood">
-                  {listLabel}
-                </Link>
-              </li>
-              <li aria-hidden="true">/</li>
-              <li aria-current="page" className="min-w-0 break-words text-wood">
-                {title}
-              </li>
-            </ol>
-          </nav>
-          <h1 className="mt-6 max-w-4xl break-words font-display text-[2.5rem] leading-[1.08] text-balance sm:text-5xl lg:text-6xl">
-            {title}
-          </h1>
+    <article>
+      {detail.status === 'ready' && room && opening ? (
+        <section className="photo-grain relative min-h-[42svh] md:min-h-[56vh]">
+          <Photo
+            src={opening.url}
+            alt={opening.alt || title}
+            tone={false}
+            priority
+            sizes="100vw"
+            className="absolute inset-0 h-full w-full"
+          />
+          <div className="absolute inset-0 bg-wood/40" />
+          <div className="relative flex min-h-[42svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[56vh] md:px-10 md:pb-20">
+            <nav aria-label="Шлях" className="text-[0.72rem] tracking-[0.12em] uppercase text-linen/75">
+              <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <li>
+                  <Link to="/" className="underline decoration-linen/30 underline-offset-4 hover:text-linen">
+                    Головна
+                  </Link>
+                </li>
+                <li aria-hidden="true">/</li>
+                <li>
+                  <Link to={listPath} className="underline decoration-linen/30 underline-offset-4 hover:text-linen">
+                    {listLabel}
+                  </Link>
+                </li>
+              </ol>
+            </nav>
+            <p className="kicker mt-6 text-[0.68rem] text-linen/80">{kindLabel(room.kind)}</p>
+            <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.08] text-balance text-linen sm:text-5xl md:text-7xl">
+              {title}
+            </h1>
+            <p className="mt-4 text-sm text-linen/90">{capacityLabel(room.maxGuests)}</p>
+            {highlights.length > 0 ? (
+              <ul className="mt-4 flex max-w-xl flex-wrap gap-x-5 gap-y-1 text-sm text-linen/85">
+                {highlights.map((item) => (
+                  <li key={item.key}>{item.label}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </section>
+      ) : detail.status === 'ready' && room ? (
+        <header className="mx-auto max-w-6xl px-4 pt-28 sm:px-6">
+          <h1 className="max-w-4xl font-display text-5xl leading-[1.08] text-balance">{title}</h1>
         </header>
       ) : (
         <div className="h-48 bg-beige" />
       )}
 
       {detail.status === 'ready' && room && images.length > 0 ? (
-        <EditorialGallery key={room.id} images={images} title={title} />
+        <PhotoGallery key={room.id} images={images} title={title} />
       ) : null}
 
-      {detail.status === 'ready' && room ? (
-        <div className="mx-auto mt-8 max-w-6xl px-4 sm:px-6">
-          <AccommodationFacts room={room} />
-        </div>
-      ) : null}
-
-      <section className="mx-auto mt-8 grid max-w-6xl items-start gap-10 px-4 sm:px-6 lg:mt-14 lg:grid-cols-[minmax(0,1.86fr)_minmax(18rem,1fr)] lg:gap-14">
+      <section className="mx-auto mt-8 grid max-w-6xl items-start gap-10 px-4 pb-28 sm:px-6 lg:mt-14 lg:grid-cols-[minmax(0,1.86fr)_minmax(18rem,1fr)] lg:gap-14 lg:pb-24">
         {detail.status === 'ready' && room ? (
           <>
-            <div className="order-2 min-w-0 lg:order-1">
-              <AccommodationStory room={room} />
+            <div className="min-w-0">
+              <AccommodationFacts room={room} />
+              <div className="mt-10">
+                <AccommodationStory room={room} />
+              </div>
             </div>
-            <div className="order-1 min-w-0 lg:sticky lg:top-32 lg:order-2 lg:self-start">
+            <div id="booking-panel" className="min-w-0 scroll-mt-28 lg:sticky lg:top-28 lg:self-start">
               {ActiveRoomBooking ? (
-                <Suspense fallback={<p className="bg-beige px-6 py-8 text-base text-wood/70">Завантажуємо дати…</p>}>
+                <Suspense fallback={<p className="border border-wood/10 bg-linen px-6 py-8 text-base text-wood/70">Завантажуємо дати…</p>}>
                   <ActiveRoomBooking
                     category={category}
                     apiSlug={room.slug}
@@ -265,123 +286,5 @@ export function AccommodationCopy({ room }: { room: PublicAccommodation }) {
         <AccommodationStory room={room} />
       </div>
     </>
-  )
-}
-
-function EditorialGallery({ images, title }: { images: PublicAccommodationImage[]; title: string }) {
-  const [active, setActive] = useState(0)
-  const index = Math.min(active, images.length - 1)
-  const selected = images[index]
-  useEffect(() => {
-    if (images.length < 2) return
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'ArrowRight') setActive((current) => (current + 1) % images.length)
-      if (event.key === 'ArrowLeft') setActive((current) => (current === 0 ? images.length - 1 : current - 1))
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [images.length])
-  if (!selected) return null
-  const support = images
-    .map((image, imageIndex) => ({ image, imageIndex }))
-    .filter((item) => item.imageIndex !== index)
-    .slice(0, 2)
-  const shown = new Set([index, ...support.map((item) => item.imageIndex)])
-  const rest = images
-    .map((image, imageIndex) => ({ image, imageIndex }))
-    .filter((item) => !shown.has(item.imageIndex))
-
-  function onStripScroll(event: UIEvent<HTMLDivElement>) {
-    const node = event.currentTarget
-    const width = node.clientWidth
-    if (width <= 0) return
-    const next = Math.round(node.scrollLeft / width)
-    if (next >= 0 && next < images.length) setActive((current) => (current === next ? current : next))
-  }
-
-  return (
-    <section className="mt-8" aria-label="Фото помешкання">
-      <div className="flex w-full max-w-full snap-x snap-mandatory overflow-x-auto md:hidden" onScroll={onStripScroll}>
-        {images.map((image, imageIndex) => (
-          <div key={`${image.url}-${image.sortOrder}`} className="w-full shrink-0 basis-full snap-center">
-            <Photo
-              src={image.url}
-              alt={image.alt || title}
-              priority={imageIndex === 0}
-              className="aspect-[4/3] max-h-[24rem] w-full"
-            />
-          </div>
-        ))}
-      </div>
-      {images.length > 1 ? (
-        <p className="mt-3 text-center text-sm text-wood/70 md:hidden">
-          {index + 1} / {images.length}
-        </p>
-      ) : null}
-
-      <div
-        className={`mx-auto hidden max-w-6xl items-stretch gap-3 px-6 md:grid ${support.length > 0 ? 'md:grid-cols-[minmax(0,1.7fr)_minmax(11rem,0.85fr)]' : ''}`}
-      >
-        <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/4]">
-          <Photo
-            src={selected.url}
-            alt={selected.alt || title}
-            priority
-            className="absolute inset-0 h-full w-full"
-          />
-          {images.length > 1 ? (
-            <div className="absolute inset-x-3 bottom-3 flex justify-between">
-              <button
-                type="button"
-                className="min-h-11 min-w-11 bg-linen/90 px-3 text-sm text-wood"
-                aria-label="Попереднє фото"
-                onClick={() => setActive((current) => (current === 0 ? images.length - 1 : current - 1))}
-              >
-                Назад
-              </button>
-              <button
-                type="button"
-                className="min-h-11 min-w-11 bg-linen/90 px-3 text-sm text-wood"
-                aria-label="Наступне фото"
-                onClick={() => setActive((current) => (current + 1) % images.length)}
-              >
-                Далі
-              </button>
-            </div>
-          ) : null}
-        </div>
-        {support.length > 0 ? (
-          <div className={`grid min-h-0 gap-3 ${support.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>
-            {support.map(({ image, imageIndex }) => (
-              <button
-                key={`${image.url}-${image.sortOrder}`}
-                type="button"
-                onClick={() => setActive(imageIndex)}
-                className="relative min-h-0 overflow-hidden text-left"
-                aria-label={image.alt || `Показати фото ${imageIndex + 1}`}
-              >
-                <Photo src={image.url} alt="" className="absolute inset-0 h-full w-full" />
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      {rest.length > 0 ? (
-        <div className="mx-auto mt-3 hidden max-w-6xl grid-cols-4 gap-3 px-6 md:grid">
-          {rest.map(({ image, imageIndex }) => (
-            <button
-              key={`rest-${image.url}-${image.sortOrder}`}
-              type="button"
-              onClick={() => setActive(imageIndex)}
-              aria-label={image.alt || `Фото ${imageIndex + 1}`}
-              className="block overflow-hidden"
-            >
-              <Photo src={image.url} alt="" className="aspect-[3/2] w-full" />
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </section>
   )
 }

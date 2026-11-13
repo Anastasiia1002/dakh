@@ -175,10 +175,10 @@ export function ContactPage() {
   }
 
   return (
-    <article className="mx-auto max-w-5xl px-6 pb-24 pt-32">
+    <article className="mx-auto max-w-5xl px-6 pb-24 pt-28 md:pt-32">
       <header className="max-w-2xl">
         <p className="kicker text-[0.68rem] text-clay">Контакти</p>
-        <h1 className="mt-3 font-display text-5xl leading-tight text-clay">Як з нами зв’язатися</h1>
+        <h1 className="mt-3 font-display text-5xl leading-[1.08] text-clay md:text-6xl">Як з нами зв’язатися</h1>
       </header>
 
       <div className="mt-12 grid gap-12 md:grid-cols-2 md:items-stretch md:gap-16">

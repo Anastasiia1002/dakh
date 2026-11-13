@@ -27,9 +27,9 @@ export function BookingPage() {
   }
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
+    <section className="mx-auto max-w-6xl px-6 pb-24 pt-28 md:pt-32">
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-      <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
+      <h1 className="mt-3 font-display text-5xl leading-[1.08] text-clay md:text-6xl">Бронювання</h1>
       <Suspense fallback={<p className="mt-10 text-sm text-wood/60">Завантажуємо бронювання…</p>}>
         <ActiveBooking hideIntro />
       </Suspense>

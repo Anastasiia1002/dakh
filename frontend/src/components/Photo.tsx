@@ -9,6 +9,7 @@ type Props = {
   /** First visible cover or the open gallery image. Everything else waits. */
   priority?: boolean
   sizes?: string
+  fit?: 'cover' | 'contain'
 }
 
 function unsplashSrcSet(src: string) {
@@ -29,7 +30,7 @@ function unsplashSrcSet(src: string) {
   }
 }
 
-export function Photo({ src, alt, className = '', tone = true, priority = false, sizes }: Props) {
+export function Photo({ src, alt, className = '', tone = true, priority = false, sizes, fit = 'cover' }: Props) {
   const [failed, setFailed] = useState(false)
   const webpSrcSet = localWebpSrcSet(src)
   const webpSrc = localWebpHref(src)
@@ -54,7 +55,7 @@ export function Photo({ src, alt, className = '', tone = true, priority = false,
       decoding={priority ? 'sync' : 'async'}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`${tone ? 'photo-tone' : ''} object-cover ${className}`}
+      className={`${tone ? 'photo-tone' : ''} ${fit === 'contain' ? 'object-contain' : 'object-cover'} ${className}`}
       onError={() => setFailed(true)}
     />
   )
