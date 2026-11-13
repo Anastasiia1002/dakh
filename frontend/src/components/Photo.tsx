@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { localWebpSrcSet } from '../lib/localPhoto'
+import { localWebpHref, localWebpSrcSet } from '../lib/localPhoto'
 
 type Props = {
   src: string
@@ -32,6 +32,7 @@ function unsplashSrcSet(src: string) {
 export function Photo({ src, alt, className = '', tone = true, priority = false, sizes }: Props) {
   const [failed, setFailed] = useState(false)
   const webpSrcSet = localWebpSrcSet(src)
+  const webpSrc = localWebpHref(src)
   const jpegSrcSet = webpSrcSet ? undefined : unsplashSrcSet(src)
   const srcSet = webpSrcSet ?? jpegSrcSet
   const layoutSizes = srcSet ? (sizes ?? '(max-width: 768px) 100vw, 72vw') : undefined
@@ -44,10 +45,10 @@ export function Photo({ src, alt, className = '', tone = true, priority = false,
     return <div className={`bg-beige ${className}`} role="img" aria-label={alt || 'Фото недоступне'} />
   }
 
-  const image = (
+  return (
     <img
-      src={src}
-      srcSet={jpegSrcSet}
+      src={webpSrc ?? src}
+      srcSet={srcSet}
       sizes={layoutSizes}
       alt={alt}
       decoding={priority ? 'sync' : 'async'}
@@ -56,14 +57,5 @@ export function Photo({ src, alt, className = '', tone = true, priority = false,
       className={`${tone ? 'photo-tone' : ''} object-cover ${className}`}
       onError={() => setFailed(true)}
     />
-  )
-
-  if (!webpSrcSet) return image
-
-  return (
-    <picture className="contents">
-      <source type="image/webp" srcSet={webpSrcSet} sizes={layoutSizes} />
-      {image}
-    </picture>
   )
 }

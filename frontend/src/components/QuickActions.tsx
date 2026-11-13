@@ -12,6 +12,8 @@ function hideQuickActions(pathname: string) {
   return (
     path === '/bronuvannya' ||
     path.startsWith('/bronuvannya/') ||
+    path.startsWith('/rooms/') ||
+    path.startsWith('/houses/') ||
     path === '/moie-bronyuvannya' ||
     path === '/my-booking'
   )

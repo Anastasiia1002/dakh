@@ -196,9 +196,9 @@ describe('catalog screens', () => {
     assert.match(layout, /href="\/rooms"/)
     assert.match(layout, /href="\/houses"/)
     const visible = `${html}${houses}${home}${layout}`
-    assert.match(html, /dakh-lounge\.jpg/)
+    assert.match(html, /dakh-lounge-800\.webp/)
     assert.match(html, /Оберіть дати/)
-    assert.match(houses, /dakh-dining\.jpg/)
+    assert.match(houses, /dakh-dining-800\.webp/)
     assert.match(layout, /Подзвонити/)
     assert.doesNotMatch(visible, /Sunny Park|sunny-park|Номери|Зараз немає опублікованих/)
     assert.doesNotMatch(visible, /Порівняйте місткість|публічного каталогу|Тестовий режим|2 000/)
@@ -253,8 +253,8 @@ describe('catalog screens', () => {
 
   it('shows the lounge beside the facade and links to rooms, houses and the restaurant', () => {
     const html = markup(createElement(MemoryRouter, null, createElement(AboutPage)))
-    assert.match(html, /dakh-facade-night\.jpg/)
-    assert.match(html, /dakh-lounge\.jpg/)
+    assert.match(html, /dakh-facade-night-800\.webp/)
+    assert.match(html, /dakh-lounge-800\.webp/)
     assert.match(html, /href="\/rooms"/)
     assert.match(html, /href="\/houses"/)
     assert.match(html, /Будиночки/)
@@ -265,7 +265,7 @@ describe('catalog screens', () => {
 
   it('keeps the restaurant hall and shifts the crop toward the tables', () => {
     const html = markup(createElement(MenuPage))
-    assert.match(html, /dakh-restaurant-hall\.jpg/)
+    assert.match(html, /dakh-restaurant-hall-800\.webp/)
     assert.match(html, /object-cover/)
     assert.match(html, /object-\[center_80%\]/)
     assert.doesNotMatch(html, /object-fill|scale-x|scale-y/)
