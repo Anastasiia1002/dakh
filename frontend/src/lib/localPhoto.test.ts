@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { heroPreload, listingHeroPreload, localWebpSrcSet } from './localPhoto'
+import { heroPreload, listingHeroPreload, localWebpHref, localWebpSrcSet } from './localPhoto'
 
 describe('local photo variants', () => {
   it('builds webp srcset for DAKH JPEGs and leaves remote photos alone', () => {
     assert.match(localWebpSrcSet('/dakh/images/dakh-facade-night.jpg') ?? '', /dakh-facade-night-800\.webp 800w/)
     assert.equal(localWebpSrcSet('https://images.unsplash.com/photo.jpg'), undefined)
+    assert.equal(localWebpHref('/dakh/images/dakh-lounge.jpg'), '/dakh/images/dakh-lounge-800.webp')
   })
 
   it('preloads the mobile hero from the site base', () => {

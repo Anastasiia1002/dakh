@@ -9,6 +9,13 @@ export function localWebpSrcSet(src: string) {
   return LOCAL_PHOTO_WIDTHS.map((width) => `${dir}${stem}-${width}.webp ${width}w`).join(', ')
 }
 
+export function localWebpHref(src: string, width: (typeof LOCAL_PHOTO_WIDTHS)[number] = 800) {
+  const match = src.match(LOCAL_JPEG)
+  if (!match) return undefined
+  const [, dir, stem] = match
+  return `${dir}${stem}-${width}.webp`
+}
+
 function webpPreload(stem: string, base: string) {
   const root = base.endsWith('/') ? base : `${base}/`
   const dir = `${root}images/`
