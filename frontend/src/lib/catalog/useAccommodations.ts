@@ -14,14 +14,27 @@ export function catalogErrorCopy(error: unknown): string {
   return 'Не вдалося завантажити каталог. Якщо сервер щойно прокидається, спробуйте ще раз.'
 }
 
-export function useAccommodationList(category: AccommodationCategory) {
+export function useAccommodationList(category: AccommodationCategory, options?: { defer?: boolean }) {
   const hotelSlug = apiHotelSlug(category)
   const [attempt, setAttempt] = useState(0)
+  const [ready, setReady] = useState(!options?.defer)
   const [status, setStatus] = useState<CatalogStatus>('loading')
   const [items, setItems] = useState<PublicAccommodation[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!options?.defer) return
+    const idle = window.requestIdleCallback?.bind(window)
+    if (idle) {
+      const id = idle(() => setReady(true), { timeout: 1200 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const timer = window.setTimeout(() => setReady(true), 1)
+    return () => window.clearTimeout(timer)
+  }, [options?.defer])
+
+  useEffect(() => {
+    if (!ready) return
     if (!hotelSlug) {
       setItems([])
       setError(CATALOG_MAP_MISSING_COPY)
@@ -45,7 +58,7 @@ export function useAccommodationList(category: AccommodationCategory) {
         setStatus('error')
       })
     return () => controller.abort()
-  }, [category, hotelSlug, attempt])
+  }, [attempt, category, hotelSlug, ready])
 
   return {
     status,

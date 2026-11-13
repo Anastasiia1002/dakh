@@ -123,7 +123,7 @@ export function HomePage() {
 }
 
 function HomeCatalog({ category, empty }: { category: AccommodationCategory; empty: string }) {
-  const catalog = useAccommodationList(category)
+  const catalog = useAccommodationList(category, { defer: true })
   const title = categoryLabel(category)
 
   return (
@@ -139,8 +139,8 @@ function HomeCatalog({ category, empty }: { category: AccommodationCategory; emp
       </div>
       {catalog.status === 'ready' ? (
         <div className="mt-14 grid gap-14 md:grid-cols-3">
-          {catalog.items.map((item, index) => (
-            <RoomCard key={item.id} accommodation={item} priority={index === 0} />
+          {catalog.items.map((item) => (
+            <RoomCard key={item.id} accommodation={item} />
           ))}
         </div>
       ) : (
