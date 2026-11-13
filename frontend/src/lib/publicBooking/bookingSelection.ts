@@ -6,8 +6,7 @@ export const ROOM_SELECTION_HEADING: Record<RoomPlace, string> = {
   house: 'Оберіть помешкання',
 }
 
-export const ROOM_SELECTION_INSTRUCTION =
-  'Позначте одне вільне помешкання. Обране підсвічується. Заявку можна надіслати лише після вибору.'
+export const ROOM_SELECTION_INSTRUCTION = 'Одне помешкання. Обране підсвічується.'
 
 export type RoomListPresentation = {
   state: 'need-dates' | 'loading' | 'error' | 'empty' | 'ready'
@@ -48,7 +47,9 @@ export function roomListPresentation(input: {
 }
 
 export function roomOptionFrame(selected: boolean) {
-  return selected ? 'border-2 border-clay bg-beige' : 'border border-wood/25 bg-linen hover:border-clay/60'
+  return selected
+    ? 'border-2 border-clay bg-linen shadow-[0_16px_36px_rgba(91,56,43,0.12)]'
+    : 'border border-wood/15 bg-linen hover:border-clay/50'
 }
 
 export function roomOptionMark(selected: boolean) {

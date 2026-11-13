@@ -49,6 +49,20 @@ function applySeo(
       next = next.replace('</title>', `</title>\n${tag}`)
     }
   }
+  if (pathname === '/bronuvannya') {
+    const preload = listingHeroPreload('rooms', base)
+    const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
+    if (!next.includes(preload.href)) {
+      next = next.replace('</title>', `</title>\n${tag}`)
+    }
+    const bookingChunk = findChunk('BookingFlow-')
+    if (bookingChunk && !next.includes(bookingChunk)) {
+      next = next.replace(
+        '</title>',
+        `</title>\n    <link rel="modulepreload" crossorigin href="${base}assets/${bookingChunk}" />\n`,
+      )
+    }
+  }
   if (pathname === '/rooms' || pathname === '/houses') {
     const preload = listingHeroPreload(pathname === '/houses' ? 'houses' : 'rooms', base)
     const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`

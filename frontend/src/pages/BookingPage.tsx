@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
+import { Photo } from '../components/Photo'
+import { images } from '../data/catalog'
 import { BOOKING_DISABLED_COPY } from '../lib/publicBooking/config'
 
 const ActiveBooking =
@@ -8,31 +10,48 @@ const ActiveBooking =
     : null
 
 export function BookingPage() {
-  if (!ActiveBooking) {
-    return (
-      <section className="mx-auto max-w-3xl px-6 pb-24 pt-32">
-        <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-        <h1 className="mt-3 font-display text-5xl leading-tight text-clay">Бронювання</h1>
-        <p className="mt-10 max-w-xl text-sm leading-relaxed text-wood/70" role="status">
-          {BOOKING_DISABLED_COPY}
-        </p>
-        <Link
-          to="/rooms"
-          className="mt-10 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
-        >
-          До кімнат
-        </Link>
-      </section>
-    )
-  }
-
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-28 md:pt-32">
-      <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-      <h1 className="mt-3 font-display text-5xl leading-[1.08] text-clay md:text-6xl">Бронювання</h1>
-      <Suspense fallback={<p className="mt-10 text-sm text-wood/60">Завантажуємо бронювання…</p>}>
-        <ActiveBooking hideIntro />
-      </Suspense>
-    </section>
+    <>
+      <section className="photo-grain relative min-h-[28svh] md:min-h-[34vh]">
+        <Photo
+          src={images.pottery}
+          alt="Вітальня DAKH із видом на гори"
+          tone={false}
+          priority
+          sizes="100vw"
+          className="absolute inset-0 h-full w-full"
+        />
+        <div className="absolute inset-0 bg-wood/40" />
+        <div className="relative mx-auto flex min-h-[28svh] w-full max-w-6xl flex-col justify-end px-4 pb-10 pt-24 sm:px-6 md:min-h-[34vh] md:pb-12">
+          <p className="kicker text-[0.68rem] text-linen/80">Готель DAKH</p>
+          <h1 className="mt-3 max-w-xl font-display text-4xl leading-[1.08] text-linen sm:text-5xl md:text-6xl">
+            Бронювання
+          </h1>
+          <p className="mt-3 max-w-md text-sm text-linen/90">
+            Дати й гості спочатку. Потім помешкання. Суму підтверджує сервер.
+          </p>
+        </div>
+      </section>
+
+      {ActiveBooking ? (
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-40 sm:px-6 md:pb-24">
+          <Suspense fallback={<p className="px-2 py-16 text-sm text-wood/60">Завантажуємо бронювання…</p>}>
+            <ActiveBooking hideIntro />
+          </Suspense>
+        </div>
+      ) : (
+        <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+          <p className="max-w-xl text-sm leading-relaxed text-wood/70" role="status">
+            {BOOKING_DISABLED_COPY}
+          </p>
+          <Link
+            to="/rooms"
+            className="mt-10 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+          >
+            До кімнат
+          </Link>
+        </section>
+      )}
+    </>
   )
 }

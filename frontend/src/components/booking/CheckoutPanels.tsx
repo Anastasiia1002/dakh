@@ -253,24 +253,32 @@ export function RoomOptions({
     : [{ key: 'all' as const, label: null, items: rooms }]
 
   return (
-    <div className="mt-6 space-y-8">
+    <div className="mt-6 space-y-10">
       {sections.map((section) => (
         <div key={section.key}>
           {section.label ? (
             <p className="text-[0.7rem] font-medium tracking-[0.14em] uppercase text-wood/55">{section.label}</p>
           ) : null}
           <div
-            className={section.label ? 'mt-3 space-y-4' : 'space-y-4'}
+            className={`grid gap-5 sm:grid-cols-2 ${section.label ? 'mt-3' : ''}`}
             role="radiogroup"
             aria-label={section.label ?? (place === 'house' ? 'Будинки' : 'Доступні помешкання')}
           >
             {section.items.map((room) => {
               const selected = selectedId === room.roomTypeId
               const cover = covers?.get(room.roomTypeId)
+              const priced =
+                isBookingEnabled() &&
+                room.availableCount > 0 &&
+                room.nightlyStartingPrice &&
+                room.ratePlans.some((plan) => authoritativeStayTotal(plan))
               return (
                 <label
                   key={room.roomTypeId}
-                  className={`grid cursor-pointer grid-cols-[6rem_1fr] items-center gap-4 p-3 ${roomOptionFrame(selected)}`}
+                  className={`cursor-pointer overflow-hidden ${roomOptionFrame(selected)}`}
+                  onClick={() => {
+                    if (!selected) onSelect(room)
+                  }}
                 >
                   <input
                     type="radio"
@@ -280,38 +288,43 @@ export function RoomOptions({
                     onChange={() => onSelect(room)}
                     className="sr-only"
                   />
-                  <span className="relative block h-20 w-24 shrink-0 overflow-hidden bg-beige">
+                  <span className="pointer-events-none relative block aspect-[4/3] overflow-hidden bg-beige">
                     {cover ? (
                       <Photo
                         src={cover.url}
                         alt=""
                         coverKey={cover.coverKey}
-                        sizes="96px"
+                        priority={false}
+                        sizes="(max-width: 640px) 100vw, 50vw"
                         className="absolute inset-0 h-full w-full"
                       />
                     ) : (
-                      <span className="flex h-full w-full items-end px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
+                      <span className="flex h-full w-full items-end px-4 py-3 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
                         {roomKindLabel(room.kind)}
                       </span>
                     )}
+                    <span
+                      className={`absolute right-3 top-3 bg-linen/95 px-2 py-1 text-[0.62rem] tracking-[0.14em] uppercase ${
+                        selected ? 'text-clay' : 'text-wood/55'
+                      }`}
+                    >
+                      {roomOptionMark(selected)}
+                    </span>
                   </span>
-                  <span>
-                    <span className="flex items-start justify-between gap-3">
-                      <span className="block font-medium">{roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}</span>
-                      <span className={`shrink-0 text-[0.68rem] tracking-[0.14em] uppercase ${selected ? 'text-clay' : 'text-wood/45'}`}>
-                        {roomOptionMark(selected)}
+                  <span className="block p-4">
+                    <span className="kicker block text-[0.68rem] text-clay">{roomKindLabel(room.kind)}</span>
+                    <span className="mt-1 block font-display text-2xl leading-[1.12]">
+                      {roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}
+                    </span>
+                    <span className="mt-2 block text-sm text-wood/70">
+                      до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних {room.availableCount}
+                    </span>
+                    {priced && room.nightlyStartingPrice ? (
+                      <span className="mt-3 block font-display text-2xl text-clay">
+                        від {formatMoneyAmount(room.nightlyStartingPrice)}
+                        <span className="ml-1 text-sm font-sans font-normal tracking-normal text-wood/55">/ доба</span>
                       </span>
-                    </span>
-                    <span className="text-sm text-wood/60">
-                      {roomKindLabel(room.kind)} · до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
-                      {room.availableCount}
-                      {isBookingEnabled() &&
-                      room.availableCount > 0 &&
-                      room.nightlyStartingPrice &&
-                      room.ratePlans.some((plan) => authoritativeStayTotal(plan))
-                        ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
-                        : ''}
-                    </span>
+                    ) : null}
                   </span>
                 </label>
               )

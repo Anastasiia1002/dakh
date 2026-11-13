@@ -29,6 +29,7 @@ describe('booking accommodation selection', () => {
     assert.equal(ROOM_SELECTION_HEADING.room, 'Оберіть помешкання')
     assert.equal(ROOM_SELECTION_HEADING.house, 'Оберіть помешкання')
     assert.match(ROOM_SELECTION_INSTRUCTION, /Обране підсвічується/)
+    assert.doesNotMatch(ROOM_SELECTION_INSTRUCTION, /Заявку можна надіслати/)
   })
 
   it('keeps dates, loading, errors and an empty list visually distinct', () => {
@@ -55,8 +56,8 @@ describe('booking accommodation selection', () => {
     assert.equal(roomOptionMark(true), 'Обрано')
     assert.equal(roomOptionMark(false), 'Обрати')
     assert.match(roomOptionFrame(true), /border-clay/)
-    assert.match(roomOptionFrame(true), /bg-beige/)
-    assert.equal(roomOptionFrame(true).includes('bg-beige'), true)
+    assert.match(roomOptionFrame(true), /border-2/)
+    assert.equal(roomOptionFrame(true).includes('bg-beige'), false)
     assert.equal(roomOptionFrame(false).includes('border-2'), false)
   })
 

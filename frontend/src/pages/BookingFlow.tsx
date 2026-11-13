@@ -105,9 +105,11 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
+  const onPickerOpen = useCallback((open: boolean) => setPickerOpen(open), [])
   const party = { adults: draft.adults, children: draft.children }
   const calendar = useAvailabilityCalendar(
     locked ? null : calendarRange,
@@ -396,69 +398,60 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     { label: 'Код', hint: 'Лист на пошту' },
   ]
 
+  const showMobileBar = bookingEnabled && checkout.step === 'collect' && !pickerOpen
+  const stayLead = locked
+    ? 'Помешкання вже обрано. Дати можна змінити.'
+    : search.searchable
+      ? 'Оберіть помешкання нижче.'
+      : 'Спочатку дати. Максимум 30 ночей.'
+
   return (
     <section className={hideIntro ? 'contents' : 'mx-auto max-w-6xl px-6 pb-24 pt-32'}>
       {hideIntro ? null : (
         <>
           <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-          <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
+          <h1 className="mt-3 font-display text-5xl leading-tight text-clay">Бронювання</h1>
         </>
       )}
-      <p className="mt-5 max-w-xl text-sm text-wood/70">
-        {bookingEnabled
-          ? locked
-            ? 'Помешкання вже обрано. Дати й гостей можна змінити, потім залиште контакти. Суму підтверджує сервер.'
-            : 'Оберіть дати, помешкання і контакти. Після заявки надішлемо код на пошту.'
-          : BOOKING_DISABLED_COPY}
-      </p>
 
-      {bookingEnabled ? (
-        <ol className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {steps.map((item, index) => (
-            <li
-              key={item.label}
-              className={`border px-3 py-3 ${index <= step ? 'border-wood/25 bg-linen' : 'border-wood/10 text-wood/50'}`}
-            >
-              <p className="text-[0.68rem] tracking-[0.14em] uppercase">{item.label}</p>
-              <p className="mt-1 text-sm">{item.hint}</p>
-            </li>
-          ))}
-        </ol>
-      ) : null}
-
-      <p className="mt-10 text-sm text-wood/60">
-        {search.searchable
-          ? bookingEnabled
-            ? 'Оберіть дати, щоб перевірити доступність і вартість.'
-            : BOOKING_DISABLED_COPY
-          : 'Спочатку оберіть заїзд і виїзд. Максимум 30 ночей.'}
-      </p>
-
-      <div className="mt-4" id="stay-dates">
-        <BookingCalendar
-          checkIn={draft.checkIn}
-          checkOut={draft.checkOut}
-          adults={draft.adults}
-          kids={draft.children}
-          nightPrices={search.nightPrices}
-          loading={search.availabilityStatus === 'loading' || search.quoteStatus === 'loading'}
-          live={{
-            status: locked ? mapped.status : calendar.status,
-            hotelToday: locked ? mapped.hotelToday : calendar.hotelToday,
-            earliestCheckIn: locked ? mapped.earliestCheckIn : calendar.earliestCheckIn,
-            days: locked ? mapped.days : calendar.days,
-            error: locked ? mapped.error : calendar.error,
-            capacityNote: locked ? mapped.capacityNote : calendar.capacityNote,
-          }}
-          blockedCheckIns={stayGuard.blockedCheckIns}
-          blockedRanges={stayGuard.blockedRanges}
-          notice={stayGuard.notice}
-          onVisibleRange={onVisibleRange}
-          onChange={patch}
-        />
+      <div className="relative z-20 -mt-8 border border-wood/10 bg-linen p-3 shadow-[0_18px_40px_rgba(91,56,43,0.12)] md:p-4">
+        {bookingEnabled ? (
+          <ol className="mb-3 grid grid-cols-4 gap-1 text-center">
+            {steps.map((item, index) => (
+              <li key={item.label} className={index <= step ? 'text-clay' : 'text-wood/40'}>
+                <p className="text-[0.62rem] tracking-[0.12em] uppercase">{item.label}</p>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        <p className="mb-3 text-sm text-wood/70">{bookingEnabled ? stayLead : BOOKING_DISABLED_COPY}</p>
+        <div id="stay-dates">
+          <BookingCalendar
+            checkIn={draft.checkIn}
+            checkOut={draft.checkOut}
+            adults={draft.adults}
+            kids={draft.children}
+            nightPrices={search.nightPrices}
+            loading={search.availabilityStatus === 'loading' || search.quoteStatus === 'loading'}
+            live={{
+              status: locked ? mapped.status : calendar.status,
+              hotelToday: locked ? mapped.hotelToday : calendar.hotelToday,
+              earliestCheckIn: locked ? mapped.earliestCheckIn : calendar.earliestCheckIn,
+              days: locked ? mapped.days : calendar.days,
+              error: locked ? mapped.error : calendar.error,
+              capacityNote: locked ? mapped.capacityNote : calendar.capacityNote,
+            }}
+            blockedCheckIns={stayGuard.blockedCheckIns}
+            blockedRanges={stayGuard.blockedRanges}
+            notice={stayGuard.notice}
+            onVisibleRange={onVisibleRange}
+            onPanelChange={onPickerOpen}
+            onChange={patch}
+          />
+        </div>
       </div>
 
-      <form noValidate onSubmit={submit} className="mt-12 grid gap-12 md:grid-cols-12">
+      <form id="booking-form" noValidate onSubmit={submit} className="mt-10 grid gap-10 pb-8 md:grid-cols-12 md:gap-12 md:pb-0">
         <div className="space-y-12 md:col-span-7">
           {locked ? null : (
             <fieldset className="border-0 p-0">
@@ -505,10 +498,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             </div>
           ) : null}
 
-          {bookingEnabled && catalog.status === 'loading' ? (
-            <p className="text-sm text-wood/60">Завантажуємо додаткові послуги…</p>
+          {bookingEnabled && search.selectedRoom && catalog.status === 'loading' ? (
+            <p className="text-sm text-wood/60">Перевіряємо додаткові послуги…</p>
           ) : null}
-          {bookingEnabled && catalog.status !== 'loading' ? (
+          {bookingEnabled && search.selectedRoom && catalog.status !== 'loading' ? (
             <ServiceOptions
               items={catalog.items}
               quantities={serviceQuantities}
@@ -525,7 +518,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
           {bookingEnabled ? (
           <fieldset className="border-0 p-0">
-            <legend className="font-display text-3xl">Деталі гостя</legend>
+            <legend className="font-display text-3xl">Контакти</legend>
             <GuestFields
               draft={draft}
               errors={guestErr}
@@ -552,7 +545,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
         </div>
 
-        <aside className="h-fit border border-wood/10 bg-linen p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)] md:sticky md:top-8 md:col-span-5">
+        <aside className="hidden h-fit border border-wood/10 bg-linen p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)] md:sticky md:top-8 md:col-span-5 md:block">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
           {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
@@ -666,7 +659,90 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             </>
           )}
         </aside>
+
+        <div className="border border-wood/10 bg-linen p-5 md:hidden">
+          <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
+          <QuoteSummary
+            checkIn={draft.checkIn}
+            checkOut={draft.checkOut}
+            nights={nights}
+            guestCount={guestCount}
+            adults={draft.adults}
+            kids={draft.children}
+            room={roomRejected || checkingIdentity ? undefined : search.selectedRoom}
+            plan={roomRejected || checkingIdentity ? undefined : search.selectedPlan}
+            quote={roomRejected || checkingIdentity ? null : displayQuote}
+            quoteStatus={roomRejected ? 'idle' : checkingIdentity ? 'loading' : search.quoteStatus}
+            quoteError={search.quoteError}
+            availabilityStatus={checkingIdentity ? 'loading' : search.availabilityStatus}
+            availabilityError={search.availabilityError}
+            roomLabel={requestedRoomLabel || undefined}
+            fitNote={activeCalendar.capacityNote}
+            missingRoomCopy={
+              locked
+                ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
+                : 'Оберіть помешкання зі списку доступних.'
+            }
+          />
+          {checkout.step === 'price_changed' && checkout.pendingQuote ? (
+            <PriceChangePanel
+              previousTotal={search.quote?.totalAmount}
+              quote={checkout.pendingQuote}
+              busy={checkout.busy}
+              error={checkout.error}
+              onAccept={() => checkout.acceptChangedPrice(guest)}
+              onDecline={() => {
+                checkout.declineChangedPrice()
+                setOtpCode('')
+              }}
+            />
+          ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
+            <OtpPanel
+              email={draft.email.trim() || checkout.intent?.emailMasked || ''}
+              code={otpCode}
+              busy={checkout.busy}
+              error={checkout.error}
+              cooldownLeft={cooldownLeft}
+              otpExpiresAt={checkout.otp?.otpExpiresAt}
+              onCode={setOtpCode}
+              onConfirm={() => checkout.confirmCode(otpCode)}
+              onResend={() => checkout.resendCode()}
+              onCorrectEmail={(email) => {
+                patch({ email })
+                setOtpCode('')
+                void checkout.correctEmail(email)
+              }}
+            />
+          ) : null}
+        </div>
       </form>
+
+      {showMobileBar ? (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-wood/10 bg-linen/95 px-4 py-3 shadow-[0_-12px_28px_rgba(91,56,43,0.12)] backdrop-blur-sm md:hidden">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 pb-[env(safe-area-inset-bottom)]">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">
+                {search.selectedRoom
+                  ? labelForRoom(search.selectedRoom)
+                  : requestedRoomLabel || 'Оберіть помешкання'}
+              </p>
+              <p className="text-[0.72rem] text-wood/60">
+                {displayQuote && !roomRejected && !checkingIdentity
+                  ? formatMoneyAmount(displayQuote.totalAmount)
+                  : 'Сума з сервера'}
+              </p>
+            </div>
+            <button
+              type="submit"
+              form="booking-form"
+              disabled={!canSubmit}
+              className="shrink-0 bg-clay px-4 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
+            >
+              {checkout.busy && checkout.step === 'creating_intent' ? 'Надсилаємо…' : 'Далі'}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

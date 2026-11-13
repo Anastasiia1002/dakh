@@ -82,6 +82,7 @@ export function Layout() {
     path === '/rooms' ||
     path === '/houses' ||
     path === '/pro-nas' ||
+    path === '/bronuvannya' ||
     path.startsWith('/rooms/') ||
     path.startsWith('/houses/')
   const tone = overHero ? 'linen' : 'wood'

@@ -53,6 +53,7 @@ type Props = {
   blockedCheckIns?: ReadonlySet<string>
   blockedRanges?: ReadonlySet<string>
   notice?: string
+  onPanelChange?: (open: boolean) => void
   onChange: (next: {
     checkIn?: string
     checkOut?: string
@@ -74,6 +75,7 @@ export function BookingCalendar({
   blockedCheckIns,
   blockedRanges,
   notice = '',
+  onPanelChange,
   onChange,
 }: Props) {
   const now = new Date()
@@ -116,6 +118,10 @@ export function BookingCalendar({
   useEffect(() => {
     onVisibleRange?.(visibleCalendarRange(cursor.year, cursor.monthIndex))
   }, [cursor, onVisibleRange])
+
+  useEffect(() => {
+    onPanelChange?.(panel !== null)
+  }, [onPanelChange, panel])
 
   useLayoutEffect(() => {
     if (panel !== 'dates') return

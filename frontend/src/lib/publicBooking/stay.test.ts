@@ -140,6 +140,39 @@ describe('stay helpers', () => {
     assert.equal(quoteMatchesSearch(quote, { ...search, checkOut: '2026-12-04' }), false)
   })
 
+  it('keeps a quote bound to selected extras', () => {
+    const extraQuote = {
+      ...quote,
+      services: [
+        {
+          serviceId: 'c4444444-4444-4444-8444-444444444441',
+          name: 'Чан',
+          quantity: 1,
+          unitPrice: '200.00',
+          totalPrice: '200.00',
+          currency: 'UAH',
+        },
+      ],
+      servicesTotal: '200.00',
+      totalAmount: '9800.00',
+    }
+    const search = {
+      checkIn: '2026-12-01',
+      checkOut: '2026-12-03',
+      guestCount: 2,
+      adults: 2,
+      children: 0,
+      roomTypeId,
+      ratePlanId,
+    }
+    assert.equal(quoteMatchesSearch(extraQuote, search), false)
+    assert.equal(
+      quoteMatchesSearch(extraQuote, { ...search, servicesKey: 'c4444444-4444-4444-8444-444444444441:1' }),
+      true,
+    )
+    assert.equal(quoteMatchesSearch(quote, { ...search, servicesKey: 'c4444444-4444-4444-8444-444444444441:1' }), false)
+  })
+
   it('selects a sole plan, keeps an applicable plan, and clears an empty or stale plan', () => {
     const cheap: PublicAvailabilityRatePlan = {
       ratePlanId,
