@@ -56,34 +56,43 @@ export const PUBLIC_SEO_ROUTES: PublicSeoRoute[] = [
 
 export const NOINDEX_PATH_PREFIXES = ['/bronuvannya/pidtverdzhennya', '/moie-bronyuvannya', '/my-booking']
 
+/** Strip trailing slashes so `/rooms/` matches the listing, not a room detail. */
+export function normalizePublicPath(pathname: string) {
+  if (!pathname) return '/'
+  const withSlash = pathname.startsWith('/') ? pathname : `/${pathname}`
+  if (withSlash === '/') return '/'
+  return withSlash.replace(/\/+$/, '') || '/'
+}
+
 export function seoForPath(pathname: string): PublicSeoRoute {
-  if (NOINDEX_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+  const path = normalizePublicPath(pathname)
+  if (NOINDEX_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
     return {
-      path: pathname,
+      path,
       title: 'Підтвердження бронювання — DAKH',
       description: 'Сторінка підтвердження бронювання. Не для пошуку.',
       index: false,
     }
   }
-  const exact = PUBLIC_SEO_ROUTES.find((route) => route.path === pathname)
+  const exact = PUBLIC_SEO_ROUTES.find((route) => route.path === path)
   if (exact) return exact
-  if (pathname.startsWith('/rooms/')) {
+  if (path.startsWith('/rooms/')) {
     return {
-      path: pathname,
+      path,
       title: 'Кімната — DAKH Мигове',
       description: 'Деталі кімнати DAKH: місткість, фото й бронювання за датами.',
       index: true,
     }
   }
-  if (pathname.startsWith('/houses/')) {
+  if (path.startsWith('/houses/')) {
     return {
-      path: pathname,
+      path,
       title: 'Будинок — DAKH Мигове',
       description: 'Деталі будинку DAKH: місткість, фото й бронювання за датами.',
       index: true,
     }
   }
-  return { ...DEFAULT_SEO, path: pathname }
+  return { ...DEFAULT_SEO, path }
 }
 
 export function publicSiteOrigin() {
