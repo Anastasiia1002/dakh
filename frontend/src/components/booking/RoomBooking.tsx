@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { formatMoneyAmount } from '../../lib/format'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../BookingCalendar'
 import type { AccommodationCategory } from '../../lib/catalog/categories'
@@ -186,9 +187,20 @@ export function RoomBooking({
 
   const bookingEnabled = isBookingEnabled()
   const canContinue = bookingEnabled && quoteReady && Boolean(calendar.roomTypeId) && search.configured
+  const [panelInView, setPanelInView] = useState(true)
+
+  useEffect(() => {
+    const node = document.getElementById('booking-panel')
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(([entry]) => setPanelInView(entry.isIntersecting), {
+      threshold: 0.18,
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <aside className="h-fit w-full min-w-0 self-start border border-wood/10 bg-beige p-5 sm:p-6">
+    <aside className="h-fit w-full min-w-0 self-start border border-wood/10 bg-linen p-5 shadow-[0_18px_40px_rgba(91,56,43,0.08)] sm:p-6">
       <p className="text-[0.7rem] tracking-[0.16em] uppercase">Дати</p>
       <div className="mt-4">
         <BookingCalendar
@@ -254,6 +266,20 @@ export function RoomBooking({
           </p>
         )}
       </form>
+      {bookingEnabled && !panelInView ? (
+        <a
+          href="#booking-panel"
+          className="pointer-events-auto fixed inset-x-4 z-30 flex min-h-12 items-center justify-between gap-3 border border-wood/10 bg-linen/95 px-4 text-sm text-wood shadow-[0_10px_28px_rgba(91,56,43,0.16)] lg:hidden"
+          style={{ bottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
+        >
+          <span className="min-w-0 truncate">
+            {quoteReady && search.quote ? formatMoneyAmount(search.quote.totalAmount) : 'Оберіть дати'}
+          </span>
+          <span className="shrink-0 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-clay">
+            Забронювати
+          </span>
+        </a>
+      ) : null}
     </aside>
   )
 }

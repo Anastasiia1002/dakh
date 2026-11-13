@@ -4,6 +4,7 @@ import { site } from '../data/catalog'
 import { DocumentHead } from './DocumentHead'
 import { DakhLogo } from './BrandMarks'
 import { QuickActions } from './QuickActions'
+import { normalizePublicPath } from '../lib/seo'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
@@ -74,7 +75,15 @@ export function Layout() {
     setMenuPath(pathname)
     setOpen(false)
   }
-  const overHero = pathname === '/' || pathname === '/menu' || pathname === '/rooms' || pathname === '/houses'
+  const path = normalizePublicPath(pathname)
+  const overHero =
+    path === '/' ||
+    path === '/menu' ||
+    path === '/rooms' ||
+    path === '/houses' ||
+    path === '/pro-nas' ||
+    path.startsWith('/rooms/') ||
+    path.startsWith('/houses/')
   const tone = overHero ? 'linen' : 'wood'
 
   useEffect(() => {

@@ -257,7 +257,7 @@ describe('catalog screens', () => {
     assert.match(html, /dakh-lounge-800\.webp/)
     assert.match(html, /href="\/rooms"/)
     assert.match(html, /href="\/houses"/)
-    assert.match(html, /Будиночки/)
+    assert.match(html, /Будинки/)
     assert.match(html, /href="\/menu"/)
     assert.match(html, /Ресторан/)
     assert.doesNotMatch(html, /unsplash|photo-1441974231531|grayscale/)

@@ -81,7 +81,13 @@ export function HomePage() {
       <HomeCatalog category="houses" empty="Зараз немає опублікованих будинків." />
 
       <section className="photo-grain relative min-h-[70vh]">
-        <Photo src={images.borscht} alt="Миска борщу" className="absolute inset-0 h-full w-full" sizes="100vw" />
+        <Photo
+          src={images.restaurantHall}
+          alt="Зал ресторану DAKH"
+          tone={false}
+          className="absolute inset-0 h-full w-full object-[center_80%]"
+          sizes="100vw"
+        />
         <div className="absolute inset-0 bg-wood/35" />
         <div className="relative flex min-h-[70vh] flex-col items-start justify-end gap-6 px-6 py-20 md:px-16">
           <p className="kicker text-[0.68rem] text-linen/80">Ресторан</p>

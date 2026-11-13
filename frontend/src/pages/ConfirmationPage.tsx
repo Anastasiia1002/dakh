@@ -98,9 +98,9 @@ export function ConfirmationPage() {
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-6 pb-24 pt-32">
+    <section className="mx-auto max-w-3xl px-6 pb-24 pt-28 md:pt-32">
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-      <h1 className="mt-3 font-display text-5xl leading-tight text-clay">Підтвердження</h1>
+      <h1 className="mt-3 font-display text-5xl leading-[1.08] text-clay md:text-6xl">Підтвердження</h1>
 
       {!bookingEnabled ? (
         <p className="mt-10 max-w-xl text-sm leading-relaxed text-wood/70" role="status">
@@ -111,7 +111,7 @@ export function ConfirmationPage() {
       {bookingEnabled && loading ? <p className="mt-10 text-sm text-wood/60">Шукаємо підтвердження на сервері…</p> : null}
 
       {bookingEnabled && !loading && confirmation ? (
-        <div className="mt-10 bg-beige p-6">
+        <div className="mt-10 border border-wood/10 bg-linen p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)]">
           <p className="text-[0.7rem] tracking-[0.16em] uppercase">
             {guestStatusLabel(confirmation.status) || 'Підтверджено'}
           </p>

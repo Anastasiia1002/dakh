@@ -22,7 +22,8 @@ export function MenuPage() {
         />
         <div className="absolute inset-0 bg-wood/40" />
         <div className="relative flex min-h-[58vh] flex-col items-start justify-end gap-5 px-6 pb-16 md:px-16">
-          <h1 className="font-display text-5xl text-linen md:text-7xl">ресторан</h1>
+          <p className="kicker text-[0.68rem] text-linen/80">Кухня DAKH</p>
+          <h1 className="font-display text-5xl text-linen md:text-7xl">Ресторан</h1>
           <a
             href={site.restaurantOrder}
             target="_blank"

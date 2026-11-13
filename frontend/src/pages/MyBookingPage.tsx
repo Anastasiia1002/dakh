@@ -78,7 +78,7 @@ export function MyBookingPage() {
   return (
     <section className="mx-auto max-w-3xl px-4 pb-24 pt-28 sm:px-6 sm:pt-32">
       <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-      <h1 className="mt-3 font-display text-4xl leading-tight text-clay sm:text-5xl">Моє бронювання</h1>
+      <h1 className="mt-3 font-display text-4xl leading-[1.08] text-clay sm:text-5xl md:text-6xl">Моє бронювання</h1>
       <p className="mt-4 max-w-xl text-sm leading-relaxed text-wood/70">
         Вставте код доступу з підтвердження. Він є на екрані після бронювання і в листі, у рядку «Код доступу до
         підтвердження». Номер бронювання не відкриє бронювання, навіть без дефісів. Код не зберігається в браузері, і

@@ -8,12 +8,26 @@ const sectionLink =
 
 export function AboutPage() {
   return (
-    <article className="mx-auto max-w-6xl px-6 pb-24 pt-32">
-      <p className="kicker text-[0.68rem] text-clay">Про нас</p>
-      <h1 className="mt-3 max-w-2xl font-display text-5xl leading-tight text-clay">
-        Місце, де тиша має звук
-      </h1>
-      <p className="mt-8 max-w-2xl leading-relaxed">
+    <article>
+      <section className="photo-grain relative min-h-[42svh] md:min-h-[56vh]">
+        <Photo
+          src={images.heroHouse}
+          alt="DAKH увечері"
+          tone={false}
+          priority
+          sizes="100vw"
+          className="absolute inset-0 h-full w-full"
+        />
+        <div className="absolute inset-0 bg-wood/40" />
+        <div className="relative flex min-h-[42svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[56vh] md:px-10 md:pb-20">
+          <p className="kicker text-[0.68rem] text-linen/80">Про нас</p>
+          <h1 className="mt-3 max-w-2xl font-display text-5xl leading-[1.08] text-linen md:text-7xl">
+            Місце, де тиша має звук
+          </h1>
+        </div>
+      </section>
+      <div className="mx-auto max-w-6xl px-6 pb-24 pt-12">
+      <p className="max-w-2xl leading-relaxed">
         DAKH — готель і ресторан у Мигові: дах над головою, стіл унизу, ліс за хвірткою.
         Ми не доводимо словами — показуємо атмосферою. Якщо фраза звучить як реклама, ми її
         викреслюємо.
@@ -23,7 +37,7 @@ export function AboutPage() {
           Кімнати
         </Link>
         <Link to="/houses" className={sectionLink}>
-          Будиночки
+          Будинки
         </Link>
         <Link to="/menu" className={sectionLink}>
           Ресторан
@@ -56,6 +70,7 @@ export function AboutPage() {
           </p>
         </div>
       </section>
+      </div>
     </article>
   )
 }
