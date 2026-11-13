@@ -2,8 +2,8 @@ export type RoomListStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
 export type RoomPlace = 'room' | 'house'
 
 export const ROOM_SELECTION_HEADING: Record<RoomPlace, string> = {
-  room: 'Оберіть кімнату',
-  house: 'Оберіть будинок',
+  room: 'Оберіть помешкання',
+  house: 'Оберіть помешкання',
 }
 
 export const ROOM_SELECTION_INSTRUCTION =
@@ -29,7 +29,7 @@ export function roomListPresentation(input: {
   if (input.status === 'loading' || input.status === 'idle') {
     return {
       state: 'loading',
-      message: input.place === 'house' ? 'Шукаємо вільні будинки…' : 'Шукаємо вільні кімнати…',
+      message: 'Шукаємо вільні помешкання…',
     }
   }
   if (input.status === 'error') {
@@ -41,10 +41,7 @@ export function roomListPresentation(input: {
   if (input.status === 'empty') {
     return {
       state: 'empty',
-      message:
-        input.place === 'house'
-          ? 'На ці дати немає вільних будинків. Спробуйте інші дати або зменшіть кількість гостей.'
-          : 'На ці дати немає вільних кімнат. Спробуйте інші дати або зменшіть кількість гостей.',
+      message: 'На ці дати немає вільних помешкань. Спробуйте інші дати або зменшіть кількість гостей.',
     }
   }
   return { state: 'ready', message: '' }
@@ -56,6 +53,24 @@ export function roomOptionFrame(selected: boolean) {
 
 export function roomOptionMark(selected: boolean) {
   return selected ? 'Обрано' : 'Обрати'
+}
+
+export const COTTAGE_EMPTY_COPY =
+  'На ці дати немає вільних будинків. Спробуйте інші дати або зменшіть кількість гостей.'
+
+export function bookableAvailabilityRooms<T extends { kind: 'ROOM' | 'COTTAGE'; availableCount: number; maxGuests: number }>(
+  rooms: readonly T[],
+  adults: number,
+  accepts: (room: T, adults: number) => boolean,
+) {
+  return rooms.filter((room) => room.availableCount > 0 && accepts(room, adults))
+}
+
+export function groupAvailabilityRooms<T extends { kind: 'ROOM' | 'COTTAGE' }>(rooms: readonly T[]) {
+  return {
+    rooms: rooms.filter((room) => room.kind === 'ROOM'),
+    houses: rooms.filter((room) => room.kind === 'COTTAGE'),
+  }
 }
 
 export function bookingSubmitBlockReason(input: {

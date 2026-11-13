@@ -16,7 +16,7 @@ import { MenuPage } from '../../pages/MenuPage'
 import { BookingPage } from '../../pages/BookingPage'
 import { PublicApiError } from '../publicBooking/errors'
 import type { PublicAccommodation } from '../publicBooking/types'
-import { capacityLabel, cardTitle, galleryImages, publicDescription, publicTitle, stayPolicyLine } from './display'
+import { capacityLabel, cardTitle, galleryImages, publicDescription, publicTitle, stayPolicyLine, titleIncludesCapacity } from './display'
 import { knownDetailPaths } from './publicSlugs'
 import { accommodationPath, catalogRedirect, isFictionalAccommodationSlug, legacyGotelTarget } from './routes'
 import { catalogErrorCopy } from './useAccommodations'
@@ -128,6 +128,8 @@ describe('catalog display', () => {
     assert.equal(cardTitle('4- кімнатний будинок до 7 гостей №8', 7), '4-кімнатний будинок №8')
     assert.equal(cardTitle(original, 8), '4-кімнатний будинок №10')
     assert.equal(capacityLabel(8), 'До 8 гостей')
+    assert.equal(titleIncludesCapacity(room141, 4), true)
+    assert.equal(titleIncludesCapacity('1- кімнатний номер для двох з балконом №14/3', 2), false)
   })
 
   it('uses maxGuests and drops unverified promotional lines', () => {

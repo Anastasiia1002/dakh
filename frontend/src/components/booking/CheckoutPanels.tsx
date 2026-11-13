@@ -9,7 +9,15 @@ import {
 } from '../../lib/publicBooking'
 import { isBookingEnabled } from '../../lib/publicBooking/config'
 import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/display'
-import { roomListPresentation, roomOptionFrame, roomOptionMark, type RoomPlace } from '../../lib/publicBooking/bookingSelection'
+import {
+  COTTAGE_EMPTY_COPY,
+  groupAvailabilityRooms,
+  roomListPresentation,
+  roomOptionFrame,
+  roomOptionMark,
+  type RoomPlace,
+} from '../../lib/publicBooking/bookingSelection'
+import { Photo } from '../Photo'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
 import { guestCountLabel, partySummary } from '../../lib/ukrainian'
 import type { BookingDraft } from '../../lib/booking'
@@ -198,6 +206,8 @@ export function RoomOptions({
   place = 'room',
   onSelect,
   roomLabel,
+  covers,
+  emptyHouses = false,
 }: {
   rooms: PublicAvailabilityRoomType[]
   selectedId: string
@@ -207,6 +217,8 @@ export function RoomOptions({
   place?: RoomPlace
   onSelect: (room: PublicAvailabilityRoomType) => void
   roomLabel?: (room: PublicAvailabilityRoomType) => string
+  covers?: Map<string, { url: string; coverKey: string; alt: string }>
+  emptyHouses?: boolean
 }) {
   const presentation = roomListPresentation({ searchable, status, error, place })
   if (presentation.state === 'need-dates' || presentation.state === 'loading') {
@@ -231,47 +243,87 @@ export function RoomOptions({
     )
   }
 
+  const grouped = groupAvailabilityRooms(rooms)
+  const split = grouped.rooms.length > 0 && grouped.houses.length > 0
+  const sections = split
+    ? [
+        { key: 'rooms' as const, label: 'Кімнати', items: grouped.rooms },
+        { key: 'houses' as const, label: 'Будинки', items: grouped.houses },
+      ]
+    : [{ key: 'all' as const, label: null, items: rooms }]
+
   return (
-    <div className="mt-6 space-y-4" role="radiogroup" aria-label={place === 'house' ? 'Будинки' : 'Кімнати'}>
-      {rooms.map((room) => {
-        const selected = selectedId === room.roomTypeId
-        return (
-          <label
-            key={room.roomTypeId}
-            className={`grid cursor-pointer grid-cols-[96px_1fr] items-center gap-4 p-3 ${roomOptionFrame(selected)}`}
+    <div className="mt-6 space-y-8">
+      {sections.map((section) => (
+        <div key={section.key}>
+          {section.label ? (
+            <p className="text-[0.7rem] font-medium tracking-[0.14em] uppercase text-wood/55">{section.label}</p>
+          ) : null}
+          <div
+            className={section.label ? 'mt-3 space-y-4' : 'space-y-4'}
+            role="radiogroup"
+            aria-label={section.label ?? (place === 'house' ? 'Будинки' : 'Доступні помешкання')}
           >
-            <input
-              type="radio"
-              name="roomType"
-              value={room.roomTypeId}
-              checked={selected}
-              onChange={() => onSelect(room)}
-              className="sr-only"
-            />
-            <span className="flex h-20 w-24 items-end bg-beige px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
-              {roomKindLabel(room.kind)}
-            </span>
-            <span>
-              <span className="flex items-start justify-between gap-3">
-                <span className="block font-medium">{roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}</span>
-                <span className={`shrink-0 text-[0.68rem] tracking-[0.14em] uppercase ${selected ? 'text-clay' : 'text-wood/45'}`}>
-                  {roomOptionMark(selected)}
-                </span>
-              </span>
-              <span className="text-sm text-wood/60">
-                до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
-                {room.availableCount}
-                {isBookingEnabled() &&
-                room.availableCount > 0 &&
-                room.nightlyStartingPrice &&
-                room.ratePlans.some((plan) => authoritativeStayTotal(plan))
-                  ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
-                  : ''}
-              </span>
-            </span>
-          </label>
-        )
-      })}
+            {section.items.map((room) => {
+              const selected = selectedId === room.roomTypeId
+              const cover = covers?.get(room.roomTypeId)
+              return (
+                <label
+                  key={room.roomTypeId}
+                  className={`grid cursor-pointer grid-cols-[6rem_1fr] items-center gap-4 p-3 ${roomOptionFrame(selected)}`}
+                >
+                  <input
+                    type="radio"
+                    name="roomType"
+                    value={room.roomTypeId}
+                    checked={selected}
+                    onChange={() => onSelect(room)}
+                    className="sr-only"
+                  />
+                  <span className="relative block h-20 w-24 shrink-0 overflow-hidden bg-beige">
+                    {cover ? (
+                      <Photo
+                        src={cover.url}
+                        alt=""
+                        coverKey={cover.coverKey}
+                        sizes="96px"
+                        className="absolute inset-0 h-full w-full"
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-end px-2 py-2 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-wood/55">
+                        {roomKindLabel(room.kind)}
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="block font-medium">{roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}</span>
+                      <span className={`shrink-0 text-[0.68rem] tracking-[0.14em] uppercase ${selected ? 'text-clay' : 'text-wood/45'}`}>
+                        {roomOptionMark(selected)}
+                      </span>
+                    </span>
+                    <span className="text-sm text-wood/60">
+                      {roomKindLabel(room.kind)} · до {room.maxGuests} {room.maxGuests === 1 ? 'гостя' : 'гостей'} · вільних{' '}
+                      {room.availableCount}
+                      {isBookingEnabled() &&
+                      room.availableCount > 0 &&
+                      room.nightlyStartingPrice &&
+                      room.ratePlans.some((plan) => authoritativeStayTotal(plan))
+                        ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
+                        : ''}
+                    </span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+      {emptyHouses ? (
+        <p className="border border-dashed border-wood/30 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
+          {COTTAGE_EMPTY_COPY}
+        </p>
+      ) : null}
     </div>
   )
 }

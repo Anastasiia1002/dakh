@@ -5,6 +5,7 @@ import {
   roomListPresentation,
   roomOptionFrame,
   roomOptionMark,
+  groupAvailabilityRooms,
   ROOM_SELECTION_HEADING,
   ROOM_SELECTION_INSTRUCTION,
 } from './bookingSelection'
@@ -25,22 +26,29 @@ const open = {
 
 describe('booking accommodation selection', () => {
   it('names the step and explains that a choice is required', () => {
-    assert.equal(ROOM_SELECTION_HEADING.room, 'Оберіть кімнату')
-    assert.equal(ROOM_SELECTION_HEADING.house, 'Оберіть будинок')
+    assert.equal(ROOM_SELECTION_HEADING.room, 'Оберіть помешкання')
+    assert.equal(ROOM_SELECTION_HEADING.house, 'Оберіть помешкання')
     assert.match(ROOM_SELECTION_INSTRUCTION, /Обране підсвічується/)
   })
 
   it('keeps dates, loading, errors and an empty list visually distinct', () => {
     assert.equal(roomListPresentation({ searchable: false, status: 'idle', error: '', place: 'room' }).state, 'need-dates')
-    assert.equal(roomListPresentation({ searchable: true, status: 'loading', error: '', place: 'house' }).message, 'Шукаємо вільні будинки…')
+    assert.equal(roomListPresentation({ searchable: true, status: 'loading', error: '', place: 'house' }).message, 'Шукаємо вільні помешкання…')
     assert.equal(
       roomListPresentation({ searchable: true, status: 'error', error: 'Немає зв’язку', place: 'room' }).state,
       'error',
     )
     const empty = roomListPresentation({ searchable: true, status: 'empty', error: '', place: 'house' })
     assert.equal(empty.state, 'empty')
-    assert.match(empty.message, /будинків/)
+    assert.match(empty.message, /помешкань/)
     assert.equal(roomListPresentation({ searchable: true, status: 'ready', error: '', place: 'room' }).state, 'ready')
+    const grouped = groupAvailabilityRooms([
+      { kind: 'ROOM' as const },
+      { kind: 'COTTAGE' as const },
+      { kind: 'ROOM' as const },
+    ])
+    assert.equal(grouped.rooms.length, 2)
+    assert.equal(grouped.houses.length, 1)
   })
 
   it('marks the selected accommodation differently from the others', () => {

@@ -106,7 +106,7 @@ export function PhotoGallery({
 
       {featured ? (
         <div
-          className={`mx-auto hidden max-w-6xl gap-3 px-6 md:grid ${rest.length > 0 ? 'md:grid-cols-[minmax(0,1.7fr)_minmax(11rem,0.85fr)]' : ''}`}
+          className={`mx-auto hidden max-w-6xl gap-3 px-4 sm:px-6 md:grid ${rest.length > 0 ? 'md:grid-cols-[minmax(0,1.7fr)_minmax(11rem,0.85fr)]' : ''}`}
         >
           <button
             type="button"
@@ -135,7 +135,7 @@ export function PhotoGallery({
       ) : null}
 
       {rest.length > 2 ? (
-        <div className="mx-auto mt-3 hidden max-w-6xl grid-cols-4 gap-3 px-6 md:grid">
+        <div className="mx-auto mt-3 hidden max-w-6xl grid-cols-4 gap-3 px-4 sm:px-6 md:grid">
           {rest.slice(2).map((image, restIndex) => (
             <button
               key={`rest-${image.url}-${image.sortOrder}`}
@@ -151,7 +151,7 @@ export function PhotoGallery({
       ) : null}
 
       {frames.length > 1 ? (
-        <div className="mx-auto mt-4 hidden max-w-6xl items-center justify-between px-6 md:flex">
+        <div className="mx-auto mt-4 hidden max-w-6xl items-center justify-between px-4 sm:px-6 md:flex">
           <p className="text-sm text-wood/70">
             {index + 1} / {frames.length}
           </p>

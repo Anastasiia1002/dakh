@@ -110,6 +110,11 @@ export function capacityLabel(maxGuests: number): string {
   return `До ${maxGuests} ${noun}`
 }
 
+/** True when the visible title already states maxGuests, so the capacity line would repeat it. */
+export function titleIncludesCapacity(name: string, maxGuests: number) {
+  return publicTitle(name, maxGuests) !== cardTitle(name, maxGuests)
+}
+
 /** Cover first, then the rest by sortOrder, without repeating the cover URL. */
 export function galleryImages(accommodation: PublicAccommodation): PublicAccommodationImage[] {
   const rest = [...accommodation.images]
