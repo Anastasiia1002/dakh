@@ -3,8 +3,8 @@ import { images, site } from '../data/catalog'
 import { RestaurantPage } from './RestaurantPage'
 
 const links = [
-  { href: site.restaurantOrder, label: 'Меню' },
-  { href: site.restaurantBooking, label: 'Бронювання' },
+  { href: site.restaurantOrder, label: 'Переглянути меню' },
+  { href: site.restaurantBooking, label: 'Бронювання столу' },
   { href: site.restaurantDelivery, label: 'Доставка' },
 ]
 
@@ -16,11 +16,21 @@ export function MenuPage() {
           src={images.restaurantHall}
           alt="Зал ресторану DAKH"
           tone={false}
+          priority
+          sizes="100vw"
           className="absolute inset-0 h-full w-full object-[center_80%]"
         />
         <div className="absolute inset-0 bg-wood/40" />
-        <div className="relative flex min-h-[58vh] items-end px-6 pb-16 md:px-16">
+        <div className="relative flex min-h-[58vh] flex-col items-start justify-end gap-5 px-6 pb-16 md:px-16">
           <h1 className="font-display text-5xl text-linen md:text-7xl">ресторан</h1>
+          <a
+            href={site.restaurantOrder}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center bg-clay px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
+          >
+            Переглянути меню
+          </a>
         </div>
       </section>
 

@@ -7,23 +7,51 @@ import { categoryBase, categoryLabel, type AccommodationCategory } from '../lib/
 import { useAccommodationList } from '../lib/catalog/useAccommodations'
 import { images, site } from '../data/catalog'
 
+const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
+
 export function HomePage() {
   return (
     <>
       <section className="photo-grain relative min-h-[92vh]">
         <Photo
           src={images.heroHouse}
-          alt="DAKH увечері"
+          alt="Фасад DAKH увечері в Мигові"
           tone={false}
           priority
+          sizes="100vw"
           className="absolute inset-0 h-full w-full"
         />
         <div className="absolute inset-0 bg-wood/30" />
-        <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24">
+        <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24 text-center">
           <p className="kicker text-[0.68rem] text-linen/80">DAKH · Мигове</p>
           <h1 className="-rotate-1 font-display text-5xl leading-[1.05] text-linen md:text-7xl">
             «Вище даху тільки небо»
           </h1>
+          <p className="mt-6 max-w-md text-sm leading-relaxed text-linen/90">
+            Кімнати в будинку й окремі будинки. Ресторан унизу. Дати обираєте ви, суму підтверджує сервер.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {bookingEnabled ? (
+              <Link
+                to="/bronuvannya"
+                className="inline-flex min-h-11 items-center bg-clay px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
+              >
+                Забронювати
+              </Link>
+            ) : null}
+            <Link
+              to="/rooms"
+              className="inline-flex min-h-11 items-center border border-linen/70 px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
+            >
+              Кімнати
+            </Link>
+            <Link
+              to="/houses"
+              className="inline-flex min-h-11 items-center border border-linen/70 px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
+            >
+              Будинки
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -53,17 +81,19 @@ export function HomePage() {
       <HomeCatalog category="houses" empty="Зараз немає опублікованих будинків." />
 
       <section className="photo-grain relative min-h-[70vh]">
-        <Photo src={images.borscht} alt="Миска борщу" className="absolute inset-0 h-full w-full" />
+        <Photo src={images.borscht} alt="Миска борщу" className="absolute inset-0 h-full w-full" sizes="100vw" />
         <div className="absolute inset-0 bg-wood/35" />
         <div className="relative flex min-h-[70vh] flex-col items-start justify-end gap-6 px-6 py-20 md:px-16">
           <p className="kicker text-[0.68rem] text-linen/80">Ресторан</p>
           <h2 className="-rotate-1 font-display text-5xl text-linen md:text-6xl">«Тут смакують.»</h2>
-          <Link
-            to="/menu"
-            className="text-[0.72rem] font-medium tracking-[0.16em] uppercase text-linen underline decoration-linen/40 underline-offset-8"
+          <a
+            href={site.restaurantOrder}
+            target="_blank"
+            rel="noreferrer"
+            className="min-h-11 text-[0.72rem] font-medium tracking-[0.16em] uppercase text-linen underline decoration-linen/40 underline-offset-8"
           >
-            DAKH
-          </Link>
+            Переглянути меню
+          </a>
         </div>
       </section>
 
@@ -82,7 +112,7 @@ export function HomePage() {
           </p>
           <Link
             to="/kontakty"
-            className="mt-6 inline-block text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+            className="mt-6 inline-block min-h-11 text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
           >
             Як нас знайти
           </Link>

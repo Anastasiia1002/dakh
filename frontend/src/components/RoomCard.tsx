@@ -3,17 +3,20 @@ import { AmenityIcon } from './AmenityIcon'
 import { cardAmenities } from '../lib/catalog/amenities'
 import { capacityLabel, cardTitle, kindLabel, publicSummary } from '../lib/catalog/display'
 import { accommodationHref } from '../lib/catalog/routes'
+import { withStayUrl, type StayUrlState } from '../lib/publicBooking/stayUrl'
 import type { PublicAccommodation } from '../lib/publicBooking/types'
 import { Photo } from './Photo'
 
 export function RoomCard({
   accommodation,
   priority = false,
+  stay,
 }: {
   accommodation: PublicAccommodation
   priority?: boolean
+  stay?: StayUrlState
 }) {
-  const to = accommodationHref(accommodation)
+  const to = stay ? withStayUrl(accommodationHref(accommodation), stay) : accommodationHref(accommodation)
   const summary = publicSummary(accommodation.description)
   const title = cardTitle(accommodation.name, accommodation.maxGuests)
   const amenities = cardAmenities(accommodation.amenities)

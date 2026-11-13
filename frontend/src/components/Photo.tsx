@@ -7,10 +7,30 @@ type Props = {
   tone?: boolean
   /** First visible cover or the open gallery image. Everything else waits. */
   priority?: boolean
+  sizes?: string
 }
 
-export function Photo({ src, alt, className = '', tone = true, priority = false }: Props) {
+function unsplashSrcSet(src: string) {
+  if (!src.includes('images.unsplash.com')) return undefined
+  try {
+    return [800, 1280, 1920]
+      .map((width) => {
+        const url = new URL(src)
+        url.searchParams.set('auto', 'format')
+        url.searchParams.set('fit', 'crop')
+        url.searchParams.set('w', String(width))
+        url.searchParams.set('q', '75')
+        return `${url.toString()} ${width}w`
+      })
+      .join(', ')
+  } catch {
+    return undefined
+  }
+}
+
+export function Photo({ src, alt, className = '', tone = true, priority = false, sizes }: Props) {
   const [failed, setFailed] = useState(false)
+  const srcSet = unsplashSrcSet(src)
 
   useEffect(() => {
     setFailed(false)
@@ -23,7 +43,10 @@ export function Photo({ src, alt, className = '', tone = true, priority = false 
   return (
     <img
       src={src}
+      srcSet={srcSet}
+      sizes={srcSet ? (sizes ?? '(max-width: 768px) 100vw, 72vw') : undefined}
       alt={alt}
+      decoding={priority ? 'sync' : 'async'}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
       className={`${tone ? 'photo-tone' : ''} object-cover ${className}`}
