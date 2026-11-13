@@ -58,7 +58,7 @@ export function HotelPage({ category }: { category: AccommodationCategory }) {
         </div>
       </section>
 
-      <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-6 pb-8 max-sm:pr-28 md:-mt-12">
+      <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-6 pb-8 md:-mt-12">
         <StayBar />
       </div>
 
