@@ -37,3 +37,29 @@ export function listingHeroStem(category: 'rooms' | 'houses') {
 export function listingHeroPreload(category: 'rooms' | 'houses', base: string) {
   return webpPreload(listingHeroStem(category), base)
 }
+
+function withBase(base: string) {
+  return base.endsWith('/') ? base : `${base}/`
+}
+
+/** Production cover variants written by the public HTML build. */
+export function catalogCoverHref(
+  publicSlug: string,
+  base: string,
+  width: (typeof LOCAL_PHOTO_WIDTHS)[number] = 800,
+) {
+  return `${withBase(base)}images/covers/${publicSlug}-${width}.webp`
+}
+
+export function catalogCoverSrcSet(publicSlug: string, base: string) {
+  const root = withBase(base)
+  return LOCAL_PHOTO_WIDTHS.map((width) => `${root}images/covers/${publicSlug}-${width}.webp ${width}w`).join(', ')
+}
+
+export function catalogCoverPreload(publicSlug: string, base: string) {
+  return {
+    href: catalogCoverHref(publicSlug, base, 800),
+    imagesrcset: catalogCoverSrcSet(publicSlug, base),
+    imagesizes: '100vw',
+  }
+}

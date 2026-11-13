@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { heroPreload, listingHeroPreload, localWebpHref, localWebpSrcSet } from './localPhoto'
+import { catalogCoverHref, catalogCoverPreload, heroPreload, listingHeroPreload, localWebpHref, localWebpSrcSet } from './localPhoto'
 
 describe('local photo variants', () => {
   it('builds webp srcset for DAKH JPEGs and leaves remote photos alone', () => {
@@ -18,5 +18,10 @@ describe('local photo variants', () => {
   it('preloads a different opening photo for rooms and houses', () => {
     assert.match(listingHeroPreload('rooms', '/dakh/').href, /dakh-lounge-800\.webp/)
     assert.match(listingHeroPreload('houses', '/dakh/').href, /dakh-dining-800\.webp/)
+  })
+
+  it('points catalog covers at sized WebP files from the site base', () => {
+    assert.equal(catalogCoverHref('dakh-room-14-1', '/dakh/'), '/dakh/images/covers/dakh-room-14-1-800.webp')
+    assert.match(catalogCoverPreload('house-7', '/').imagesrcset, /house-7-1920\.webp 1920w/)
   })
 })

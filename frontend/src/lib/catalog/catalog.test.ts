@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { CatalogState } from '../../components/CatalogState'
 import { Photo } from '../../components/Photo'
+import { PhotoGallery } from '../../components/PhotoGallery'
 import { RoomCard } from '../../components/RoomCard'
 import { Layout } from '../../components/Layout'
 import { AccommodationCopy } from '../../pages/RoomPage'
@@ -16,6 +17,7 @@ import { BookingPage } from '../../pages/BookingPage'
 import { PublicApiError } from '../publicBooking/errors'
 import type { PublicAccommodation } from '../publicBooking/types'
 import { capacityLabel, cardTitle, galleryImages, publicDescription, publicTitle, stayPolicyLine } from './display'
+import { knownDetailPaths } from './publicSlugs'
 import { accommodationPath, catalogRedirect, isFictionalAccommodationSlug, legacyGotelTarget } from './routes'
 import { catalogErrorCopy } from './useAccommodations'
 
@@ -102,6 +104,12 @@ describe('catalog routes', () => {
     assert.equal(catalogRedirect('/rooms/bukovyna'), '/rooms')
     assert.equal(catalogRedirect('/rooms/dakh-room-14-1'), null)
     assert.equal(catalogRedirect('/houses/house-7'), null)
+    assert.deepEqual(knownDetailPaths().slice(0, 4), [
+      '/rooms/dakh-room-14-1',
+      '/rooms/dakh-room-14-2',
+      '/rooms/dakh-room-14-3',
+      '/houses/house-7',
+    ])
   })
 })
 
@@ -241,6 +249,19 @@ describe('catalog screens', () => {
     assert.doesNotMatch(cottageHtml, /до 7 гостей/)
     assert.match(cottageHtml, /Сніданок входить у проживання/)
     assert.doesNotMatch(`${roomHtml}${cottageHtml}`, /4800|6200|9200|Забронювати|даруємо|−10%|\/gotel|Буковина/)
+  })
+
+  it('keeps gallery slides lazy when the cover is already the hero', () => {
+    const html = markup(
+      createElement(PhotoGallery, {
+        images: [{ url: 'https://photos.example/two.webp', alt: 'Друге', sortOrder: 1 }],
+        lightboxImages: [cover, { url: 'https://photos.example/two.webp', alt: 'Друге', sortOrder: 1 }],
+        title: 'Номер',
+      }),
+    )
+    assert.match(html, /loading="lazy"/)
+    assert.doesNotMatch(html, /fetchPriority="high"/)
+    assert.doesNotMatch(html, /photos.example\/cover/)
   })
 
   it('lazy-loads offscreen photos and keeps a fallback when the file fails to render', () => {
