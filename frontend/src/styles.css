@@ -12,11 +12,11 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
-  overflow-x: hidden;
   color: var(--color-wood);
   background-color: var(--color-linen);
   background-image:

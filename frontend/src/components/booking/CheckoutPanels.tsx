@@ -9,7 +9,6 @@ import {
 } from '../../lib/publicBooking'
 import { isBookingEnabled } from '../../lib/publicBooking/config'
 import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/display'
-import { DEMO_PRICE_COPY, isDemoNightlyAmount, isDemoQuotedStay, isDemoRate } from '../../lib/publicBooking/stay'
 import { roomListPresentation, roomOptionFrame, roomOptionMark, type RoomPlace } from '../../lib/publicBooking/bookingSelection'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
 import { guestCountLabel, partySummary } from '../../lib/ukrainian'
@@ -266,9 +265,7 @@ export function RoomOptions({
                 room.availableCount > 0 &&
                 room.nightlyStartingPrice &&
                 room.ratePlans.some((plan) => authoritativeStayTotal(plan))
-                  ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба${
-                      isDemoNightlyAmount(room.nightlyStartingPrice) ? ' · демонстраційна, не комерційна' : ''
-                    }`
+                  ? ` · від ${formatMoneyAmount(room.nightlyStartingPrice)} / доба`
                   : ''}
               </span>
             </span>
@@ -329,7 +326,6 @@ export function RatePlanOptions({
               ? ` · попередньо ${formatMoneyAmount(plan.totalAmount)}`
               : ' · суму не показуємо'}
           </span>
-          {isDemoRate(plan) ? <span className="mt-1 block text-xs text-clay">{DEMO_PRICE_COPY}</span> : null}
         </label>
       ))}
     </div>
@@ -524,9 +520,6 @@ export function QuoteSummary({
       </ul>
       <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
       <p className="mt-2 text-[0.72rem] text-wood/55">Сума з сервера, {quote.currency}. Це ще не підтверджене бронювання.</p>
-      {(plan && isDemoRate(plan)) || isDemoQuotedStay(quote.nights) ? (
-        <p className="mt-2 text-[0.72rem] text-clay">{DEMO_PRICE_COPY}</p>
-      ) : null}
     </div>
   )
 }

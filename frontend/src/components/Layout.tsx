@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
 import { DocumentHead } from './DocumentHead'
 import { DakhLogo } from './BrandMarks'
+import { QuickActions } from './QuickActions'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
@@ -36,7 +37,7 @@ function HeaderActions({
         Подзвонити
       </a>
       {bookingEnabled ? (
-        <Link to="/bronuvannya" onClick={onNavigate} className={`${headerAction} bg-clay text-linen`}>
+        <Link to="/bronuvannya" onClick={onNavigate} className={`${headerAction} bg-clay text-linen lg:hidden`}>
           Забронювати
         </Link>
       ) : null}
@@ -73,7 +74,7 @@ export function Layout() {
     setMenuPath(pathname)
     setOpen(false)
   }
-  const overHero = pathname === '/' || pathname === '/menu'
+  const overHero = pathname === '/' || pathname === '/menu' || pathname === '/rooms' || pathname === '/houses'
   const tone = overHero ? 'linen' : 'wood'
 
   useEffect(() => {
@@ -115,11 +116,6 @@ export function Layout() {
             : `sticky top-0 border-b border-wood/10 bg-linen/95 text-wood ${open ? 'z-[60]' : 'z-30'}`
         }
       >
-        {bookingEnabled ? (
-          <p className="bg-clay px-4 py-2 text-center text-[0.78rem] font-semibold leading-5 text-linen" role="status">
-            Тестовий режим. 2 000 ₴ за ніч — демонстраційна ціна, не комерційна. Оплата не стягується.
-          </p>
-        ) : null}
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-3 sm:px-6 sm:py-5 lg:gap-5">
           <DakhLogo tone={tone} compact />
           <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[0.68rem] font-medium tracking-[0.12em] uppercase lg:flex xl:gap-x-6 xl:text-[0.72rem] xl:tracking-[0.14em]">
@@ -136,22 +132,6 @@ export function Layout() {
             ))}
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            {bookingEnabled ? (
-              <Link
-                to="/bronuvannya"
-                className={`${headerAction} bg-clay text-linen lg:hidden`}
-              >
-                Забронювати
-              </Link>
-            ) : (
-              <a
-                href={site.phoneHrefs[0]}
-                className="inline-flex min-h-11 items-center justify-center border border-current px-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase lg:hidden"
-                aria-label={`Подзвонити ${site.phones[0]}`}
-              >
-                Подзвонити
-              </a>
-            )}
             <HeaderActions className="hidden lg:flex" />
             <button
               ref={menuButtonRef}
@@ -193,6 +173,7 @@ export function Layout() {
           <Outlet />
         </Suspense>
       </main>
+      <QuickActions />
 
       <footer className="relative mt-24 overflow-hidden border-t border-wood/10 bg-beige">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 md:grid-cols-3">

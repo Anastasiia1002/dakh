@@ -381,7 +381,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       <p className="mt-10 text-sm text-wood/60">
         {search.searchable
           ? bookingEnabled
-            ? 'Наявність підтверджує сервер. Показана сума — демонстраційна тестова ціна, не комерційний тариф.'
+            ? 'Оберіть дати, щоб перевірити доступність і вартість. Суму підтверджує сервер.'
             : BOOKING_DISABLED_COPY
           : 'Спочатку оберіть заїзд і виїзд. Максимум 30 ночей.'}
       </p>
