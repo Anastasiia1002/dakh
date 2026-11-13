@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { localWebpHref, localWebpSrcSet } from '../lib/localPhoto'
+import { catalogCoverHref, catalogCoverSrcSet, localWebpHref, localWebpSrcSet } from '../lib/localPhoto'
 
 type Props = {
   src: string
@@ -10,6 +10,8 @@ type Props = {
   priority?: boolean
   sizes?: string
   fit?: 'cover' | 'contain'
+  /** Public slug whose sized WebP covers were written at build time. */
+  coverKey?: string
 }
 
 function unsplashSrcSet(src: string) {
@@ -30,17 +32,31 @@ function unsplashSrcSet(src: string) {
   }
 }
 
-export function Photo({ src, alt, className = '', tone = true, priority = false, sizes, fit = 'cover' }: Props) {
+export function Photo({
+  src,
+  alt,
+  className = '',
+  tone = true,
+  priority = false,
+  sizes,
+  fit = 'cover',
+  coverKey,
+}: Props) {
   const [failed, setFailed] = useState(false)
-  const webpSrcSet = localWebpSrcSet(src)
-  const webpSrc = localWebpHref(src)
+  const [skipBuiltCover, setSkipBuiltCover] = useState(false)
+  const builtCover = Boolean(import.meta.env?.PROD && coverKey && !skipBuiltCover)
+  const webpSrcSet =
+    localWebpSrcSet(src) ?? (builtCover && coverKey ? catalogCoverSrcSet(coverKey, import.meta.env?.BASE_URL ?? '/') : undefined)
+  const webpSrc =
+    localWebpHref(src) ?? (builtCover && coverKey ? catalogCoverHref(coverKey, import.meta.env?.BASE_URL ?? '/') : undefined)
   const jpegSrcSet = webpSrcSet ? undefined : unsplashSrcSet(src)
   const srcSet = webpSrcSet ?? jpegSrcSet
   const layoutSizes = srcSet ? (sizes ?? '(max-width: 768px) 100vw, 72vw') : undefined
 
   useEffect(() => {
     setFailed(false)
-  }, [src])
+    setSkipBuiltCover(false)
+  }, [src, coverKey])
 
   if (failed) {
     return <div className={`bg-beige ${className}`} role="img" aria-label={alt || 'Фото недоступне'} />
@@ -56,7 +72,13 @@ export function Photo({ src, alt, className = '', tone = true, priority = false,
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
       className={`${tone ? 'photo-tone' : ''} ${fit === 'contain' ? 'object-contain' : 'object-cover'} ${className}`}
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (builtCover) {
+          setSkipBuiltCover(true)
+          return
+        }
+        setFailed(true)
+      }}
     />
   )
 }

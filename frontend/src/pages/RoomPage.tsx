@@ -1,9 +1,8 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { AmenityIcon } from '../components/AmenityIcon'
 import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
-import { PhotoGallery } from '../components/PhotoGallery'
 import { RoomCard } from '../components/RoomCard'
 import { site } from '../data/catalog'
 import { amenityGroups, cardAmenities, detailPreviewAmenities, showAmenityGroupHeading } from '../lib/catalog/amenities'
@@ -27,10 +26,39 @@ import { useAccommodation, useAccommodationList } from '../lib/catalog/useAccomm
 import { stayUrlFromSearch } from '../lib/publicBooking/stayUrl'
 import type { PublicAccommodation, PublicAmenity } from '../lib/publicBooking/types'
 
+const PhotoGallery = lazy(async () => ({ default: (await import('../components/PhotoGallery')).PhotoGallery }))
+
 const ActiveRoomBooking =
   import.meta.env?.VITE_BOOKING_ENABLED === 'true'
     ? lazy(() => import('../components/booking/RoomBooking').then((module) => ({ default: module.RoomBooking })))
     : null
+
+function DeferredGallery({
+  images,
+  lightboxImages,
+  title,
+}: {
+  images: PublicAccommodation['images']
+  lightboxImages: PublicAccommodation['images']
+  title: string
+}) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const idle = window.requestIdleCallback?.bind(window)
+    if (idle) {
+      const id = idle(() => setReady(true), { timeout: 1800 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const timer = window.setTimeout(() => setReady(true), 1)
+    return () => window.clearTimeout(timer)
+  }, [])
+  if (!ready) return <div className="mt-6 md:mt-8" aria-hidden="true" />
+  return (
+    <Suspense fallback={<div className="mt-6 md:mt-8" aria-hidden="true" />}>
+      <PhotoGallery images={images} lightboxImages={lightboxImages} title={title} />
+    </Suspense>
+  )
+}
 
 export function RoomPage({ category }: { category: AccommodationCategory }) {
   const { slug = '' } = useParams()
@@ -58,6 +86,8 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
   const title = room ? publicTitle(room.name, room.maxGuests) : ''
 
   const opening = images[0]
+  const extras = images.slice(1)
+  const publicSlug = toPublicAccommodationSlug(category, apiSlug)
   const highlights = room ? cardAmenities(room.amenities, 3) : []
 
   return (
@@ -70,6 +100,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
             tone={false}
             priority
             sizes="100vw"
+            coverKey={publicSlug}
             className="absolute inset-0 h-full w-full"
           />
           <div className="absolute inset-0 bg-wood/40" />
@@ -111,8 +142,8 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
         <div className="h-48 bg-beige" />
       )}
 
-      {detail.status === 'ready' && room && images.length > 0 ? (
-        <PhotoGallery key={room.id} images={images} title={title} />
+      {detail.status === 'ready' && room && extras.length > 0 ? (
+        <DeferredGallery key={room.id} images={extras} lightboxImages={images} title={title} />
       ) : null}
 
       <section className="mx-auto mt-8 grid max-w-6xl items-start gap-10 px-4 pb-28 sm:px-6 lg:mt-14 lg:grid-cols-[minmax(0,1.86fr)_minmax(18rem,1fr)] lg:gap-14 lg:pb-24">

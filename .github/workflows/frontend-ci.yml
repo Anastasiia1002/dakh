@@ -34,4 +34,10 @@ jobs:
           VITE_ACCOMMODATION_HOTEL_MAP: merged
           VITE_BOOKING_ENABLED: "true"
       - name: Verify Pages entry files
-        run: test -f frontend/dist/index.html && test -f frontend/dist/404.html && grep -q '/dakh/assets/' frontend/dist/index.html
+        run: |
+          test -f frontend/dist/index.html
+          test -f frontend/dist/404.html
+          grep -q '/dakh/assets/' frontend/dist/index.html
+          test -f frontend/dist/rooms/dakh-room-14-1/index.html
+          test -f frontend/dist/houses/house-7/index.html
+          grep -q '<title>' frontend/dist/rooms/dakh-room-14-1/index.html

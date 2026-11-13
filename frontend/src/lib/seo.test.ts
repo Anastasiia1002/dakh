@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { canonicalUrl, seoForPath } from './seo'
+import { canonicalUrl, seoForDetail, seoForPath } from './seo'
 import { stayUrlFromSearch, stayUrlSearch, withStayUrl } from './publicBooking/stayUrl'
 
 describe('seo routes', () => {
@@ -9,6 +9,14 @@ describe('seo routes', () => {
     assert.equal(seoForPath('/rooms').title, 'Кімнати — DAKH Мигове')
     assert.equal(seoForPath('/rooms/').title, 'Кімнати — DAKH Мигове')
     assert.equal(seoForPath('/rooms/dakh-room-14-1').title, 'Кімната — DAKH Мигове')
+    assert.match(
+      seoForDetail('/rooms/dakh-room-14-1', {
+        name: '2-кімнатний номер з терасою ( до 4 гостей)',
+        maxGuests: 4,
+        description: 'Сніданок входить у проживання.\nПри бронюванні від 2-х діб даруємо 2 години чан-зони.',
+      }).title,
+      /2-кімнатний номер з терасою/,
+    )
     assert.equal(seoForPath('/rooms/dakh-room-14-1/').title, 'Кімната — DAKH Мигове')
     assert.equal(seoForPath('/houses/').title, 'Будинки — DAKH Мигове')
     assert.equal(seoForPath('/bronuvannya/pidtverdzhennya/abc').index, false)

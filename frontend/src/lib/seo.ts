@@ -1,4 +1,5 @@
 import { site } from '../data/catalog'
+import { publicSummary, publicTitle } from './catalog/display'
 
 export type PublicSeoRoute = {
   path: string
@@ -93,6 +94,19 @@ export function seoForPath(pathname: string): PublicSeoRoute {
     }
   }
   return { ...DEFAULT_SEO, path }
+}
+
+export function seoForDetail(
+  pathname: string,
+  detail: { name: string; maxGuests: number; description: string },
+): PublicSeoRoute {
+  const fallback = seoForPath(pathname)
+  const summary = publicSummary(detail.description).replace(/\s+/g, ' ').trim()
+  return {
+    ...fallback,
+    title: `${publicTitle(detail.name, detail.maxGuests)} — DAKH Мигове`,
+    description: summary.slice(0, 180) || fallback.description,
+  }
 }
 
 export function publicSiteOrigin() {
