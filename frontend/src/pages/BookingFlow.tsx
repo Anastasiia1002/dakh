@@ -9,6 +9,7 @@ import {
   RoomOptions,
 } from '../components/booking/CheckoutPanels'
 import { ServiceOptions } from '../components/booking/ServiceOptions'
+import { Photo } from '../components/Photo'
 import { emptyDraft, type BookingDraft } from '../lib/booking'
 import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
@@ -399,6 +400,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   ]
 
   const showMobileBar = bookingEnabled && checkout.step === 'collect' && !pickerOpen
+  const selectedCover = draft.roomTypeId ? catalogCovers.get(draft.roomTypeId) : undefined
   const stayLead = locked
     ? 'Помешкання вже обрано. Дати можна змінити.'
     : search.searchable
@@ -414,7 +416,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
         </>
       )}
 
-      <div className="relative z-20 -mt-8 border border-wood/10 bg-linen p-3 shadow-[0_18px_40px_rgba(91,56,43,0.12)] md:p-4">
+      <div className="relative z-20 -mt-10 border border-wood/10 bg-linen/95 p-2.5 shadow-[0_18px_40px_rgba(91,56,43,0.12)] md:-mt-8 md:p-4">
         {bookingEnabled ? (
           <ol className="mb-3 grid grid-cols-4 gap-1 text-center">
             {steps.map((item, index) => (
@@ -545,8 +547,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
         </div>
 
-        <aside className="hidden h-fit border border-wood/10 bg-linen p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)] md:sticky md:top-8 md:col-span-5 md:block">
-          <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
+        <aside className="hidden h-fit overflow-hidden border border-clay/20 bg-beige/40 p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)] md:sticky md:top-8 md:col-span-5 md:block">
+          <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
           {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
               Попередня сума {formatMoneyAmount(handoff.preview.totalAmount)} ще перевіряється на сервері.
@@ -573,6 +575,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
                 : 'Оберіть помешкання зі списку доступних.'
             }
+            cover={selectedCover}
           />
 
           {!bookingEnabled ? (
@@ -660,8 +663,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           )}
         </aside>
 
-        <div className="border border-wood/10 bg-linen p-5 md:hidden">
-          <p className="text-[0.7rem] tracking-[0.16em] uppercase">Ваше бронювання</p>
+        <div className="border border-clay/20 bg-beige/40 p-5 md:hidden">
+          <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
           <QuoteSummary
             checkIn={draft.checkIn}
             checkOut={draft.checkOut}
@@ -683,6 +686,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
                 : 'Оберіть помешкання зі списку доступних.'
             }
+            cover={selectedCover}
           />
           {checkout.step === 'price_changed' && checkout.pendingQuote ? (
             <PriceChangePanel
@@ -720,6 +724,17 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       {showMobileBar ? (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-wood/10 bg-linen/95 px-4 py-3 shadow-[0_-12px_28px_rgba(91,56,43,0.12)] backdrop-blur-sm md:hidden">
           <div className="mx-auto flex max-w-6xl items-center gap-3 pb-[env(safe-area-inset-bottom)]">
+            {selectedCover ? (
+              <span className="relative size-11 shrink-0 overflow-hidden bg-beige">
+                <Photo
+                  src={selectedCover.url}
+                  alt=""
+                  coverKey={selectedCover.coverKey}
+                  sizes="44px"
+                  className="h-full w-full"
+                />
+              </span>
+            ) : null}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">
                 {search.selectedRoom

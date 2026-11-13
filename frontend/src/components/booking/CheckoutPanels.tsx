@@ -414,6 +414,7 @@ export function QuoteSummary({
   availabilityError = '',
   roomLabel,
   fitNote = '',
+  cover,
 }: {
   checkIn: string
   checkOut: string
@@ -432,9 +433,21 @@ export function QuoteSummary({
   roomLabel?: string
   /** The selected room cannot hold this party. Dates stay selected. */
   fitNote?: string
+  cover?: { url: string; coverKey: string; alt: string }
 }) {
   const roomName = room ? publicRoomLabel(room.name, room.kind, roomLabel) : roomLabel
   const guests = partySummary(adults, kids)
+  const coverFrame = cover ? (
+    <div className="relative mb-5 aspect-[5/3] overflow-hidden bg-beige">
+      <Photo
+        src={cover.url}
+        alt=""
+        coverKey={cover.coverKey}
+        sizes="(max-width: 768px) 100vw, 40vw"
+        className="absolute inset-0 h-full w-full"
+      />
+    </div>
+  ) : null
   if (!checkIn || !checkOut || nights < 1) {
     return (
       <div className="mt-6 text-sm">
@@ -554,6 +567,7 @@ export function QuoteSummary({
 
   return (
     <div className="mt-6 text-sm leading-relaxed">
+      {coverFrame}
       <p className="font-medium">{roomName}</p>
       {plan ? (
         <div className="mt-1 text-wood/70">

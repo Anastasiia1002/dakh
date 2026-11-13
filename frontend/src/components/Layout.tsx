@@ -4,6 +4,7 @@ import { site } from '../data/catalog'
 import { DocumentHead } from './DocumentHead'
 import { DakhLogo } from './BrandMarks'
 import { QuickActions } from './QuickActions'
+import { PAGE_SHELL } from '../lib/layout'
 import { normalizePublicPath } from '../lib/seo'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
@@ -126,7 +127,7 @@ export function Layout() {
             : `sticky top-0 border-b border-wood/10 bg-linen/95 text-wood ${open ? 'z-[60]' : 'z-30'}`
         }
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-3 sm:px-6 sm:py-5 lg:gap-5">
+        <div className={`${PAGE_SHELL} flex items-center justify-between gap-2 py-4 sm:gap-3 sm:py-5 lg:gap-5`}>
           <DakhLogo tone={tone} compact />
           <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[0.68rem] font-medium tracking-[0.12em] uppercase lg:flex xl:gap-x-6 xl:text-[0.72rem] xl:tracking-[0.14em]">
             {headerNav.map((item) => (
