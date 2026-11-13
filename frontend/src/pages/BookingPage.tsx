@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { Photo } from '../components/Photo'
 import { images } from '../data/catalog'
+import { PAGE_SHELL } from '../lib/layout'
 import { BOOKING_DISABLED_COPY } from '../lib/publicBooking/config'
 
 const ActiveBooking =
@@ -22,7 +23,9 @@ export function BookingPage() {
           className="absolute inset-0 h-full w-full"
         />
         <div className="absolute inset-0 bg-wood/40" />
-        <div className="relative mx-auto flex min-h-[28svh] w-full max-w-6xl flex-col justify-end px-4 pb-10 pt-24 sm:px-6 md:min-h-[34vh] md:pb-12">
+        <div
+          className={`relative flex min-h-[28svh] min-w-0 flex-col justify-end pb-10 pt-24 md:min-h-[34vh] md:pb-12 ${PAGE_SHELL}`}
+        >
           <p className="kicker text-[0.68rem] text-linen/80">Готель DAKH</p>
           <h1 className="mt-3 max-w-xl font-display text-4xl leading-[1.08] text-linen sm:text-5xl md:text-6xl">
             Бронювання
@@ -34,7 +37,7 @@ export function BookingPage() {
       </section>
 
       {ActiveBooking ? (
-        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-40 sm:px-6 md:pb-24">
+        <div className={`relative z-10 pb-40 md:pb-24 ${PAGE_SHELL}`}>
           <Suspense fallback={<p className="px-2 py-16 text-sm text-wood/60">Завантажуємо бронювання…</p>}>
             <ActiveBooking hideIntro />
           </Suspense>
