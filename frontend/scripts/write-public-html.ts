@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { heroPreload } from '../src/lib/localPhoto.ts'
 import { PUBLIC_SEO_ROUTES, seoForPath } from '../src/lib/seo.ts'
 import { resolveSiteBase } from '../src/lib/siteBase.ts'
 
@@ -26,6 +27,24 @@ function applySeo(html: string, pathname: string) {
     next = next.replace('</head>', `    <meta property="og:url" content="${canonical}" />\n    <meta name="robots" content="${robots}" />\n  </head>`)
   } else {
     next = next.replace('</head>', `    <meta name="robots" content="${robots}" />\n  </head>`)
+  }
+  if (pathname === '/') {
+    const preload = heroPreload(base)
+    const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
+    if (!next.includes(preload.href)) {
+      next = next.replace('</title>', `</title>\n${tag}`)
+    }
+  }
+  if (pathname === '/rooms' || pathname === '/houses') {
+    const hotelChunk = readdirSync(join(dist, 'assets')).find(
+      (name) => name.startsWith('HotelPage-') && name.endsWith('.js'),
+    )
+    if (hotelChunk && !next.includes(hotelChunk)) {
+      next = next.replace(
+        '</title>',
+        `</title>\n    <link rel="modulepreload" crossorigin href="${base}assets/${hotelChunk}" />\n`,
+      )
+    }
   }
   return next
 }

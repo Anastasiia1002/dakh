@@ -2,11 +2,11 @@ import { lazy } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { catalogRedirect } from './lib/catalog/routes'
+import { BookingPage } from './pages/BookingPage'
 import { HomePage } from './pages/HomePage'
-import { HotelPage } from './pages/HotelPage'
 
 const AboutPage = lazy(async () => ({ default: (await import('./pages/AboutPage')).AboutPage }))
-const BookingPage = lazy(async () => ({ default: (await import('./pages/BookingPage')).BookingPage }))
+const HotelPage = lazy(async () => ({ default: (await import('./pages/HotelPage')).HotelPage }))
 const ConfirmationPage = lazy(async () => ({ default: (await import('./pages/ConfirmationPage')).ConfirmationPage }))
 const ContactPage = lazy(async () => ({ default: (await import('./pages/ContactPage')).ContactPage }))
 const MenuPage = lazy(async () => ({ default: (await import('./pages/MenuPage')).MenuPage }))

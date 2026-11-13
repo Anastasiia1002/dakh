@@ -76,7 +76,7 @@ function draftFromHandoff(handoff: BookingHandoff): BookingDraft {
   }
 }
 
-export function BookingFlow() {
+export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const [params] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -363,9 +363,13 @@ export function BookingFlow() {
       : ''
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
-      <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-      <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
+    <section className={hideIntro ? 'contents' : 'mx-auto max-w-6xl px-6 pb-24 pt-32'}>
+      {hideIntro ? null : (
+        <>
+          <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
+          <h1 className="mt-3 font-display text-5xl leading-tight text-clay">«Забронюйте свій спокій»</h1>
+        </>
+      )}
       <p className="mt-5 max-w-xl text-sm text-wood/70">
         {bookingEnabled
           ? locked
