@@ -9,6 +9,9 @@ import {
   shouldStartCheckout,
   storedIntentMatchesStay,
   writeStoredConfirmationToken,
+  hasInvalidConfirmationRoute,
+  markInvalidConfirmationRoute,
+  clearInvalidConfirmationRoute,
 } from './checkout'
 import { quoteFromPriceChanged, retryAfterSeconds } from './errors'
 import { PublicApiError } from './errors'
@@ -56,6 +59,10 @@ describe('checkout helpers', () => {
       assert.equal(readStoredConfirmationToken(), token)
       clearStoredConfirmationToken()
       assert.equal(readStoredConfirmationToken(), '')
+      markInvalidConfirmationRoute()
+      assert.equal(hasInvalidConfirmationRoute(), true)
+      clearInvalidConfirmationRoute()
+      assert.equal(hasInvalidConfirmationRoute(), false)
     } finally {
       if (previous === undefined) {
         delete (globalThis as { window?: unknown }).window

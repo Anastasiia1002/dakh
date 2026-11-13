@@ -60,6 +60,8 @@ const SAFE_COPY: Record<string, string> = {
   QUOTE_INVALID: 'Розрахунок застарів. Оберіть дати ще раз.',
   INTENT_NOT_FOUND: 'Заявку не знайдено.',
   CONFIRMATION_NOT_FOUND: 'Підтвердження не знайдено.',
+  BOOKING_CREATED_LOOKUP:
+    'Бронювання вже створено, але цю сторінку зараз не вдалося відкрити. Не надсилайте заявку ще раз. Якщо зберегли пошту заявки, запитайте доступ нижче.',
   HOTEL_NOT_FOUND: 'Готель недоступний для бронювання.',
   ROOM_TYPE_NOT_FOUND: 'Цю кімнату зараз не можна забронювати.',
   RATE_PLAN_NOT_FOUND: 'Цей тариф недоступний.',
@@ -67,6 +69,15 @@ const SAFE_COPY: Record<string, string> = {
   PUBLIC_BOOKING_UNAVAILABLE: 'Публічне бронювання зараз недоступне.',
   SERVICE_NOT_BOOKABLE: 'Цю послугу зараз не можна додати. Оновіть список і спробуйте без неї.',
   EMAIL_DELIVERY_FAILED: 'Не вдалося надіслати лист. Спробуйте ще раз.',
+}
+
+/** Lookup/open failure after the booking already exists. Never invites a second submission. */
+export function confirmationLookupCopy(error: unknown, bookingAlreadyCreated: boolean): string {
+  if (bookingAlreadyCreated) return SAFE_COPY.BOOKING_CREATED_LOOKUP
+  if (isPublicApiError(error) && (error.error === 'CONFIRMATION_NOT_FOUND' || error.statusCode === 404)) {
+    return SAFE_COPY.CONFIRMATION_NOT_FOUND
+  }
+  return errorCopy(error)
 }
 
 export function errorCopy(error: unknown): string {

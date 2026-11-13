@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { errorCopy, isAbortError, parseApiError, stayRejection, STAY_GUESTS_COPY, STAY_RANGE_COPY, STAY_WINDOW_COPY } from './errors'
+import {
+  confirmationLookupCopy,
+  errorCopy,
+  isAbortError,
+  parseApiError,
+  stayRejection,
+  STAY_GUESTS_COPY,
+  STAY_RANGE_COPY,
+  STAY_WINDOW_COPY,
+} from './errors'
 
 describe('public API errors', () => {
   it('prefers the structured error code and Ukrainian message', () => {
@@ -47,6 +56,21 @@ describe('public API errors', () => {
       assert.equal(errorCopy(parseApiError(status, { statusCode: status, error: code, message })), message)
     }
     assert.match(errorCopy(new Error('BOOKING_TARGET_BLOCKED')), /локальний сервер/)
+  })
+
+  it('keeps a created booking distinct from a failed confirmation lookup', () => {
+    const missing = parseApiError(404, {
+      statusCode: 404,
+      error: 'CONFIRMATION_NOT_FOUND',
+      message: 'Підтвердження не знайдено',
+    })
+    const unknown = confirmationLookupCopy(missing, false)
+    const created = confirmationLookupCopy(missing, true)
+    assert.match(unknown, /не знайдено/i)
+    assert.doesNotMatch(unknown, /створено/)
+    assert.match(created, /вже створено/)
+    assert.match(created, /Не надсилайте заявку ще раз/)
+    assert.doesNotMatch(created, /Почніть бронювання знову/)
   })
 
   it('hides the raw validation message and names the stay rule the server rejected', () => {

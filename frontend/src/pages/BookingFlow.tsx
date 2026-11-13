@@ -546,6 +546,10 @@ export function BookingFlow() {
                 setOtpCode('')
               }}
             />
+          ) : checkout.step === 'looking_up' ? (
+            <p className="mt-6 text-sm text-wood/70" role="status">
+              Шукаємо підтвердження на сервері…
+            </p>
           ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
             <OtpPanel
               email={draft.email.trim() || checkout.intent?.emailMasked || ''}

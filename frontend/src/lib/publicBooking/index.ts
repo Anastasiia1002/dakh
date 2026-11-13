@@ -5,6 +5,7 @@ export { useBookingCheckout } from './useBookingCheckout'
 export { BOOKING_DISABLED_COPY, isBookingEnabled, isPublicApiConfigured, resolveHotelSlug, resolvePublicApiBaseUrl } from './config'
 export {
   PublicApiError,
+  confirmationLookupCopy,
   errorCopy,
   isAbortError,
   isPublicApiError,
@@ -12,12 +13,15 @@ export {
   retryAfterSeconds,
 } from './errors'
 export {
+  clearInvalidConfirmationRoute,
   clearStoredConfirmationToken,
   clearStoredIntent,
+  hasInvalidConfirmationRoute,
   intentLooksExpired,
   isConfirmationToken,
   isOtpCode,
   isQuoteFresh,
+  markInvalidConfirmationRoute,
   newIdempotencyKey,
   readStoredConfirmationToken,
   readStoredIntent,

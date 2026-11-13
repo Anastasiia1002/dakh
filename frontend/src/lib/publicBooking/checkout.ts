@@ -34,6 +34,7 @@ export type StoredStay = {
 
 const INTENT_SESSION_KEY = 'dakh-booking-intent'
 const CONFIRMATION_SESSION_KEY = 'dakh-confirmation-token'
+const INVALID_CONFIRMATION_ROUTE_KEY = 'dakh-confirmation-route-invalid'
 
 function sessionStore() {
   try {
@@ -170,6 +171,18 @@ export function writeStoredConfirmationToken(token: string) {
 
 export function clearStoredConfirmationToken() {
   sessionStore()?.removeItem(CONFIRMATION_SESSION_KEY)
+}
+
+export function markInvalidConfirmationRoute() {
+  sessionStore()?.setItem(INVALID_CONFIRMATION_ROUTE_KEY, '1')
+}
+
+export function hasInvalidConfirmationRoute() {
+  return sessionStore()?.getItem(INVALID_CONFIRMATION_ROUTE_KEY) === '1'
+}
+
+export function clearInvalidConfirmationRoute() {
+  sessionStore()?.removeItem(INVALID_CONFIRMATION_ROUTE_KEY)
 }
 
 /** A second click while a write is in flight must not create another intent. */
