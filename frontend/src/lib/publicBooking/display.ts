@@ -36,7 +36,6 @@ export function publicPlanTitle(plan: {
   code?: string
   nightlyStartingPrice?: string | null
 }) {
-  if (isDemoRate(plan)) return 'Демонстраційний тариф'
-  if (isHiddenInventoryLabel(plan.name)) return rateTypeLabel(plan.type)
+  if (isDemoRate(plan) || isHiddenInventoryLabel(plan.name)) return rateTypeLabel(plan.type)
   return plan.name
 }

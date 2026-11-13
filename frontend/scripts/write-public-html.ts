@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { heroPreload } from '../src/lib/localPhoto.ts'
+import { heroPreload, listingHeroPreload } from '../src/lib/localPhoto.ts'
 import { PUBLIC_SEO_ROUTES, seoForPath } from '../src/lib/seo.ts'
 import { resolveSiteBase } from '../src/lib/siteBase.ts'
 
@@ -36,6 +36,11 @@ function applySeo(html: string, pathname: string) {
     }
   }
   if (pathname === '/rooms' || pathname === '/houses') {
+    const preload = listingHeroPreload(pathname === '/houses' ? 'houses' : 'rooms', base)
+    const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
+    if (!next.includes(preload.href)) {
+      next = next.replace('</title>', `</title>\n${tag}`)
+    }
     const hotelChunk = readdirSync(join(dist, 'assets')).find(
       (name) => name.startsWith('HotelPage-') && name.endsWith('.js'),
     )

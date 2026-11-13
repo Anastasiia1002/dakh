@@ -9,12 +9,24 @@ export function localWebpSrcSet(src: string) {
   return LOCAL_PHOTO_WIDTHS.map((width) => `${dir}${stem}-${width}.webp ${width}w`).join(', ')
 }
 
-export function heroPreload(base: string) {
+function webpPreload(stem: string, base: string) {
   const root = base.endsWith('/') ? base : `${base}/`
   const dir = `${root}images/`
   return {
-    href: `${dir}dakh-facade-night-800.webp`,
-    imagesrcset: LOCAL_PHOTO_WIDTHS.map((width) => `${dir}dakh-facade-night-${width}.webp ${width}w`).join(', '),
+    href: `${dir}${stem}-800.webp`,
+    imagesrcset: LOCAL_PHOTO_WIDTHS.map((width) => `${dir}${stem}-${width}.webp ${width}w`).join(', '),
     imagesizes: '100vw',
   }
+}
+
+export function heroPreload(base: string) {
+  return webpPreload('dakh-facade-night', base)
+}
+
+export function listingHeroStem(category: 'rooms' | 'houses') {
+  return category === 'houses' ? 'dakh-dining' : 'dakh-lounge'
+}
+
+export function listingHeroPreload(category: 'rooms' | 'houses', base: string) {
+  return webpPreload(listingHeroStem(category), base)
 }

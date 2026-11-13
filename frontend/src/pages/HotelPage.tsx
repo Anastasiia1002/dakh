@@ -1,25 +1,35 @@
-import { useSearchParams } from 'react-router-dom'
 import { CatalogState } from '../components/CatalogState'
+import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { StayBar } from '../components/StayBar'
-import { categoryLabel, type AccommodationCategory } from '../lib/catalog/categories'
+import { images } from '../data/catalog'
+import { type AccommodationCategory } from '../lib/catalog/categories'
 import { useAccommodationList } from '../lib/catalog/useAccommodations'
 import { stayUrlFromSearch } from '../lib/publicBooking/stayUrl'
-
-const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
+import { useSearchParams } from 'react-router-dom'
 
 const copy = {
   rooms: {
+    kicker: 'Готель DAKH',
     title: 'Кімнати',
-    lead: 'Порівняйте місткість і зручності з публічного каталогу. Ціну на цій сторінці не показуємо.',
+    lead: 'Сон у будинку, де внизу пахне кухнею. Оберіть дати, щоб перевірити доступність і вартість.',
     empty: 'Зараз немає опублікованих кімнат.',
-    columns: 3 as const,
+    photo: images.pottery,
+    alt: 'Зал DAKH із видом на гори',
+    crop: 'object-[center_35%]',
+    columns: 'md:grid-cols-2 xl:grid-cols-3',
+    photoShape: 'aspect-[4/5]',
   },
   houses: {
+    kicker: 'Окремий поріг',
     title: 'Будинки',
-    lead: 'Окремі будинки поруч із DAKH. Місткість беремо з каталогу, а не з числа в назві.',
+    lead: 'Приватний простір у дворі DAKH. Оберіть дати, щоб перевірити доступність і вартість.',
     empty: 'Зараз немає опублікованих будинків.',
-    columns: 2 as const,
+    photo: images.diningRoom,
+    alt: 'Зал DAKH зі столами й видом у двір',
+    crop: 'object-[center_62%]',
+    columns: 'md:grid-cols-2',
+    photoShape: 'aspect-[3/2]',
   },
 }
 
@@ -30,34 +40,50 @@ export function HotelPage({ category }: { category: AccommodationCategory }) {
   const text = copy[category]
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-32">
-      <p className="kicker text-[0.68rem] text-clay">{categoryLabel(category)}</p>
-      <h1 className="mt-3 max-w-2xl font-display text-5xl leading-tight">{text.title}</h1>
-      <p className="mt-6 max-w-xl text-sm leading-relaxed text-wood/75">{text.lead}</p>
-      {bookingEnabled ? (
-        <>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-clay">
-            Відкрийте {category === 'houses' ? 'будинок' : 'кімнату'}, щоб побачити суму після вибору дат. Оплату на
-            сайті не приймаємо.
-          </p>
-          <StayBar />
-        </>
-      ) : null}
-      {catalog.status === 'ready' ? (
-        <div className={`mt-16 grid gap-16 ${text.columns === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
-          {catalog.items.map((item, index) => (
-            <RoomCard key={item.id} accommodation={item} priority={index === 0} stay={stay} />
-          ))}
-        </div>
-      ) : (
-        <CatalogState
-          status={catalog.status}
-          error={catalog.error}
-          onRetry={catalog.retry}
-          emptyCopy={text.empty}
-          columns={text.columns}
+    <article>
+      <section className="photo-grain relative min-h-[38svh] md:min-h-[52vh]">
+        <Photo
+          src={text.photo}
+          alt={text.alt}
+          tone={false}
+          priority
+          sizes="100vw"
+          className={`absolute inset-0 h-full w-full ${text.crop}`}
         />
-      )}
-    </section>
+        <div className="absolute inset-0 bg-wood/35" />
+        <div className="relative flex min-h-[38svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[52vh] md:px-10 md:pb-20">
+          <p className="kicker text-[0.68rem] text-linen/80">{text.kicker}</p>
+          <h1 className="mt-3 max-w-xl font-display text-5xl leading-[1.05] text-linen md:text-7xl">{text.title}</h1>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-linen/90">{text.lead}</p>
+        </div>
+      </section>
+
+      <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-6 md:-mt-12">
+        <StayBar />
+      </div>
+
+      <section className="mx-auto max-w-6xl px-6 pb-24 pt-10">
+        {catalog.status === 'ready' ? (
+          <div className={`grid gap-12 ${text.columns}`}>
+            {catalog.items.map((item) => (
+              <RoomCard
+                key={item.id}
+                accommodation={item}
+                stay={stay}
+                photoClassName={text.photoShape}
+              />
+            ))}
+          </div>
+        ) : (
+          <CatalogState
+            status={catalog.status}
+            error={catalog.error}
+            onRetry={catalog.retry}
+            emptyCopy={text.empty}
+            columns={category === 'rooms' ? 3 : 2}
+          />
+        )}
+      </section>
+    </article>
   )
 }

@@ -41,7 +41,6 @@ export {
 } from './guest'
 export type { GuestFieldErrors } from './guest'
 export {
-  DEMO_PRICE_COPY,
   canUseAsCheckIn,
   isDemoRate,
   canUseAsCheckOut,

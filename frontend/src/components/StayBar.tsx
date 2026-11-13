@@ -21,7 +21,8 @@ export function StayBar() {
 
   return (
     <form
-      className="mt-8 grid gap-3 rounded-sm border border-wood/10 bg-beige/60 p-4 sm:grid-cols-2 lg:grid-cols-4"
+      id="stay-dates"
+      className="grid gap-3 border border-wood/10 bg-linen p-4 shadow-[0_18px_40px_rgba(91,56,43,0.12)] sm:grid-cols-2 lg:grid-cols-4"
       onSubmit={(event) => event.preventDefault()}
     >
       <label className="text-sm">
@@ -65,9 +66,6 @@ export function StayBar() {
           className="w-full border border-wood/15 bg-linen px-3 py-2.5 text-base text-wood"
         />
       </label>
-      <p className="sm:col-span-2 lg:col-span-4 text-sm text-wood/70">
-        Дати й кількість гостей переходять у картку помешкання. Суму покаже сервер після вибору дат.
-      </p>
     </form>
   )
 }

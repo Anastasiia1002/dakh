@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { heroPreload } from '../lib/localPhoto'
+import { heroPreload, listingHeroPreload } from '../lib/localPhoto'
 import { canonicalUrl, hotelJsonLd, seoForPath } from '../lib/seo'
 
 function upsertMeta(selector: string, attributes: Record<string, string>) {
@@ -40,8 +40,14 @@ export function DocumentHead() {
     }
     json.textContent = JSON.stringify(hotelJsonLd())
     const existing = document.getElementById('dakh-hero-preload')
-    if (seo.path === '/') {
-      const preload = heroPreload(import.meta.env.BASE_URL ?? '/')
+    const listing = seo.path === '/rooms' ? 'rooms' : seo.path === '/houses' ? 'houses' : null
+    const preload =
+      seo.path === '/'
+        ? heroPreload(import.meta.env.BASE_URL ?? '/')
+        : listing
+          ? listingHeroPreload(listing, import.meta.env.BASE_URL ?? '/')
+          : null
+    if (preload) {
       upsertMeta('link#dakh-hero-preload', {
         id: 'dakh-hero-preload',
         rel: 'preload',
