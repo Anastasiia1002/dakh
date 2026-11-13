@@ -1,5 +1,11 @@
 import type { PublicQuoteServiceLine, PublicServiceCatalogItem, PublicServiceSelection } from './types'
 
+export const SERVICE_SECTION_HEADING = 'Додайте до проживання'
+
+export const SERVICE_CHARGE_UNIT: Record<PublicServiceCatalogItem['chargeBasis'], string> = {
+  PER_STAY: 'за бронювання',
+}
+
 const QUANTITY_CAP = 99
 
 export function serviceQuantityBounds(item: Pick<PublicServiceCatalogItem, 'minQuantity' | 'maxQuantity'>) {

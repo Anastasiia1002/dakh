@@ -185,6 +185,7 @@ export function useStaySearch(
             children,
             roomTypeId,
             ratePlanId: selectedPlan.ratePlanId,
+            servicesKey,
           })
         ) {
           setQuote(null)

@@ -1,5 +1,5 @@
 import { formatMoneyAmount } from '../../lib/format'
-import { serviceQuantityBounds } from '../../lib/publicBooking/publicServices'
+import { SERVICE_CHARGE_UNIT, SERVICE_SECTION_HEADING, serviceQuantityBounds } from '../../lib/publicBooking/publicServices'
 import type { PublicServiceCatalogItem } from '../../lib/publicBooking/types'
 
 export function ServiceOptions({
@@ -11,32 +11,29 @@ export function ServiceOptions({
   quantities: Readonly<Record<string, number>>
   onChange: (serviceId: string, quantity: number | null) => void
 }) {
-  if (items.length === 0) {
-    return (
-      <p className="text-sm text-wood/60" role="status">
-        Додаткових послуг зараз немає. Бронювання проживання можна продовжити.
-      </p>
-    )
-  }
+  if (items.length === 0) return null
 
   return (
-    <fieldset className="border-0 p-0">
-      <legend className="font-display text-3xl text-clay">Додаткові послуги</legend>
-      <p className="mt-3 max-w-xl text-sm text-wood/70">
-        Необов’язково. Ціна за все проживання, кількість можна змінити. Підсумок рахує сервер.
-      </p>
+    <fieldset className="border-0 p-0 pb-8 md:pb-0">
+      <legend className="font-display text-3xl text-clay">{SERVICE_SECTION_HEADING}</legend>
+      <p className="mt-3 max-w-xl text-sm text-wood/70">Необов’язково. Підсумок рахує сервер.</p>
       <ul className="mt-6 space-y-4">
         {items.map((item) => {
           const bounds = serviceQuantityBounds(item)
           const quantity = quantities[item.id]
           const selected = quantity != null
           return (
-            <li key={item.id} className="min-w-0 border-b border-wood/15 pb-4">
+            <li
+              key={item.id}
+              className={`min-w-0 border p-4 ${selected ? 'border-clay bg-beige/40' : 'border-wood/15 bg-linen'}`}
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="break-words font-medium">{item.name}</p>
                   {item.description ? <p className="mt-1 break-words text-sm text-wood/70">{item.description}</p> : null}
-                  <p className="mt-1 text-sm text-wood/70">{formatMoneyAmount(item.price)} за проживання</p>
+                  <p className="mt-1 text-sm text-wood/70">
+                    {formatMoneyAmount(item.price)} {SERVICE_CHARGE_UNIT[item.chargeBasis]}
+                  </p>
                 </div>
                 {selected ? (
                   <div className="flex items-center gap-2">

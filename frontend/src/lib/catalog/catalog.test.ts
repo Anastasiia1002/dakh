@@ -297,6 +297,7 @@ describe('catalog screens', () => {
   it('keeps booking closed and makes no booking request from the public page', () => {
     const html = markup(createElement(MemoryRouter, null, createElement(BookingPage)))
     assert.match(html, /Онлайн-бронювання зараз вимкнене/)
+    assert.match(html, /dakh-lounge/)
     assert.match(html, /href="\/rooms"/)
     assert.doesNotMatch(html, /Забронювати|тестова ціна|\/quotes|booking-intents|\/availability/)
   })
