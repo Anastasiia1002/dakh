@@ -6,7 +6,11 @@ import { stayUrlFromSearch, stayUrlSearch, withStayUrl } from './publicBooking/s
 describe('seo routes', () => {
   it('indexes public pages and keeps confirmation private', () => {
     assert.equal(seoForPath('/').index, true)
-    assert.equal(seoForPath('/rooms').title.includes('Кімнати'), true)
+    assert.equal(seoForPath('/rooms').title, 'Кімнати — DAKH Мигове')
+    assert.equal(seoForPath('/rooms/').title, 'Кімнати — DAKH Мигове')
+    assert.equal(seoForPath('/rooms/dakh-room-14-1').title, 'Кімната — DAKH Мигове')
+    assert.equal(seoForPath('/rooms/dakh-room-14-1/').title, 'Кімната — DAKH Мигове')
+    assert.equal(seoForPath('/houses/').title, 'Будинки — DAKH Мигове')
     assert.equal(seoForPath('/bronuvannya/pidtverdzhennya/abc').index, false)
     assert.equal(seoForPath('/moie-bronyuvannya').index, false)
   })
