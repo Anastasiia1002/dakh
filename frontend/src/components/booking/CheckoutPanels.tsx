@@ -598,7 +598,7 @@ export function QuoteSummary({
         ))}
       </ul>
       <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      <p className="mt-2 text-[0.72rem] text-wood/55">Сума з сервера, {quote.currency}. Це ще не підтверджене бронювання.</p>
+      <p className="mt-2 text-[0.72rem] text-wood/55">Це ще не підтверджене бронювання.</p>
     </div>
   )
 }

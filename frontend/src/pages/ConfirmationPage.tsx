@@ -149,8 +149,7 @@ export function ConfirmationPage() {
           </p>
           {validToken ? <IssuedAccessCode code={validToken} /> : null}
           <p className="mt-6 font-display text-3xl">{formatMoneyAmount(confirmation.totalAmount)}</p>
-          <p className="mt-2 text-[0.72rem] text-wood/55">Сума в {confirmation.currency}. Дані з сервера.</p>
-          <p className="mt-2 text-[0.72rem] text-wood/55">Оплату на сайті не приймаємо.</p>
+          <p className="mt-2 text-[0.72rem] text-wood/55">Сума в {confirmation.currency}.</p>
         </div>
       ) : null}
 

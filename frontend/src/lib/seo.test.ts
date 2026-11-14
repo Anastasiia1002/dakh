@@ -21,6 +21,7 @@ describe('seo routes', () => {
     assert.equal(seoForPath('/houses/').title, 'Будинки — DAKH Мигове')
     assert.equal(seoForPath('/bronuvannya/pidtverdzhennya/abc').index, false)
     assert.equal(seoForPath('/moie-bronyuvannya').index, false)
+    assert.doesNotMatch(seoForPath('/bronuvannya').description, /Оплату на сайті не приймаємо|Дані з сервера/)
   })
 
   it('builds a canonical URL only with an https origin', () => {

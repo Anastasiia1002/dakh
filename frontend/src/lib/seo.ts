@@ -50,7 +50,7 @@ export const PUBLIC_SEO_ROUTES: PublicSeoRoute[] = [
   {
     path: '/bronuvannya',
     title: 'Бронювання — DAKH Мигове',
-    description: 'Оберіть дати й кількість гостей. Суму бронювання підтверджує сервер. Оплату на сайті не приймаємо.',
+    description: 'Оберіть дати й кількість гостей. Суму бронювання підтверджує сервер.',
     index: true,
   },
 ]

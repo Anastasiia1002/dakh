@@ -306,5 +306,6 @@ describe('catalog screens', () => {
     assert.match(html, /px-4 sm:px-6/)
     assert.match(html, /href="\/rooms"/)
     assert.doesNotMatch(html, /Забронювати|тестова ціна|\/quotes|booking-intents|\/availability/)
+    assert.doesNotMatch(html, /Дані з сервера|Оплату на сайті не приймаємо/)
   })
 })
