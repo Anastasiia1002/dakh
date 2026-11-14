@@ -656,8 +656,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   : 'Надіслати на перевірку пошти'}
               </button>
               <p className="mt-4 text-[0.72rem] text-wood/55">
-                Це ще не бронювання. Підтвердження з’явиться лише після коду з листа і відповіді
-                сервера. Оплату на сайті не приймаємо, картку вводити не потрібно.
+                Це ще не бронювання. Підтвердження з’явиться лише після коду з листа.
+                Картку вводити не потрібно.
               </p>
             </>
           )}
@@ -741,11 +741,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   ? labelForRoom(search.selectedRoom)
                   : requestedRoomLabel || 'Оберіть помешкання'}
               </p>
-              <p className="text-[0.72rem] text-wood/60">
-                {displayQuote && !roomRejected && !checkingIdentity
-                  ? formatMoneyAmount(displayQuote.totalAmount)
-                  : 'Сума з сервера'}
-              </p>
+              {displayQuote && !roomRejected && !checkingIdentity ? (
+                <p className="text-[0.72rem] text-wood/60">{formatMoneyAmount(displayQuote.totalAmount)}</p>
+              ) : null}
             </div>
             <button
               type="submit"
