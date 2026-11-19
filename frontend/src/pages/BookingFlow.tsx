@@ -150,8 +150,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   }, [listedHouses.items, listedRooms.items])
   const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>({})
   const serviceLines = useMemo(
-    () => selectedServiceLines(serviceQuantities, catalog.items),
-    [catalog.items, serviceQuantities],
+    () => selectedServiceLines(serviceQuantities, catalog.items, nights),
+    [catalog.items, nights, serviceQuantities],
   )
   const quoteBlocked = calendarRejectsStay({
     status: activeCalendar.status,

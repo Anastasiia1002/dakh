@@ -55,7 +55,8 @@ describe('public service selection', () => {
     }
     assert.equal(guestPicksServiceQuantity(extra), false)
     assert.deepEqual(serviceQuantityBounds(extra), { min: 1, max: 1 })
-    assert.deepEqual(selectedServiceLines({ 'svc-night': 9 }, [extra]), [{ serviceId: 'svc-night', quantity: 1 }])
+    assert.deepEqual(selectedServiceLines({ 'svc-night': 9 }, [extra]), [])
+    assert.deepEqual(selectedServiceLines({ 'svc-night': 9 }, [extra], 3), [{ serviceId: 'svc-night', quantity: 3 }])
     assert.equal(isCatalogItem(breakfast), true)
     assert.equal(isCatalogItem(extra), true)
     assert.equal(isCatalogItem({ ...breakfast, chargeBasis: 'PER_PERSON_DAY' } as PublicServiceCatalogItem), false)

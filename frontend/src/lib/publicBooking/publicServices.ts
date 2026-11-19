@@ -45,11 +45,17 @@ export function canonicalServiceSelection(
 export function selectedServiceLines(
   quantities: Readonly<Record<string, number>>,
   catalog: readonly PublicServiceCatalogItem[],
+  stayNights?: number,
 ): PublicServiceSelection[] {
   const lines: PublicServiceSelection[] = []
   for (const item of catalog) {
     const chosen = quantities[item.id]
     if (chosen == null) continue
+    if (!guestPicksServiceQuantity(item)) {
+      if (!Number.isInteger(stayNights) || (stayNights ?? 0) < 1) continue
+      lines.push({ serviceId: item.id, quantity: stayNights as number })
+      continue
+    }
     const { min, max } = serviceQuantityBounds(item)
     lines.push({ serviceId: item.id, quantity: Math.min(max, Math.max(min, chosen)) })
   }
