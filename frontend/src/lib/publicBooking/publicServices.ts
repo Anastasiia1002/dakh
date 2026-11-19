@@ -1,6 +1,10 @@
 import type { PublicQuoteServiceLine, PublicServiceCatalogItem, PublicServiceSelection } from './types'
 
-export const SERVICE_SECTION_HEADING = 'Додайте до проживання'
+export const SERVICE_SECTION_HEADING = 'Додаткові послуги'
+export const SERVICE_SECTION_HINT = 'Необов’язково. Обрані послуги з’являться в підсумку зі сумою готелю.'
+export const SERVICE_LOADING_COPY = 'Завантажуємо послуги…'
+export const SERVICE_EMPTY_COPY = 'Зараз немає послуг, які можна додати. Проживання можна оформити без них.'
+export const SERVICE_ERROR_COPY = 'Послуги зараз не вдалося показати. Проживання можна оформити без них.'
 
 export const SERVICE_CHARGE_UNIT: Record<PublicServiceCatalogItem['chargeBasis'], string> = {
   PER_STAY: 'за бронювання',

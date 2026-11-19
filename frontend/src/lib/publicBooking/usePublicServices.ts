@@ -4,10 +4,12 @@ import { isBookingEnabled, isPublicApiConfigured } from './config'
 import { isAbortError } from './errors'
 import type { PublicServiceCatalogItem } from './types'
 
+export type PublicServicesStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+
 type CatalogState = {
   slug: string
   items: PublicServiceCatalogItem[]
-  status: 'ready' | 'empty'
+  status: Exclude<PublicServicesStatus, 'idle' | 'loading'>
 }
 
 export function usePublicServices(hotelSlug: string | undefined) {
@@ -25,7 +27,7 @@ export function usePublicServices(hotelSlug: string | undefined) {
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return
-        setState({ slug: hotelSlug, items: [], status: 'empty' })
+        setState({ slug: hotelSlug, items: [], status: 'error' })
       })
     return () => controller.abort()
   }, [enabled, hotelSlug])
@@ -35,7 +37,7 @@ export function usePublicServices(hotelSlug: string | undefined) {
   return state
 }
 
-/** Public listing is active, bookable, priced PER_STAY or PER_NIGHT extras. Other CRM bases stay off the site. */
+/** Only extras the live public catalog can price: PER_STAY now, PER_NIGHT after that quoting ships. Other CRM units stay off the site. */
 export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
   return Boolean(
     value?.id &&
@@ -43,4 +45,21 @@ export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
       value.currency === 'UAH' &&
       (value.chargeBasis === 'PER_STAY' || value.chargeBasis === 'PER_NIGHT'),
   )
+}
+
+export function pruneServiceQuantities(
+  quantities: Readonly<Record<string, number>>,
+  catalog: readonly Pick<PublicServiceCatalogItem, 'id'>[],
+) {
+  const allowed = new Set(catalog.map((item) => item.id))
+  let changed = false
+  const next: Record<string, number> = {}
+  for (const [id, quantity] of Object.entries(quantities)) {
+    if (!allowed.has(id)) {
+      changed = true
+      continue
+    }
+    next[id] = quantity
+  }
+  return changed ? next : quantities
 }

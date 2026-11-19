@@ -30,7 +30,7 @@ import {
   type GuestFieldErrors,
 } from '../lib/publicBooking'
 import { selectedServiceLines } from '../lib/publicBooking/publicServices'
-import { usePublicServices } from '../lib/publicBooking/usePublicServices'
+import { pruneServiceQuantities, usePublicServices } from '../lib/publicBooking/usePublicServices'
 import {
   bookableAvailabilityRooms,
   bookingSubmitBlockReason,
@@ -153,6 +153,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     () => selectedServiceLines(serviceQuantities, catalog.items, nights),
     [catalog.items, nights, serviceQuantities],
   )
+
+  useEffect(() => {
+    setServiceQuantities((current) => pruneServiceQuantities(current, catalog.items))
+  }, [catalog.items])
   const quoteBlocked = calendarRejectsStay({
     status: activeCalendar.status,
     hotelToday: activeCalendar.hotelToday,
@@ -519,12 +523,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             </div>
           ) : null}
 
-          {bookingEnabled && search.selectedRoom && catalog.status === 'loading' ? (
-            <p className="text-sm text-wood/60">Перевіряємо додаткові послуги…</p>
-          ) : null}
-          {bookingEnabled && search.selectedRoom && catalog.status !== 'loading' ? (
+          {bookingEnabled && search.selectedRoom ? (
             <ServiceOptions
               items={catalog.items}
+              status={catalog.status}
               quantities={serviceQuantities}
               onChange={(serviceId, quantity) =>
                 setServiceQuantities((current) => {
