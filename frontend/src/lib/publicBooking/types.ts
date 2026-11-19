@@ -37,10 +37,10 @@ export interface PublicAccommodation {
   slug: string
   name: string
   kind: PublicRoomKind
-  description: string
+  description: string | null
   maxGuests: number
   images: PublicAccommodationImage[]
-  cover: PublicAccommodationImage
+  cover: PublicAccommodationImage | null
   /** Assigned amenities. Missing on an older catalog response means none are shown. */
   amenities?: PublicAmenity[]
   hotelSlug: PublicHotelSlug

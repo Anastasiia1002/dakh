@@ -139,6 +139,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const catalogCovers = useMemo(() => {
     const covers = new Map<string, { url: string; coverKey: string; alt: string }>()
     for (const item of [...listedRooms.items, ...listedHouses.items]) {
+      if (!item.cover) continue
       const category = item.kind === 'COTTAGE' ? 'houses' : 'rooms'
       covers.set(item.id, {
         url: item.cover.url,

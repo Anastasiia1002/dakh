@@ -34,7 +34,7 @@ function requiredString(value: unknown): string {
 function parseImage(value: unknown): PublicAccommodationImage {
   if (!isRecord(value)) invalidCatalog()
   const url = requiredString(value.url)
-  if (typeof value.alt !== 'string') invalidCatalog()
+  if (value.alt !== null && typeof value.alt !== 'string') invalidCatalog()
   if (typeof value.sortOrder !== 'number' || !Number.isInteger(value.sortOrder)) invalidCatalog()
   let parsed: URL
   try {
@@ -42,8 +42,10 @@ function parseImage(value: unknown): PublicAccommodationImage {
   } catch {
     invalidCatalog()
   }
-  if (parsed.protocol !== 'https:') invalidCatalog()
-  return { url, alt: value.alt, sortOrder: value.sortOrder }
+  const host = parsed.hostname.toLowerCase()
+  const localHttp = parsed.protocol === 'http:' && (host === '127.0.0.1' || host === 'localhost')
+  if (parsed.protocol !== 'https:' && !localHttp) invalidCatalog()
+  return { url, alt: value.alt ?? '', sortOrder: value.sortOrder }
 }
 
 function parseAmenity(value: unknown): PublicAmenity {
@@ -74,21 +76,23 @@ function parseKind(value: unknown): PublicRoomKind {
 function parseAccommodation(value: unknown, hotelSlug: PublicHotelSlug): PublicAccommodation {
   if (!isRecord(value)) invalidCatalog()
   if (value.hotelSlug !== hotelSlug) invalidCatalog()
-  if (typeof value.description !== 'string') invalidCatalog()
+  if (value.description !== null && typeof value.description !== 'string') invalidCatalog()
   if (typeof value.maxGuests !== 'number' || !Number.isInteger(value.maxGuests) || value.maxGuests < 1) {
     invalidCatalog()
   }
   if (!Array.isArray(value.images)) invalidCatalog()
   const amenities = parseAmenities(value.amenities)
+  const roomTypeId = typeof value.roomTypeId === 'string' ? value.roomTypeId : undefined
   return {
     id: requiredString(value.id),
+    ...(roomTypeId ? { roomTypeId } : {}),
     slug: requiredString(value.slug),
     name: requiredString(value.name),
     kind: parseKind(value.kind),
     description: value.description,
     maxGuests: value.maxGuests,
     images: value.images.map(parseImage),
-    cover: parseImage(value.cover),
+    cover: value.cover === null ? null : parseImage(value.cover),
     ...(amenities === undefined ? {} : { amenities }),
     hotelSlug,
   }

@@ -211,6 +211,32 @@ describe('public accommodation catalog', () => {
     assert.equal(calls, 1)
   })
 
+  it('accepts an initialized unit with empty gallery and a null description', async () => {
+    const fetchMock: typeof fetch = async () =>
+      jsonResponse({
+        hotelSlug: 'dakh',
+        accommodations: [
+          {
+            id: '55555555-5555-4555-8555-555555555553',
+            roomTypeId: '33333333-3333-4333-8333-333333333332',
+            slug: 'dakh-room-14-2',
+            name: 'Номер 14/2',
+            kind: 'ROOM',
+            description: null,
+            maxGuests: 2,
+            images: [],
+            cover: null,
+            amenities: [],
+            hotelSlug: 'dakh',
+          },
+        ],
+      })
+    const result = await client(fetchMock).listAccommodations('dakh')
+    assert.equal(result.accommodations[0]?.cover, null)
+    assert.equal(result.accommodations[0]?.description, null)
+    assert.equal(result.accommodations[0]?.images.length, 0)
+  })
+
   it('does not request an unsupported hotel slug', async () => {
     let calls = 0
     const fetchMock: typeof fetch = async () => {
