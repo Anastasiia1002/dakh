@@ -172,6 +172,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     locked ? (category === 'houses' ? 'COTTAGE' : 'ROOM') : undefined,
     quoteBlocked,
     serviceLines,
+    identityReady ? handoff?.roomId : undefined,
+    identityReady ? draft.roomTypeId : undefined,
   )
   const stayGuard = useStayGuard(search.stayRejection)
   const checkout = useBookingCheckout(

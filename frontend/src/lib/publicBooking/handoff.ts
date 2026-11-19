@@ -24,6 +24,8 @@ export type BookingHandoff = {
   hotelSlug: string
   catalogSlug: string
   roomTypeId: string
+  /** Physical unit to quote. When omitted, a general type offer is allowed. */
+  roomId?: string
   roomTypeSlug: string
   checkIn: string
   checkOut: string
@@ -71,11 +73,14 @@ export function parseBookingHandoff(value: unknown): BookingHandoff | null {
   if (adults + children < MIN_GUESTS || adults + children > MAX_GUESTS) return null
   if (!stayIsSearchable(checkIn, checkOut, adults + children)) return null
   if (!(ratePlanId === '' || isUuid(ratePlanId))) return null
+  const roomId = raw.roomId
+  if (roomId !== undefined && !isUuid(roomId)) return null
   const preview = parsePreview(raw.preview)
   return {
     hotelSlug,
     catalogSlug,
     roomTypeId,
+    ...(typeof roomId === 'string' ? { roomId } : {}),
     roomTypeSlug,
     checkIn,
     checkOut,

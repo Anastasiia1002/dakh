@@ -56,12 +56,16 @@ export function RoomBooking({
   publicSlug,
   displayName,
   hotelSlug,
+  accommodationId,
+  rateTypeId,
 }: {
   category: AccommodationCategory
   apiSlug: string
   publicSlug: string
   displayName: string
   hotelSlug: string
+  accommodationId?: string
+  rateTypeId?: string
 }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -73,7 +77,15 @@ export function RoomBooking({
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
-  const calendar = useMappedRoomCalendar(apiSlug, calendarRange, { adults: draft.adults, children: draft.children }, hotelSlug)
+  const pinRoomId = accommodationId && rateTypeId && accommodationId !== rateTypeId ? accommodationId : undefined
+  const calendar = useMappedRoomCalendar(
+    apiSlug,
+    calendarRange,
+    { adults: draft.adults, children: draft.children },
+    hotelSlug,
+    0,
+    rateTypeId,
+  )
   const quoteBlocked = calendarRejectsStay({
     status: calendar.status,
     hotelToday: calendar.hotelToday,
@@ -92,6 +104,9 @@ export function RoomBooking({
     hotelSlug,
     category === 'houses' ? 'COTTAGE' : 'ROOM',
     quoteBlocked,
+    undefined,
+    pinRoomId,
+    rateTypeId || calendar.roomTypeId,
   )
   const stayGuard = useStayGuard(search.stayRejection)
   const quoteReady = isQuoteFresh(search.quote, now)
@@ -167,6 +182,7 @@ export function RoomBooking({
       hotelSlug,
       catalogSlug: publicSlug,
       roomTypeId: calendar.roomTypeId,
+      ...(pinRoomId ? { roomId: pinRoomId } : {}),
       roomTypeSlug: calendar.expectedSlug,
       checkIn: draft.checkIn,
       checkOut: draft.checkOut,

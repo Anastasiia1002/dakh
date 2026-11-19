@@ -14,13 +14,17 @@ export function useMappedRoomCalendar(
   party: { adults: number; children: number },
   hotelSlug?: string,
   reloadKey = 0,
+  preferredRoomTypeId?: string,
 ) {
   const expectedSlug = resolveRoomTypeSlug(catalogSlug, readRoomSlugMap())
   const calendar = useAvailabilityCalendar(range, party, '', hotelSlug, reloadKey)
-  const matched = useMemo(
-    () => (calendar.status === 'ready' ? findRoomTypeBySlug(calendar.roomTypes, expectedSlug) : null),
-    [calendar.roomTypes, calendar.status, expectedSlug],
-  )
+  const matched = useMemo(() => {
+    if (calendar.status !== 'ready') return null
+    if (preferredRoomTypeId) {
+      return calendar.roomTypes.find((room) => room.roomTypeId === preferredRoomTypeId) ?? null
+    }
+    return findRoomTypeBySlug(calendar.roomTypes, expectedSlug)
+  }, [calendar.roomTypes, calendar.status, expectedSlug, preferredRoomTypeId])
   const indexed = useMemo(
     () => (calendar.status === 'ready' && matched ? indexCalendarDays(calendar.roomTypes, matched.roomTypeId) : null),
     [calendar.roomTypes, calendar.status, matched],

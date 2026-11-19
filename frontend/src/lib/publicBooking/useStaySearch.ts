@@ -52,6 +52,8 @@ export function useStaySearch(
   kind?: 'ROOM' | 'COTTAGE',
   quoteBlocked = false,
   serviceLines: readonly PublicServiceSelection[] = EMPTY_SERVICE_LINES,
+  pinRoomId?: string,
+  rateRoomTypeId?: string,
 ) {
   const guestCount = guestCountOf(adults, children)
   const configured = isPublicApiConfigured()
@@ -86,8 +88,9 @@ export function useStaySearch(
       ? availability
       : null
 
+  const offerTypeId = rateRoomTypeId || roomTypeId
   const listedRoom: PublicAvailabilityRoomType | undefined = currentAvailability?.roomTypes.find(
-    (room) => room.roomTypeId === roomTypeId,
+    (room) => room.roomTypeId === offerTypeId,
   )
   const capacityBlocked = Boolean(listedRoom && !roomAcceptsAdults(listedRoom, adults))
   const selectedRoom: PublicAvailabilityRoomType | undefined = listedRoom
@@ -102,10 +105,10 @@ export function useStaySearch(
           checkOut,
           adults,
           children,
-          roomTypeId,
+          roomTypeId: offerTypeId,
           ratePlanId: selectedPlan.ratePlanId,
           kind,
-          servicesKey,
+          servicesKey: pinRoomId ? `${servicesKey}|${pinRoomId}` : servicesKey,
         })
       : ''
 
@@ -166,8 +169,9 @@ export function useStaySearch(
       checkOut,
       adults,
       children,
-      roomTypeId,
+      roomTypeId: offerTypeId,
       ratePlanId: selectedPlan.ratePlanId,
+      roomId: pinRoomId,
       services: serviceLines,
     })
     if (!body) return
@@ -183,7 +187,7 @@ export function useStaySearch(
             guestCount,
             adults,
             children,
-            roomTypeId,
+            roomTypeId: offerTypeId,
             ratePlanId: selectedPlan.ratePlanId,
             servicesKey,
           })

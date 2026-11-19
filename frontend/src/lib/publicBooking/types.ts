@@ -32,6 +32,8 @@ export interface PublicAmenity {
 
 export interface PublicAccommodation {
   id: string
+  /** Legacy inventory/rate grouping. Quotes still need this when rates stay on RoomType. */
+  roomTypeId?: string
   slug: string
   name: string
   kind: PublicRoomKind
@@ -196,6 +198,8 @@ export interface PublicQuoteRequest {
   children: number
   roomTypeId: string
   ratePlanId: string
+  /** Pins the quoted physical unit. Omit only for a general type offer. */
+  roomId?: string
   services?: PublicServiceSelection[]
 }
 

@@ -168,6 +168,8 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
                     publicSlug={toPublicAccommodationSlug(category, room.slug)}
                     displayName={title}
                     hotelSlug={apiHotelSlug(category) ?? ''}
+                    accommodationId={room.id}
+                    rateTypeId={room.roomTypeId ?? room.id}
                   />
                 </Suspense>
               ) : null}
