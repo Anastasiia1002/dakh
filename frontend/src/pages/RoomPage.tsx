@@ -18,6 +18,7 @@ import {
 import {
   apiHotelSlug,
   categoryBase,
+  categoryLabel,
   toApiAccommodationSlug,
   toPublicAccommodationSlug,
   type AccommodationCategory,
@@ -83,7 +84,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
   const images = room ? galleryImages(room) : []
   const others = related.items.filter((item) => item.slug !== apiSlug)
   const listPath = categoryBase(category)
-  const listLabel = category === 'rooms' ? 'Кімнати' : 'Будинки'
+  const listLabel = categoryLabel(category)
   const title = room ? publicTitle(room.name, room.maxGuests) : ''
 
   const opening = images[0]
@@ -198,7 +199,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
           to={listPath}
           className="inline-block text-sm tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
         >
-          {category === 'rooms' ? 'Усі кімнати' : 'Усі будинки'}
+          {category === 'rooms' ? 'Усі номери' : 'Усі будиночки'}
         </Link>
       </div>
     </article>

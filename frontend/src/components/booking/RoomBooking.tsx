@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { formatMoneyAmount } from '../../lib/format'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../BookingCalendar'
-import type { AccommodationCategory } from '../../lib/catalog/categories'
+import { categorySingularLabel, type AccommodationCategory } from '../../lib/catalog/categories'
 import { emptyDraft, type BookingDraft } from '../../lib/booking'
 import {
   guestCountOf,
@@ -244,7 +244,7 @@ export function RoomBooking({
           availabilityError={search.availabilityError}
           roomLabel={displayName}
           fitNote={calendar.capacityNote}
-          missingRoomCopy="На ці дати ця кімната недоступна. Іншу кімнату не підставляємо."
+          missingRoomCopy="На ці дати це розміщення недоступне. Інше не підставляємо."
         />
         {bookingEnabled ? (
           <>
@@ -256,7 +256,7 @@ export function RoomBooking({
               Забронювати
             </button>
             <p className="mt-4 text-[0.72rem] text-wood/55">
-              Далі на сторінці бронювання зберемо контакти. {category === 'houses' ? 'Будинок' : 'Кімната'}, дати й гості залишаються тими, що ви
+              Далі на сторінці бронювання зберемо контакти. {categorySingularLabel(category)}, дати й гості залишаються тими, що ви
               обрали. Ціну ще раз підтвердить сервер.
             </p>
           </>

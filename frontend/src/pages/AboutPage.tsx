@@ -34,10 +34,10 @@ export function AboutPage() {
       </p>
       <nav className="mt-8 flex flex-wrap gap-x-8 gap-y-3" aria-label="Розділи DAKH">
         <Link to="/rooms" className={sectionLink}>
-          Кімнати
+          Номери
         </Link>
         <Link to="/houses" className={sectionLink}>
-          Будинки
+          Будиночки
         </Link>
         <Link to="/menu" className={sectionLink}>
           Ресторан
@@ -65,7 +65,7 @@ export function AboutPage() {
         <div>
           <h2 className="font-display text-3xl">Готель</h2>
           <p className="mt-4 text-sm leading-relaxed text-wood/75">
-            {site.city}, {site.region}. Кімнати для тих, хто їде не «кудись», а заради
+            {site.city}, {site.region}. Номери для тих, хто їде не «кудись», а заради
             тиші, світла на дереві й вечері, після якої хочеться помовчати.
           </p>
         </div>

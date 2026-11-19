@@ -159,7 +159,7 @@ export function latestCheckOut(checkIn: string) {
 }
 
 export function roomKindLabel(kind: 'ROOM' | 'COTTAGE') {
-  return kind === 'COTTAGE' ? 'Садиба' : 'Кімната'
+  return kind === 'COTTAGE' ? 'Будиночок' : 'Номер'
 }
 
 export function rateTypeLabel(type: PublicRateType) {

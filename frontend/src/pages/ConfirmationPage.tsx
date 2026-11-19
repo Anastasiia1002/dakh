@@ -120,7 +120,7 @@ export function ConfirmationPage() {
           ) : null}
           <p className="mt-4 font-display text-4xl">
             {readRoomDisplayName(confirmation.roomTypeId) ??
-              (isHiddenInventoryLabel(confirmation.roomTypeName) ? 'Кімната' : confirmation.roomTypeName)}
+              (isHiddenInventoryLabel(confirmation.roomTypeName) ? 'Номер' : confirmation.roomTypeName)}
             {confirmation.roomNumber ? ` · № ${confirmation.roomNumber}` : ''}
           </p>
           <p className="mt-4 text-sm text-wood/70">
@@ -194,7 +194,7 @@ export function ConfirmationPage() {
         to={bookingEnabled ? '/bronuvannya' : '/rooms'}
         className="mt-10 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
       >
-        {bookingEnabled ? 'До бронювання' : 'До кімнат'}
+        {bookingEnabled ? 'До бронювання' : 'До номерів'}
       </Link>
     </section>
   )

@@ -14,7 +14,7 @@ export type AccommodationCategory = 'rooms' | 'houses'
  */
 
 export const CATALOG_MAP_MISSING_COPY =
-  'Каталог зараз не налаштований. Список кімнат і будинків не запитується.'
+  'Каталог зараз не налаштований. Список номерів і будиночків не запитується.'
 
 function readMapEnv(): AccommodationMapEnv {
   const env = import.meta.env
@@ -71,8 +71,12 @@ export function categoryBase(category: AccommodationCategory): '/rooms' | '/hous
   return category === 'rooms' ? '/rooms' : '/houses'
 }
 
-export function categoryLabel(category: AccommodationCategory): 'Кімнати' | 'Будинки' {
-  return category === 'rooms' ? 'Кімнати' : 'Будинки'
+export function categoryLabel(category: AccommodationCategory): 'Номери' | 'Будиночки' {
+  return category === 'rooms' ? 'Номери' : 'Будиночки'
+}
+
+export function categorySingularLabel(category: AccommodationCategory): 'Номер' | 'Будиночок' {
+  return category === 'rooms' ? 'Номер' : 'Будиночок'
 }
 
 /** Public path slug. House API slugs never stay in the address bar. */

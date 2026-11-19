@@ -100,7 +100,7 @@ export function cardTitle(name: string, maxGuests: number): string {
 }
 
 export function kindLabel(kind: PublicAccommodation['kind']): string {
-  return kind === 'COTTAGE' ? 'Будинок' : 'Номер'
+  return kind === 'COTTAGE' ? 'Будиночок' : 'Номер'
 }
 
 export function capacityLabel(maxGuests: number): string {

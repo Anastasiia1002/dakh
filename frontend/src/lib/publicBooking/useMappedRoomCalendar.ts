@@ -5,7 +5,7 @@ import { findRoomTypeBySlug, resolveRoomTypeSlug } from './roomIdentity'
 import type { PublicCalendarDay } from './types'
 import { useAvailabilityCalendar } from './useAvailabilityCalendar'
 
-const UNMAPPED = 'Цю кімнату не знайдено в інвентарі готелю. Іншу кімнату не підставляємо.'
+const UNMAPPED = 'Це розміщення не знайдено в інвентарі готелю. Інше не підставляємо.'
 const EMPTY_DAYS: Record<string, PublicCalendarDay> = {}
 
 export function useMappedRoomCalendar(

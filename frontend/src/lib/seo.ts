@@ -19,14 +19,14 @@ export const PUBLIC_SEO_ROUTES: PublicSeoRoute[] = [
   DEFAULT_SEO,
   {
     path: '/rooms',
-    title: 'Кімнати — DAKH Мигове',
-    description: 'Кімнати готелю DAKH у Мигові. Оберіть дати, щоб перевірити доступність і вартість.',
+    title: 'Номери — DAKH Мигове',
+    description: 'Номери готелю DAKH у Мигові. Оберіть дати, щоб перевірити доступність і вартість.',
     index: true,
   },
   {
     path: '/houses',
-    title: 'Будинки — DAKH Мигове',
-    description: 'Окремі будинки DAKH у Мигові. Оберіть дати, щоб перевірити доступність і вартість.',
+    title: 'Будиночки — DAKH Мигове',
+    description: 'Окремі будиночки DAKH у Мигові. Оберіть дати, щоб перевірити доступність і вартість.',
     index: true,
   },
   {
@@ -80,16 +80,16 @@ export function seoForPath(pathname: string): PublicSeoRoute {
   if (path.startsWith('/rooms/')) {
     return {
       path,
-      title: 'Кімната — DAKH Мигове',
-      description: 'Деталі кімнати DAKH: місткість, фото й бронювання за датами.',
+      title: 'Номер — DAKH Мигове',
+      description: 'Деталі номера DAKH: місткість, фото й бронювання за датами.',
       index: true,
     }
   }
   if (path.startsWith('/houses/')) {
     return {
       path,
-      title: 'Будинок — DAKH Мигове',
-      description: 'Деталі будинку DAKH: місткість, фото й бронювання за датами.',
+      title: 'Будиночок — DAKH Мигове',
+      description: 'Деталі будиночка DAKH: місткість, фото й бронювання за датами.',
       index: true,
     }
   }

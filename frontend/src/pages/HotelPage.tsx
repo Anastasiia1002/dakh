@@ -12,9 +12,9 @@ import { useSearchParams } from 'react-router-dom'
 const copy = {
   rooms: {
     kicker: 'Готель DAKH',
-    title: 'Кімнати',
+    title: 'Номери',
     lead: 'Сон у будинку, де внизу пахне кухнею. Оберіть дати, щоб перевірити доступність і вартість.',
-    empty: 'Зараз немає опублікованих кімнат.',
+    empty: 'Зараз немає опублікованих номерів.',
     photo: images.pottery,
     alt: 'Зал DAKH із видом на гори',
     crop: 'object-[center_35%]',
@@ -23,9 +23,9 @@ const copy = {
   },
   houses: {
     kicker: 'Окремий поріг',
-    title: 'Будинки',
+    title: 'Будиночки',
     lead: 'Приватний простір у дворі DAKH. Оберіть дати, щоб перевірити доступність і вартість.',
-    empty: 'Зараз немає опублікованих будинків.',
+    empty: 'Зараз немає опублікованих будиночків.',
     photo: images.diningRoom,
     alt: 'Зал DAKH зі столами й видом у двір',
     crop: 'object-[center_62%]',

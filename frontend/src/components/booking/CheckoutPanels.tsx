@@ -7,6 +7,7 @@ import {
   roomKindLabel,
   selectEligibleRatePlan,
 } from '../../lib/publicBooking'
+import { categoryLabel } from '../../lib/catalog/categories'
 import { isBookingEnabled } from '../../lib/publicBooking/config'
 import { publicPlanTitle, publicRoomLabel } from '../../lib/publicBooking/display'
 import {
@@ -249,8 +250,8 @@ export function RoomOptions({
   const split = grouped.rooms.length > 0 && grouped.houses.length > 0
   const sections = split
     ? [
-        { key: 'rooms' as const, label: 'Кімнати', items: grouped.rooms },
-        { key: 'houses' as const, label: 'Будинки', items: grouped.houses },
+        { key: 'rooms' as const, label: categoryLabel('rooms'), items: grouped.rooms },
+        { key: 'houses' as const, label: categoryLabel('houses'), items: grouped.houses },
       ]
     : [{ key: 'all' as const, label: null, items: rooms }]
 
@@ -264,7 +265,7 @@ export function RoomOptions({
           <div
             className={`grid gap-5 sm:grid-cols-2 ${section.label ? 'mt-3' : ''}`}
             role="radiogroup"
-            aria-label={section.label ?? (place === 'house' ? 'Будинки' : 'Доступні помешкання')}
+            aria-label={section.label ?? (place === 'house' ? categoryLabel('houses') : 'Доступні помешкання')}
           >
             {section.items.map((room) => {
               const selected = selectedId === room.roomTypeId
@@ -358,12 +359,12 @@ export function RatePlanOptions({
     return <p className="mt-6 text-sm text-wood/60">Шукаємо тарифи…</p>
   }
   if (!room) {
-    return <p className="mt-6 text-sm text-wood/60">Спочатку оберіть кімнату.</p>
+    return <p className="mt-6 text-sm text-wood/60">Спочатку оберіть номер або будиночок.</p>
   }
   if (room.ratePlans.length === 0) {
     return (
       <p className="mt-6 text-sm text-wood/70">
-        Для цієї кімнати на обрані дати немає доступного тарифу. Ціну не рахуємо і заявку надіслати
+        Для цього розміщення на обрані дати немає доступного тарифу. Ціну не рахуємо і заявку надіслати
         не можна.
       </p>
     )
@@ -411,7 +412,7 @@ export function QuoteSummary({
   quote,
   quoteStatus,
   quoteError,
-  missingRoomCopy = 'Оберіть кімнату зі списку вільних.',
+  missingRoomCopy = 'Оберіть номер або будиночок зі списку вільних.',
   availabilityStatus,
   availabilityError = '',
   roomLabel,
@@ -463,7 +464,7 @@ export function QuoteSummary({
       return (
         <div className="mt-6 text-sm">
           {roomName ? <p className="font-medium">{roomName}</p> : null}
-          <p className="mt-2 text-wood/60">Перевіряємо наявність цієї кімнати…</p>
+          <p className="mt-2 text-wood/60">Перевіряємо наявність цього розміщення…</p>
         </div>
       )
     }
@@ -509,7 +510,7 @@ export function QuoteSummary({
         </p>
         <p className="mt-2">
           {room.availableCount < 1
-            ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
+            ? 'На ці дати це розміщення недоступне. Інше не підставляємо.'
             : 'На ці дати немає повного тарифу. Суму не показуємо і забронювати не можна.'}
         </p>
       </div>
@@ -564,7 +565,7 @@ export function QuoteSummary({
     )
   }
   if (!quote) {
-    return <p className="mt-6 text-sm text-wood/60">Оберіть дати й кімнату.</p>
+    return <p className="mt-6 text-sm text-wood/60">Оберіть дати й розміщення.</p>
   }
 
   return (

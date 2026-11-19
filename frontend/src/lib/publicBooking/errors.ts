@@ -49,7 +49,7 @@ const GENERIC_VALIDATION_MESSAGE = 'Некоректні дані запиту'
 
 const SAFE_COPY: Record<string, string> = {
   VALIDATION_ERROR: 'Перевірте заповнені поля.',
-  UNAVAILABLE: 'На ці дати немає вільних кімнат. Оберіть інші дати.',
+  UNAVAILABLE: 'На ці дати немає вільних номерів або будиночків. Оберіть інші дати.',
   PRICE_CHANGED: 'Ціна змінилася — потрібне нове підтвердження.',
   EMAIL_UNAVAILABLE: 'Сервіс електронної пошти недоступний. Код зараз надіслати не можна.',
   RATE_LIMITED: 'Забагато запитів — спробуйте пізніше.',
@@ -63,7 +63,7 @@ const SAFE_COPY: Record<string, string> = {
   BOOKING_CREATED_LOOKUP:
     'Бронювання вже створено, але цю сторінку зараз не вдалося відкрити. Не надсилайте заявку ще раз. Якщо зберегли пошту заявки, запитайте доступ нижче.',
   HOTEL_NOT_FOUND: 'Готель недоступний для бронювання.',
-  ROOM_TYPE_NOT_FOUND: 'Цю кімнату зараз не можна забронювати.',
+  ROOM_TYPE_NOT_FOUND: 'Це розміщення зараз не можна забронювати.',
   RATE_PLAN_NOT_FOUND: 'Цей тариф недоступний.',
   IDEMPOTENCY_CONFLICT: 'Заявку вже надіслано з іншими даними. Оновіть сторінку.',
   PUBLIC_BOOKING_UNAVAILABLE: 'Публічне бронювання зараз недоступне.',
@@ -129,7 +129,7 @@ export function stayRejection(error: unknown): { kind: StayRejectionKind; messag
       message:
         error.message && error.message !== GENERIC_VALIDATION_MESSAGE
           ? error.message
-          : 'На ці дати немає вільних кімнат. Оберіть інші дати.',
+          : 'На ці дати немає вільних номерів або будиночків. Оберіть інші дати.',
     }
   }
   if (error.error !== 'VALIDATION_ERROR') return null
