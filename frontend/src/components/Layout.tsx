@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site } from '../data/catalog'
+import { categoryLabel } from '../lib/catalog/categories'
 import { DocumentHead } from './DocumentHead'
 import { DakhLogo } from './BrandMarks'
 import { QuickActions } from './QuickActions'
@@ -10,8 +11,8 @@ import { normalizePublicPath } from '../lib/seo'
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
 const headerNav = [
-  { to: '/rooms', label: 'Кімнати' },
-  { to: '/houses', label: 'Будинки' },
+  { to: '/rooms', label: categoryLabel('rooms') },
+  { to: '/houses', label: categoryLabel('houses') },
   { to: '/menu', label: 'Ресторан' },
   { to: '/pro-nas', label: 'Про нас' },
   { to: '/kontakty', label: 'Контакти' },

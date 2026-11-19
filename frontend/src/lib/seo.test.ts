@@ -6,9 +6,9 @@ import { mergeStayIntoSearch, stayUrlFromSearch, stayUrlSearch, withStayUrl } fr
 describe('seo routes', () => {
   it('indexes public pages and keeps confirmation private', () => {
     assert.equal(seoForPath('/').index, true)
-    assert.equal(seoForPath('/rooms').title, 'Кімнати — DAKH Мигове')
-    assert.equal(seoForPath('/rooms/').title, 'Кімнати — DAKH Мигове')
-    assert.equal(seoForPath('/rooms/dakh-room-14-1').title, 'Кімната — DAKH Мигове')
+    assert.equal(seoForPath('/rooms').title, 'Номери — DAKH Мигове')
+    assert.equal(seoForPath('/rooms/').title, 'Номери — DAKH Мигове')
+    assert.equal(seoForPath('/rooms/dakh-room-14-1').title, 'Номер — DAKH Мигове')
     assert.match(
       seoForDetail('/rooms/dakh-room-14-1', {
         name: '2-кімнатний номер з терасою ( до 4 гостей)',
@@ -17,8 +17,8 @@ describe('seo routes', () => {
       }).title,
       /2-кімнатний номер з терасою/,
     )
-    assert.equal(seoForPath('/rooms/dakh-room-14-1/').title, 'Кімната — DAKH Мигове')
-    assert.equal(seoForPath('/houses/').title, 'Будинки — DAKH Мигове')
+    assert.equal(seoForPath('/rooms/dakh-room-14-1/').title, 'Номер — DAKH Мигове')
+    assert.equal(seoForPath('/houses/').title, 'Будиночки — DAKH Мигове')
     assert.equal(seoForPath('/bronuvannya/pidtverdzhennya/abc').index, false)
     assert.equal(seoForPath('/moie-bronyuvannya').index, false)
     assert.doesNotMatch(seoForPath('/bronuvannya').description, /Оплату на сайті не приймаємо|Дані з сервера/)

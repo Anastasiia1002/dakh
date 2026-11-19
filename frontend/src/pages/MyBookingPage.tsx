@@ -17,7 +17,7 @@ import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/co
 function accommodationName(roomTypeId: string, roomTypeName: string) {
   return (
     readRoomDisplayName(roomTypeId) ??
-    (isHiddenInventoryLabel(roomTypeName) ? 'Кімната' : roomTypeName)
+    (isHiddenInventoryLabel(roomTypeName) ? 'Номер' : roomTypeName)
   )
 }
 

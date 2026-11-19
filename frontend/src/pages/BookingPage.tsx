@@ -51,7 +51,7 @@ export function BookingPage() {
             to="/rooms"
             className="mt-10 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
           >
-            До кімнат
+            До номерів
           </Link>
         </section>
       )}

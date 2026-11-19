@@ -24,7 +24,7 @@ export function RoomCard({
   const summary = publicSummary(accommodation.description)
   const title = cardTitle(accommodation.name, accommodation.maxGuests)
   const amenities = cardAmenities(accommodation.amenities)
-  const detailLabel = accommodation.kind === 'COTTAGE' ? 'Переглянути будинок' : 'Переглянути кімнату'
+  const detailLabel = accommodation.kind === 'COTTAGE' ? 'Переглянути будиночок' : 'Переглянути номер'
 
   return (
     <article className="group">

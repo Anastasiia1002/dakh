@@ -13,9 +13,9 @@ export function dayStatusCopy(visual: DayVisual, reason: PublicCalendarDay['reas
   if (visual === 'booked') return 'немає вільних місць'
   if (visual === 'past') return 'минула дата'
   if (visual === 'unknown') return 'наявність ще невідома'
-  if (reason === 'occupancy') return 'Кімната не підходить для вибраної кількості дорослих'
+  if (reason === 'occupancy') return 'Це розміщення не підходить для вибраної кількості дорослих'
   if (reason === 'window') return 'Заїзд на цю дату вже недоступний'
-  if (reason === 'inactive' || visual === 'closed') return 'Кімната тимчасово недоступна'
+  if (reason === 'inactive' || visual === 'closed') return 'Це розміщення тимчасово недоступне'
   return 'На цю дату немає доступного тарифу'
 }
 

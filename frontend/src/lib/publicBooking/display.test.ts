@@ -34,7 +34,7 @@ describe('public booking labels', () => {
     assert.equal(isFixtureLabel('E2E Bukovyna'), true)
     assert.equal(isFixtureLabel('Кімната Буковина'), false)
     assert.equal(publicRoomLabel('E2E Bukovyna', 'ROOM', 'Кімната Буковина'), 'Кімната Буковина')
-    assert.equal(publicRoomLabel('E2E Bukovyna', 'ROOM', null), 'Кімната')
+    assert.equal(publicRoomLabel('E2E Bukovyna', 'ROOM', null), 'Номер')
     assert.equal(publicRoomLabel('Сімейний', 'ROOM', null), 'Сімейний')
     assert.equal(publicPlanTitle({ name: 'E2E Overlap Prices', type: 'STANDARD' }), 'Стандарт')
     assert.equal(publicPlanTitle({ name: 'Зі сніданком', type: 'STANDARD' }), 'Зі сніданком')
@@ -45,7 +45,7 @@ describe('public booking labels', () => {
     assert.equal(isHiddenInventoryLabel('test data Тестовий тариф'), true)
     assert.equal(isHiddenInventoryLabel('Кімната Буковина'), false)
     assert.equal(publicRoomLabel('TEST DATA Буковина', 'ROOM', 'Кімната Буковина'), 'Кімната Буковина')
-    assert.equal(publicRoomLabel('TEST DATA Горище', 'ROOM', null), 'Кімната')
+    assert.equal(publicRoomLabel('TEST DATA Горище', 'ROOM', null), 'Номер')
     assert.equal(publicPlanTitle({ name: 'TEST DATA Тестовий тариф', type: 'STANDARD' }), 'Стандарт')
   })
 

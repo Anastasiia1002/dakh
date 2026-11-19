@@ -28,7 +28,7 @@ export function HomePage() {
             «Вище даху тільки небо»
           </h1>
           <p className="mt-6 max-w-md text-sm leading-relaxed text-linen/90">
-            Кімнати в будинку й окремі будинки. Ресторан унизу. Дати обираєте ви, суму підтверджує сервер.
+            Номери в будинку й окремі будиночки. Ресторан унизу. Дати обираєте ви, суму підтверджує сервер.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {bookingEnabled ? (
@@ -43,13 +43,13 @@ export function HomePage() {
               to="/rooms"
               className="inline-flex min-h-11 items-center border border-linen/70 px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
             >
-              Кімнати
+              Номери
             </Link>
             <Link
               to="/houses"
               className="inline-flex min-h-11 items-center border border-linen/70 px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
             >
-              Будинки
+              Будиночки
             </Link>
           </div>
         </div>
@@ -77,8 +77,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <HomeCatalog category="rooms" empty="Зараз немає опублікованих кімнат." />
-      <HomeCatalog category="houses" empty="Зараз немає опублікованих будинків." />
+      <HomeCatalog category="rooms" empty="Зараз немає опублікованих номерів." />
+      <HomeCatalog category="houses" empty="Зараз немає опублікованих будиночків." />
 
       <section className="photo-grain relative min-h-[70vh]">
         <Photo

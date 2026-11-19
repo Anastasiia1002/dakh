@@ -42,7 +42,7 @@ import {
 import { mergeStayIntoSearch, stayUrlFromSearch, stayUrlMatchesDraft } from '../lib/publicBooking/stayUrl'
 import { calendarRejectsStay, reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
-import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase, toPublicAccommodationSlug } from '../lib/catalog/categories'
+import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase, categorySingularLabel, toPublicAccommodationSlug } from '../lib/catalog/categories'
 import { useAccommodationList } from '../lib/catalog/useAccommodations'
 import { BOOKING_DISABLED_COPY, isBookingEnabled, resolveHotelSlug } from '../lib/publicBooking/config'
 import { publicRoomLabel } from '../lib/publicBooking/display'
@@ -395,9 +395,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     search.availabilityStatus === 'ready' && bookableRooms.length === 0 ? 'empty' : search.availabilityStatus
 
   const unavailableCopy = roomRejected
-    ? mapped.error || 'Не вдалося підтвердити обрану кімнату. Іншу кімнату не підставляємо.'
+    ? mapped.error || 'Не вдалося підтвердити обране розміщення. Інше не підставляємо.'
     : roomMissing
-      ? search.availabilityError || search.quoteError || 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
+      ? search.availabilityError || search.quoteError || 'На ці дати це розміщення недоступне. Інше не підставляємо.'
       : ''
 
   const step =
@@ -513,7 +513,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   onClick={() => clearBookingHandoff()}
                   className="inline-flex flex-1 items-center justify-center border border-wood/20 py-3 text-center text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
                 >
-                  {category === 'houses' ? 'Обрати інший будинок' : 'Обрати іншу кімнату'}
+                  {`Обрати інший ${categorySingularLabel(category).toLowerCase()}`}
                 </Link>
               </div>
             </div>
@@ -591,7 +591,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             fitNote={activeCalendar.capacityNote}
             missingRoomCopy={
               locked
-                ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
+                ? 'На ці дати це розміщення недоступне. Інше не підставляємо.'
                 : 'Оберіть помешкання зі списку доступних.'
             }
             cover={selectedCover}
@@ -637,7 +637,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : checkout.step === 'unavailable' ? (
             <div className="mt-6">
               <p className="text-sm text-clay" role="alert">
-                {checkout.error || 'На ці дати немає вільних кімнат.'}
+                {checkout.error || 'На ці дати немає вільних номерів або будиночків.'}
               </p>
               <button
                 type="button"
@@ -702,7 +702,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             fitNote={activeCalendar.capacityNote}
             missingRoomCopy={
               locked
-                ? 'На ці дати ця кімната недоступна. Іншу кімнату не підставляємо.'
+                ? 'На ці дати це розміщення недоступне. Інше не підставляємо.'
                 : 'Оберіть помешкання зі списку доступних.'
             }
             cover={selectedCover}

@@ -208,7 +208,7 @@ export function ContactPage() {
 
           {bookingEnabled ? (
             <Link to="/bronuvannya" className={`${cta} mt-8 md:mt-auto`}>
-              Забронювати кімнату
+              Забронювати номер
             </Link>
           ) : null}
         </section>
@@ -254,7 +254,7 @@ export function ContactPage() {
             <p className="kicker text-[0.68rem] text-clay">Повідомлення</p>
             <h2 className="mt-3 font-display text-4xl text-clay">Напишіть нам</h2>
             <p className="mt-3 text-sm leading-relaxed text-wood/75">
-              Ім’я, телефон і пошта обов’язкові. Далі кілька слів — про стіл, кімнату чи просто дорогу.
+              Ім’я, телефон і пошта обов’язкові. Далі кілька слів — про стіл, номер чи просто дорогу.
             </p>
           </div>
           <FormField label="Ім’я" required error={errors.name}>
@@ -318,7 +318,7 @@ export function ContactPage() {
               rows={4}
               required
               aria-required="true"
-              placeholder="Наприклад: стіл на п’ятьох у суботу або кімната на дві ночі"
+              placeholder="Наприклад: стіл на п’ятьох у суботу або номер на дві ночі"
               value={values.message}
               aria-invalid={Boolean(errors.message)}
               onChange={(event) => update('message', event.target.value)}
