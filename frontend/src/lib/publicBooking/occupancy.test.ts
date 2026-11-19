@@ -67,6 +67,13 @@ describe('adult occupancy', () => {
     assert.equal(guestComposition(2, 2)?.guestCount, 4)
   })
 
+  it('keeps a six-person cottage for two and six adults and rejects seven', () => {
+    assert.equal(fits(2, 0, 6), true)
+    assert.equal(fits(6, 0, 6), true)
+    assert.equal(fits(7, 0, 6), false)
+    assert.equal(fits(2, 2, 6), true)
+  })
+
   it('keeps the selected room and dates when only children change', () => {
     const current = { roomTypeId, ratePlanId }
     assert.deepEqual(

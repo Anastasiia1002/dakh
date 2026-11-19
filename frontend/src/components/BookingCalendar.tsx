@@ -86,10 +86,19 @@ export function BookingCalendar({
   const [guestPlace, setGuestPlace] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
   const [hover, setHover] = useState('')
   const [focusIso, setFocusIso] = useState('')
-  const [cursor, setCursor] = useState(() => ({
-    year: now.getFullYear(),
-    monthIndex: now.getMonth(),
-  }))
+  const [cursor, setCursor] = useState(() => {
+    if (checkIn && /^\d{4}-\d{2}-\d{2}$/.test(checkIn)) {
+      const year = Number(checkIn.slice(0, 4))
+      const monthIndex = Number(checkIn.slice(5, 7)) - 1
+      if (Number.isInteger(year) && monthIndex >= 0 && monthIndex <= 11) {
+        return { year, monthIndex }
+      }
+    }
+    return {
+      year: now.getFullYear(),
+      monthIndex: now.getMonth(),
+    }
+  })
 
   const pickingOut = Boolean(checkIn && !checkOut)
   const previewOut = pickingOut ? hover : ''
@@ -118,6 +127,14 @@ export function BookingCalendar({
   useEffect(() => {
     onVisibleRange?.(visibleCalendarRange(cursor.year, cursor.monthIndex))
   }, [cursor, onVisibleRange])
+
+  useEffect(() => {
+    if (!checkIn || !/^\d{4}-\d{2}-\d{2}$/.test(checkIn)) return
+    const year = Number(checkIn.slice(0, 4))
+    const monthIndex = Number(checkIn.slice(5, 7)) - 1
+    if (!Number.isInteger(year) || monthIndex < 0 || monthIndex > 11) return
+    setCursor((current) => (current.year === year && current.monthIndex === monthIndex ? current : { year, monthIndex }))
+  }, [checkIn])
 
   useEffect(() => {
     onPanelChange?.(panel !== null)

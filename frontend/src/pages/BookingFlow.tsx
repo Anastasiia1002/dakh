@@ -15,7 +15,6 @@ import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
 import {
   guestCountOf,
-  guestDraftFromParams,
   guestFieldErrors,
   guestFormIsValid,
   isQuoteFresh,
@@ -35,10 +34,12 @@ import { usePublicServices } from '../lib/publicBooking/usePublicServices'
 import {
   bookableAvailabilityRooms,
   bookingSubmitBlockReason,
+  cottageEmptyCopy,
   groupAvailabilityRooms,
   ROOM_SELECTION_HEADING,
   ROOM_SELECTION_INSTRUCTION,
 } from '../lib/publicBooking/bookingSelection'
+import { mergeStayIntoSearch, stayUrlFromSearch, stayUrlMatchesDraft } from '../lib/publicBooking/stayUrl'
 import { calendarRejectsStay, reconcileStay } from '../lib/publicBooking/calendar'
 import { readStoredConfirmationToken } from '../lib/publicBooking/checkout'
 import { acceptsBookingHotel, apiHotelSlug, bookingHotelMatchesCategory, categoryBase, toPublicAccommodationSlug } from '../lib/catalog/categories'
@@ -60,15 +61,13 @@ import { useStayGuard } from '../lib/publicBooking/useStayGuard'
 import type { PublicAvailabilityRoomType } from '../lib/publicBooking/types'
 
 function draftFromParams(params: URLSearchParams): BookingDraft {
-  const from = params.get('from') || ''
-  const to = params.get('to') && from && params.get('to')! > from ? params.get('to')! : ''
-  const guests = guestDraftFromParams(params.get('adults'), params.get('children'))
+  const stay = stayUrlFromSearch(params)
   return {
     ...emptyDraft,
-    checkIn: from,
-    checkOut: to,
-    adults: guests.adults,
-    children: guests.children,
+    checkIn: stay.from,
+    checkOut: stay.to,
+    adults: stay.adults,
+    children: stay.children,
   }
 }
 
@@ -258,6 +257,25 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       navigate({ pathname: '/bronuvannya', search }, { replace: true, state: { handoff: next } })
     }
   }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, draft.ratePlanId, draft.roomTypeId, handoff, location.search, navigate])
+
+  useEffect(() => {
+    if (handoff) return
+    const stay = stayUrlFromSearch(params)
+    setDraft((current) => (stayUrlMatchesDraft(stay, current) ? current : { ...current, checkIn: stay.from, checkOut: stay.to, adults: stay.adults, children: stay.children }))
+  }, [handoff, params])
+
+  useEffect(() => {
+    if (handoff) return
+    const merged = mergeStayIntoSearch(params, {
+      from: draft.checkIn,
+      to: draft.checkOut,
+      adults: draft.adults,
+      children: draft.children,
+    })
+    const next = merged.toString()
+    if (next === params.toString()) return
+    navigate({ pathname: location.pathname, search: next ? `?${next}` : '' }, { replace: true })
+  }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, handoff, location.pathname, navigate, params])
 
   useEffect(() => {
     const next = reconcileStay({
@@ -469,6 +487,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 roomLabel={labelForRoom}
                 covers={catalogCovers}
                 emptyHouses={search.searchable && roomListStatus === 'ready' && groupedRooms.houses.length === 0}
+                emptyHousesCopy={cottageEmptyCopy({ adults: draft.adults, cottages: listedHouses.items })}
                 onSelect={(room) =>
                   patch({
                     roomTypeId: room.roomTypeId,

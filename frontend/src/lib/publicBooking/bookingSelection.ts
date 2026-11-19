@@ -8,6 +8,20 @@ export const ROOM_SELECTION_HEADING: Record<RoomPlace, string> = {
 
 export const ROOM_SELECTION_INSTRUCTION = 'Одне помешкання. Обране підсвічується.'
 
+export const COTTAGE_EMPTY_COPY =
+  'На обрані дати немає доступних пропозицій для будиночків. Спробуйте інший період.'
+
+export const COTTAGE_CAPACITY_EMPTY_COPY =
+  'На обрані дати немає будиночків, які вміщують стільки дорослих. Спробуйте зменшити кількість гостей.'
+
+export function cottageEmptyCopy(input: { adults: number; cottages: readonly { maxGuests: number }[] }) {
+  const published = input.cottages
+  if (published.length > 0 && published.every((cottage) => cottage.maxGuests < input.adults)) {
+    return COTTAGE_CAPACITY_EMPTY_COPY
+  }
+  return COTTAGE_EMPTY_COPY
+}
+
 export type RoomListPresentation = {
   state: 'need-dates' | 'loading' | 'error' | 'empty' | 'ready'
   message: string
@@ -40,7 +54,10 @@ export function roomListPresentation(input: {
   if (input.status === 'empty') {
     return {
       state: 'empty',
-      message: 'На ці дати немає вільних помешкань. Спробуйте інші дати або зменшіть кількість гостей.',
+      message:
+        input.place === 'house'
+          ? COTTAGE_EMPTY_COPY
+          : 'На обрані дати немає доступних пропозицій. Спробуйте інший період.',
     }
   }
   return { state: 'ready', message: '' }
@@ -55,9 +72,6 @@ export function roomOptionFrame(selected: boolean) {
 export function roomOptionMark(selected: boolean) {
   return selected ? 'Обрано' : 'Обрати'
 }
-
-export const COTTAGE_EMPTY_COPY =
-  'На ці дати немає вільних будинків. Спробуйте інші дати або зменшіть кількість гостей.'
 
 export function bookableAvailabilityRooms<T extends { kind: 'ROOM' | 'COTTAGE'; availableCount: number; maxGuests: number }>(
   rooms: readonly T[],

@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  bookableAvailabilityRooms,
   bookingSubmitBlockReason,
+  cottageEmptyCopy,
+  COTTAGE_CAPACITY_EMPTY_COPY,
+  COTTAGE_EMPTY_COPY,
   roomListPresentation,
   roomOptionFrame,
   roomOptionMark,
@@ -41,7 +45,10 @@ describe('booking accommodation selection', () => {
     )
     const empty = roomListPresentation({ searchable: true, status: 'empty', error: '', place: 'house' })
     assert.equal(empty.state, 'empty')
-    assert.match(empty.message, /помешкань/)
+    assert.equal(empty.message, COTTAGE_EMPTY_COPY)
+    assert.doesNotMatch(empty.message, /гостей/)
+    const emptyRooms = roomListPresentation({ searchable: true, status: 'empty', error: '', place: 'room' })
+    assert.doesNotMatch(emptyRooms.message, /гостей/)
     assert.equal(roomListPresentation({ searchable: true, status: 'ready', error: '', place: 'room' }).state, 'ready')
     const grouped = groupAvailabilityRooms([
       { kind: 'ROOM' as const },
@@ -50,6 +57,16 @@ describe('booking accommodation selection', () => {
     ])
     assert.equal(grouped.rooms.length, 2)
     assert.equal(grouped.houses.length, 1)
+  })
+
+  it('keeps a six-person cottage for two or six adults and not for seven', () => {
+    const cottage = { kind: 'COTTAGE' as const, availableCount: 1, maxGuests: 6 }
+    const accepts = (room: typeof cottage, adults: number) => adults <= room.maxGuests
+    assert.deepEqual(bookableAvailabilityRooms([cottage], 2, accepts), [cottage])
+    assert.deepEqual(bookableAvailabilityRooms([cottage], 6, accepts), [cottage])
+    assert.deepEqual(bookableAvailabilityRooms([cottage], 7, accepts), [])
+    assert.equal(cottageEmptyCopy({ adults: 2, cottages: [{ maxGuests: 6 }] }), COTTAGE_EMPTY_COPY)
+    assert.equal(cottageEmptyCopy({ adults: 7, cottages: [{ maxGuests: 6 }] }), COTTAGE_CAPACITY_EMPTY_COPY)
   })
 
   it('marks the selected accommodation differently from the others', () => {
