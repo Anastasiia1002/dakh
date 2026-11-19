@@ -17,10 +17,7 @@ export const SERVICE_BREAKFAST_UNIT = 'грн / сніданок'
 const QUANTITY_CAP = 99
 
 export function onlinePricingOf(item: Pick<PublicServiceCatalogItem, 'onlinePricing' | 'chargeBasis' | 'price'>): PublicOnlinePricing {
-  if (item.onlinePricing) return item.onlinePricing
-  if (item.chargeBasis === 'PER_TRIP' || !item.price) return 'REQUEST_ONLY'
-  if (item.chargeBasis === 'PER_NIGHT') return 'PER_NIGHT'
-  return 'GUEST_QUANTITY'
+  return item.onlinePricing
 }
 
 export function guestPicksServiceQuantity(item: Pick<PublicServiceCatalogItem, 'onlinePricing' | 'chargeBasis' | 'price'>) {
@@ -32,6 +29,7 @@ export function serviceUnitCopy(item: Pick<PublicServiceCatalogItem, 'onlinePric
   if (mode === 'REQUEST_ONLY') return SERVICE_AGREED_PRICE_COPY
   if (item.chargeBasis === 'PER_PERSON_DAY') return SERVICE_BREAKFAST_UNIT
   if (mode === 'PER_NIGHT') return 'за ніч'
+  if (mode === 'FIXED_ONCE') return 'фіксована ціна'
   return 'за бронювання'
 }
 

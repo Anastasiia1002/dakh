@@ -163,7 +163,7 @@ export interface PublicServiceSelection {
   quantity: number
 }
 
-export type PublicOnlinePricing = 'GUEST_QUANTITY' | 'PER_NIGHT' | 'REQUEST_ONLY'
+export type PublicOnlinePricing = 'FIXED_ONCE' | 'GUEST_QUANTITY' | 'PER_NIGHT' | 'REQUEST_ONLY'
 
 export interface PublicServiceCatalogItem {
   id: string

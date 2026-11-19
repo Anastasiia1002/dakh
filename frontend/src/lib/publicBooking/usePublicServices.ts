@@ -37,14 +37,13 @@ export function usePublicServices(hotelSlug: string | undefined) {
   return state
 }
 
-/** Public extras the guest may select. Missing price is request-only, never free. */
+/** Public extras the guest may select. Unconfigured or invalid modes stay off the list. */
 export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
   if (!value?.id || !value.name || value.currency !== 'UAH') return false
   const mode = value.onlinePricing
   if (mode === 'REQUEST_ONLY') return true
-  if (mode === 'PER_NIGHT' || mode === 'GUEST_QUANTITY') return Boolean(value.price)
-  if (value.chargeBasis === 'PER_TRIP' || !value.price) return true
-  return Boolean(value.price)
+  if (mode === 'PER_NIGHT' || mode === 'GUEST_QUANTITY' || mode === 'FIXED_ONCE') return Boolean(value.price)
+  return false
 }
 
 export function pruneServiceQuantities(

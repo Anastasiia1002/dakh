@@ -6,7 +6,8 @@ export const STAGING_PUBLIC_API_BASE_URL = 'http://localhost:3000/api/public/v1'
 /** Disposable public QA API. Staging builds and local booking writes may use this origin. */
 export const STAGING_QA_PUBLIC_API_BASE_URL = 'http://127.0.0.1:3001/api/public/v1'
 
-const LOOPBACK_API_PORTS = new Set(['3000', '3001'])
+/** Local Nest on 3000/3001, or 3010 when those ports are already taken by another process. */
+const LOOPBACK_API_PORTS = new Set(['3000', '3001', '3010'])
 
 function trimSlash(value: string) {
   return value.replace(/\/+$/, '')
