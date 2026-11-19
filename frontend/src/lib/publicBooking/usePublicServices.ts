@@ -35,7 +35,12 @@ export function usePublicServices(hotelSlug: string | undefined) {
   return state
 }
 
-/** The public API only lists active, bookable, priced PER_STAY extras. Other CRM bases stay off the site. */
-function isCatalogItem(value: PublicServiceCatalogItem): boolean {
-  return Boolean(value?.id && value.name && value.currency === 'UAH' && value.chargeBasis === 'PER_STAY')
+/** Public listing is active, bookable, priced PER_STAY or PER_NIGHT extras. Other CRM bases stay off the site. */
+export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
+  return Boolean(
+    value?.id &&
+      value.name &&
+      value.currency === 'UAH' &&
+      (value.chargeBasis === 'PER_STAY' || value.chargeBasis === 'PER_NIGHT'),
+  )
 }

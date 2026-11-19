@@ -4,11 +4,19 @@ export const SERVICE_SECTION_HEADING = 'Додайте до проживання
 
 export const SERVICE_CHARGE_UNIT: Record<PublicServiceCatalogItem['chargeBasis'], string> = {
   PER_STAY: 'за бронювання',
+  PER_NIGHT: 'за ніч',
 }
 
 const QUANTITY_CAP = 99
 
-export function serviceQuantityBounds(item: Pick<PublicServiceCatalogItem, 'minQuantity' | 'maxQuantity'>) {
+export function guestPicksServiceQuantity(item: Pick<PublicServiceCatalogItem, 'chargeBasis'>) {
+  return item.chargeBasis === 'PER_STAY'
+}
+
+export function serviceQuantityBounds(
+  item: Pick<PublicServiceCatalogItem, 'chargeBasis' | 'minQuantity' | 'maxQuantity'>,
+) {
+  if (!guestPicksServiceQuantity(item)) return { min: 1, max: 1 }
   const min = clampQuantity(item.minQuantity ?? 1)
   const max = Math.max(min, clampQuantity(item.maxQuantity ?? QUANTITY_CAP))
   return { min, max }
