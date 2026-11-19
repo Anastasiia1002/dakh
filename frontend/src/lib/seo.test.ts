@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { canonicalUrl, seoForDetail, seoForPath } from './seo'
-import { stayUrlFromSearch, stayUrlSearch, withStayUrl } from './publicBooking/stayUrl'
+import { mergeStayIntoSearch, stayUrlFromSearch, stayUrlSearch, withStayUrl } from './publicBooking/stayUrl'
 
 describe('seo routes', () => {
   it('indexes public pages and keeps confirmation private', () => {
@@ -38,5 +38,14 @@ describe('stay URL', () => {
     assert.equal(stay.adults, 3)
     assert.equal(stayUrlSearch({ from: '2026-12-01', to: '2026-12-03', adults: 2, children: 0 }), 'from=2026-12-01&to=2026-12-03')
     assert.equal(withStayUrl('/rooms/dakh-1', stay), '/rooms/dakh-1?from=2026-12-01&to=2026-12-03&adults=3')
+    const kept = mergeStayIntoSearch(new URLSearchParams('category=houses&from=2026-11-27&to=2026-11-28'), {
+      from: '2026-12-20',
+      to: '2026-12-22',
+      adults: 2,
+      children: 0,
+    })
+    assert.equal(kept.get('from'), '2026-12-20')
+    assert.equal(kept.get('to'), '2026-12-22')
+    assert.equal(kept.get('category'), 'houses')
   })
 })

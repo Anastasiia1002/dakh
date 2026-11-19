@@ -208,6 +208,7 @@ export function RoomOptions({
   roomLabel,
   covers,
   emptyHouses = false,
+  emptyHousesCopy = COTTAGE_EMPTY_COPY,
 }: {
   rooms: PublicAvailabilityRoomType[]
   selectedId: string
@@ -219,6 +220,7 @@ export function RoomOptions({
   roomLabel?: (room: PublicAvailabilityRoomType) => string
   covers?: Map<string, { url: string; coverKey: string; alt: string }>
   emptyHouses?: boolean
+  emptyHousesCopy?: string
 }) {
   const presentation = roomListPresentation({ searchable, status, error, place })
   if (presentation.state === 'need-dates' || presentation.state === 'loading') {
@@ -334,7 +336,7 @@ export function RoomOptions({
       ))}
       {emptyHouses ? (
         <p className="border border-dashed border-wood/30 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
-          {COTTAGE_EMPTY_COPY}
+          {emptyHousesCopy}
         </p>
       ) : null}
     </div>
@@ -487,7 +489,7 @@ export function QuoteSummary({
     if (availabilityStatus === 'empty') {
       return (
         <p className="mt-6 text-sm text-wood/70">
-          На ці дати немає вільних кімнат. Спробуйте інші дати або зменшіть кількість гостей.
+          На обрані дати немає доступних пропозицій. Спробуйте інший період.
         </p>
       )
     }

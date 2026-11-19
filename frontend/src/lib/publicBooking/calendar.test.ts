@@ -80,7 +80,7 @@ describe('availability calendar', () => {
     assert.equal(canFinishCheckOut('error', '2026-12-01', readyDays, '2026-12-20', '2026-12-21'), false)
   })
 
-  it('selects a valid stay and clears a stay that crosses an unavailable night', () => {
+  it('keeps URL dates when a night is unbookable so the form matches the request', () => {
     assert.equal(canFinishCheckOut('ready', '2026-12-01', readyDays, '2026-12-22', '2026-12-23'), true)
     assert.deepEqual(
       reconcileStay({
@@ -90,7 +90,7 @@ describe('availability calendar', () => {
         checkIn: '2026-12-20',
         checkOut: '2026-12-22',
       }),
-      { checkIn: '2026-12-20', checkOut: '' },
+      { checkIn: '2026-12-20', checkOut: '2026-12-22' },
     )
     assert.deepEqual(
       reconcileStay({
@@ -101,6 +101,16 @@ describe('availability calendar', () => {
         checkOut: '2026-12-23',
       }),
       { checkIn: '2026-12-22', checkOut: '2026-12-23' },
+    )
+    assert.equal(
+      calendarRejectsStay({
+        status: 'ready',
+        hotelToday: '2026-12-01',
+        days: readyDays,
+        checkIn: '2026-12-20',
+        checkOut: '2026-12-22',
+      }),
+      true,
     )
   })
 
