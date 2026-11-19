@@ -11,8 +11,8 @@ const INTERNAL_LABEL = /^(?:джерело|спальні|зручності)\s*
 const INTERNAL_NOTE =
   /standardGuestsNumber|minDaysRestriction|cancellationPolicy|неперевірена розбіжність|guestsMax/iu
 
-function catalogLines(description: string): string[] {
-  return description
+function catalogLines(description: string | null | undefined): string[] {
+  return (description ?? '')
     .split(/\n+/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
@@ -47,7 +47,7 @@ function uniqueGuestLines(lines: string[]): string[] {
 }
 
 /** Guest-facing description. The stored API text stays intact; notes and unverified offers are not rendered. */
-export function publicDescription(description: string): string {
+export function publicDescription(description: string | null | undefined): string {
   return uniqueGuestLines(
     catalogLines(description)
       .map(guestFacingLine)
@@ -56,11 +56,11 @@ export function publicDescription(description: string): string {
 }
 
 /** Per-stay check-in sentence when the catalog text contains one. Otherwise the page uses the hotel times. */
-export function stayPolicyLine(description: string): string | null {
+export function stayPolicyLine(description: string | null | undefined): string | null {
   return catalogLines(description).find((line) => STAY_POLICY_LINE.test(line)) ?? null
 }
 
-export function publicSummary(description: string): string {
+export function publicSummary(description: string | null | undefined): string {
   const [first = ''] = publicDescription(description).split(/\n\n/)
   return first
 }
@@ -117,8 +117,13 @@ export function titleIncludesCapacity(name: string, maxGuests: number) {
 
 /** Cover first, then the rest by sortOrder, without repeating the cover URL. */
 export function galleryImages(accommodation: PublicAccommodation): PublicAccommodationImage[] {
+  if (!accommodation.cover) {
+    return [...accommodation.images].sort(
+      (left, right) => left.sortOrder - right.sortOrder || left.url.localeCompare(right.url),
+    )
+  }
   const rest = [...accommodation.images]
-    .filter((image) => image.url !== accommodation.cover.url)
+    .filter((image) => image.url !== accommodation.cover?.url)
     .sort((left, right) => left.sortOrder - right.sortOrder || left.url.localeCompare(right.url))
   return [accommodation.cover, ...rest]
 }

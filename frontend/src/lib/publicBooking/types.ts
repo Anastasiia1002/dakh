@@ -32,13 +32,15 @@ export interface PublicAmenity {
 
 export interface PublicAccommodation {
   id: string
+  /** Legacy inventory/rate grouping. Quotes still need this when rates stay on RoomType. */
+  roomTypeId?: string
   slug: string
   name: string
   kind: PublicRoomKind
-  description: string
+  description: string | null
   maxGuests: number
   images: PublicAccommodationImage[]
-  cover: PublicAccommodationImage
+  cover: PublicAccommodationImage | null
   /** Assigned amenities. Missing on an older catalog response means none are shown. */
   amenities?: PublicAmenity[]
   hotelSlug: PublicHotelSlug
@@ -196,6 +198,8 @@ export interface PublicQuoteRequest {
   children: number
   roomTypeId: string
   ratePlanId: string
+  /** Pins the quoted physical unit. Omit only for a general type offer. */
+  roomId?: string
   services?: PublicServiceSelection[]
 }
 

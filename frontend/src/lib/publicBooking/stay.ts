@@ -71,6 +71,7 @@ export function publicQuoteBody(input: {
   children: number
   roomTypeId: string
   ratePlanId: string
+  roomId?: string
   services?: readonly PublicServiceSelection[]
 }): PublicQuoteRequest | null {
   const split = guestComposition(input.adults, input.children)
@@ -84,6 +85,7 @@ export function publicQuoteBody(input: {
     children: split.children,
     roomTypeId: input.roomTypeId,
     ratePlanId: input.ratePlanId,
+    ...(input.roomId ? { roomId: input.roomId } : {}),
     ...(services.length > 0 ? { services } : {}),
   }
 }

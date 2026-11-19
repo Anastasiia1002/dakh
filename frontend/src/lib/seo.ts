@@ -101,7 +101,7 @@ export function seoForDetail(
   detail: { name: string; maxGuests: number; description: string },
 ): PublicSeoRoute {
   const fallback = seoForPath(pathname)
-  const summary = publicSummary(detail.description).replace(/\s+/g, ' ').trim()
+  const summary = publicSummary(detail.description ?? '').replace(/\s+/g, ' ').trim()
   return {
     ...fallback,
     title: `${publicTitle(detail.name, detail.maxGuests)} — DAKH Мигове`,
