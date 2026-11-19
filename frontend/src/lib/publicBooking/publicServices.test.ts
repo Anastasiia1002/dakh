@@ -10,23 +10,51 @@ import {
   guestPicksServiceQuantity,
   quoteServiceSelection,
   selectedServiceLines,
-  SERVICE_CHARGE_UNIT,
+  SERVICE_AGREED_PRICE_COPY,
+  SERVICE_BREAKFAST_QUANTITY_LABEL,
+  SERVICE_BREAKFAST_UNIT,
   SERVICE_SECTION_HEADING,
   serviceQuantityBounds,
   serviceSelectionKey,
+  serviceUnitCopy,
 } from './publicServices'
 import { isCatalogItem, pruneServiceQuantities } from './usePublicServices'
 import type { PublicServiceCatalogItem } from './types'
 
 const breakfast: PublicServiceCatalogItem = {
   id: 'svc-1',
-  name: 'Сніданок',
+  name: 'Чан',
   description: 'На все проживання',
   price: '400.00',
   currency: 'UAH',
   chargeBasis: 'PER_STAY',
+  onlinePricing: 'GUEST_QUANTITY',
   minQuantity: 2,
   maxQuantity: 4,
+}
+
+const meals: PublicServiceCatalogItem = {
+  id: 'svc-breakfast',
+  name: 'Сніданок',
+  description: null,
+  price: '180.00',
+  currency: 'UAH',
+  chargeBasis: 'PER_PERSON_DAY',
+  onlinePricing: 'GUEST_QUANTITY',
+  minQuantity: 1,
+  maxQuantity: 20,
+}
+
+const transfer: PublicServiceCatalogItem = {
+  id: 'svc-transfer',
+  name: 'Трансфер',
+  description: null,
+  price: null,
+  currency: 'UAH',
+  chargeBasis: 'PER_TRIP',
+  onlinePricing: 'REQUEST_ONLY',
+  minQuantity: null,
+  maxQuantity: null,
 }
 
 describe('public service selection', () => {
@@ -41,9 +69,9 @@ describe('public service selection', () => {
 
   it('offers extras after a stay with a per-stay price, and drops other charge bases', () => {
     assert.equal(SERVICE_SECTION_HEADING, 'Додаткові послуги')
-    assert.equal(SERVICE_CHARGE_UNIT.PER_STAY, 'за бронювання')
-    assert.equal(SERVICE_CHARGE_UNIT.PER_NIGHT, 'за ніч')
-    assert.equal(breakfast.chargeBasis, 'PER_STAY')
+    assert.equal(serviceUnitCopy(breakfast), 'за бронювання')
+    assert.equal(serviceUnitCopy(meals), SERVICE_BREAKFAST_UNIT)
+    assert.equal(serviceUnitCopy(transfer), SERVICE_AGREED_PRICE_COPY)
     const extra: PublicServiceCatalogItem = {
       id: 'svc-night',
       name: 'Додаткове спальне місце',
@@ -51,6 +79,7 @@ describe('public service selection', () => {
       price: '40.00',
       currency: 'UAH',
       chargeBasis: 'PER_NIGHT',
+      onlinePricing: 'PER_NIGHT',
       minQuantity: null,
       maxQuantity: null,
     }
@@ -60,7 +89,20 @@ describe('public service selection', () => {
     assert.deepEqual(selectedServiceLines({ 'svc-night': 9 }, [extra], 3), [{ serviceId: 'svc-night', quantity: 3 }])
     assert.equal(isCatalogItem(breakfast), true)
     assert.equal(isCatalogItem(extra), true)
-    assert.equal(isCatalogItem({ ...breakfast, chargeBasis: 'PER_PERSON_DAY' } as PublicServiceCatalogItem), false)
+    assert.equal(isCatalogItem(meals), true)
+    assert.equal(isCatalogItem(transfer), true)
+    assert.deepEqual(selectedServiceLines({ 'svc-breakfast': 3 }, [meals], 5), [{ serviceId: 'svc-breakfast', quantity: 3 }])
+    assert.deepEqual(selectedServiceLines({ 'svc-transfer': 9 }, [transfer], 5), [{ serviceId: 'svc-transfer', quantity: 1 }])
+    const breakfastUi = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [meals], quantities: { 'svc-breakfast': 3 }, status: 'ready', onChange() {} }),
+    )
+    assert.match(breakfastUi, new RegExp(SERVICE_BREAKFAST_QUANTITY_LABEL))
+    assert.match(breakfastUi, /грн \/ сніданок/)
+    const transferUi = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [transfer], quantities: { 'svc-transfer': 1 }, status: 'ready', onChange() {} }),
+    )
+    assert.match(transferUi, /Оплата за домовленістю/)
+    assert.doesNotMatch(transferUi, /0 ₴/)
     const loading = renderToStaticMarkup(
       createElement(ServiceOptions, { items: [], quantities: {}, status: 'loading', onChange() {} }),
     )
@@ -115,6 +157,12 @@ describe('public service selection', () => {
     assert.match(summary, /quote.services/)
     assert.match(summary, /line.totalPrice/)
     assert.doesNotMatch(summary, /unitPrice/)
+    assert.match(summary, /Оплата за домовленістю/)
+    assert.match(flow, /SERVICE_DROPPED_COPY/)
+    assert.match(flow, /loadStoredServiceQuantities/)
+    const roomBooking = readFileSync(new URL('../../components/booking/RoomBooking.tsx', import.meta.url), 'utf8')
+    assert.match(roomBooking, /ServiceOptions/)
+    assert.match(summary, /Оплата за домовленістю/)
   })
 
   it('sends only the server quote lines and maps an invalid service error', () => {

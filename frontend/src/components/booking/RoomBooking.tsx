@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { formatMoneyAmount } from '../../lib/format'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../BookingCalendar'
@@ -25,6 +25,14 @@ import { stayUrlFromSearch } from '../../lib/publicBooking/stayUrl'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
 import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
 import { QuoteSummary } from './CheckoutPanels'
+import { ServiceOptions } from './ServiceOptions'
+import {
+  loadStoredServiceQuantities,
+  persistServiceQuantities,
+  selectedServiceLines,
+  SERVICE_DROPPED_COPY,
+} from '../../lib/publicBooking/publicServices'
+import { pruneServiceQuantities, usePublicServices } from '../../lib/publicBooking/usePublicServices'
 
 function draftFromHandoff(publicSlug: string, params: URLSearchParams): BookingDraft {
   const fromUrl = stayUrlFromSearch(params)
@@ -70,6 +78,13 @@ export function RoomBooking({
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
+  const catalog = usePublicServices(hotelSlug)
+  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>(loadStoredServiceQuantities)
+  const [extrasNotice, setExtrasNotice] = useState('')
+  const serviceLines = useMemo(
+    () => selectedServiceLines(serviceQuantities, catalog.items, nights),
+    [catalog.items, nights, serviceQuantities],
+  )
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
@@ -92,9 +107,22 @@ export function RoomBooking({
     hotelSlug,
     category === 'houses' ? 'COTTAGE' : 'ROOM',
     quoteBlocked,
+    serviceLines,
   )
   const stayGuard = useStayGuard(search.stayRejection)
   const quoteReady = isQuoteFresh(search.quote, now)
+
+  useEffect(() => {
+    persistServiceQuantities(serviceQuantities)
+  }, [serviceQuantities])
+
+  useEffect(() => {
+    setServiceQuantities((current) => {
+      const next = pruneServiceQuantities(current, catalog.items)
+      if (next !== current && Object.keys(current).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
+      return next
+    })
+  }, [catalog.items])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15_000)
@@ -246,6 +274,28 @@ export function RoomBooking({
           fitNote={calendar.capacityNote}
           missingRoomCopy="На ці дати це розміщення недоступне. Інше не підставляємо."
         />
+        {bookingEnabled && extrasNotice ? (
+          <p className="mt-4 text-sm text-wood/70" role="status">
+            {extrasNotice}
+          </p>
+        ) : null}
+        {bookingEnabled ? (
+          <div className="mt-6">
+            <ServiceOptions
+              items={catalog.items}
+              status={catalog.status}
+              quantities={serviceQuantities}
+              onChange={(serviceId, quantity) =>
+                setServiceQuantities((current) => {
+                  const next = { ...current }
+                  if (quantity == null) delete next[serviceId]
+                  else next[serviceId] = quantity
+                  return next
+                })
+              }
+            />
+          </div>
+        ) : null}
         {bookingEnabled ? (
           <>
             <button

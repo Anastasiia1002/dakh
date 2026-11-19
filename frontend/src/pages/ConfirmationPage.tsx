@@ -136,9 +136,13 @@ export function ConfirmationPage() {
               {confirmation.services?.map((line) => (
                 <li key={line.serviceId} className="flex justify-between gap-4">
                   <span>
-                    {line.name} · {line.quantity}
+                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
                   </span>
-                  <span>{formatMoneyAmount(line.totalPrice)}</span>
+                  <span>
+                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
+                      ? 'Оплата за домовленістю'
+                      : formatMoneyAmount(line.totalPrice)}
+                  </span>
                 </li>
               ))}
             </ul>

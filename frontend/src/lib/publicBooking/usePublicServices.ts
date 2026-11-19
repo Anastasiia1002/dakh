@@ -37,14 +37,14 @@ export function usePublicServices(hotelSlug: string | undefined) {
   return state
 }
 
-/** Only extras the live public catalog can price: PER_STAY now, PER_NIGHT after that quoting ships. Other CRM units stay off the site. */
+/** Public extras the guest may select. Missing price is request-only, never free. */
 export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
-  return Boolean(
-    value?.id &&
-      value.name &&
-      value.currency === 'UAH' &&
-      (value.chargeBasis === 'PER_STAY' || value.chargeBasis === 'PER_NIGHT'),
-  )
+  if (!value?.id || !value.name || value.currency !== 'UAH') return false
+  const mode = value.onlinePricing
+  if (mode === 'REQUEST_ONLY') return true
+  if (mode === 'PER_NIGHT' || mode === 'GUEST_QUANTITY') return Boolean(value.price)
+  if (value.chargeBasis === 'PER_TRIP' || !value.price) return true
+  return Boolean(value.price)
 }
 
 export function pruneServiceQuantities(

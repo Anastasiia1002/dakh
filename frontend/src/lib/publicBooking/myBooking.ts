@@ -34,7 +34,13 @@ export type GuestBookingView = {
   guests: string
   totalAmount: string
   currency: 'UAH'
-  services: Array<{ serviceId: string; name: string; quantity: number; totalPrice: string }>
+  services: Array<{
+    serviceId: string
+    name: string
+    quantity: number
+    totalPrice: string | null
+    pricing?: 'PRICED' | 'BY_AGREEMENT'
+  }>
   paymentLabel: string | null
 }
 
@@ -107,6 +113,7 @@ export function guestBookingView(
         name: line.name,
         quantity: line.quantity,
         totalPrice: line.totalPrice,
+        pricing: line.pricing,
       })),
     paymentLabel: response.paymentStatus ? PAYMENT_LABELS[response.paymentStatus] : null,
   }
