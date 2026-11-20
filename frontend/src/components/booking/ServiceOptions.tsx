@@ -62,7 +62,9 @@ export function ServiceOptions({
                       <p className="break-words font-medium">{item.name}</p>
                       {item.description ? <p className="mt-1 break-words text-sm text-wood/70">{item.description}</p> : null}
                       <p className="mt-1 text-sm text-wood/70">
-                        {priced ? `${formatMoneyAmount(item.price)} ${serviceUnitCopy(item)}` : serviceUnitCopy(item)}
+                        {priced && item.price
+                          ? `${formatMoneyAmount(item.price)} ${serviceUnitCopy(item)}`
+                          : serviceUnitCopy(item)}
                       </p>
                       {quantityLabel && selected ? (
                         <p className="mt-2 text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">{quantityLabel}</p>
