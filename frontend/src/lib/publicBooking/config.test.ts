@@ -77,6 +77,7 @@ describe('public booking config', () => {
     assert.equal(isLoopbackPublicApi('http://localhost:5173/api/public/v1'), false)
     assert.equal(bookingTargetAllowsWrites('http://localhost:3000/api/public/v1', false), true)
     assert.equal(bookingTargetAllowsWrites('http://127.0.0.1:3001/api/public/v1', false), true)
+    assert.equal(bookingTargetAllowsWrites('http://127.0.0.1:3010/api/public/v1', false), true)
     assert.equal(bookingTargetAllowsWrites('https://dakh-backend.onrender.com/api/public/v1', false), false)
     assert.equal(bookingTargetAllowsWrites('https://dakh-backend.onrender.com/api/public/v1', true), true)
     assert.equal(bookingTargetAllowsWrites('https://dakh-staging-api.example/api/public/v1', true), true)

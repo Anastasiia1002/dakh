@@ -158,9 +158,13 @@ export function MyBookingPage() {
               {view.services.map((line) => (
                 <li key={line.serviceId} className="flex justify-between gap-4">
                   <span className="min-w-0 break-words">
-                    {line.name} · {line.quantity}
+                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
                   </span>
-                  <span className="shrink-0">{formatMoneyAmount(line.totalPrice)}</span>
+                  <span className="shrink-0">
+                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
+                      ? 'Оплата за домовленістю'
+                      : formatMoneyAmount(line.totalPrice)}
+                  </span>
                 </li>
               ))}
             </ul>

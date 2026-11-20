@@ -163,13 +163,16 @@ export interface PublicServiceSelection {
   quantity: number
 }
 
+export type PublicOnlinePricing = 'FIXED_ONCE' | 'GUEST_QUANTITY' | 'PER_NIGHT' | 'REQUEST_ONLY'
+
 export interface PublicServiceCatalogItem {
   id: string
   name: string
   description: string | null
-  price: string
+  price: string | null
   currency: 'UAH'
-  chargeBasis: 'PER_STAY' | 'PER_NIGHT'
+  chargeBasis: string
+  onlinePricing: PublicOnlinePricing
   minQuantity: number | null
   maxQuantity: number | null
 }
@@ -183,9 +186,10 @@ export interface PublicQuoteServiceLine {
   serviceId: string
   name: string
   quantity: number
-  unitPrice: string
-  totalPrice: string
+  unitPrice: string | null
+  totalPrice: string | null
   currency: 'UAH'
+  pricing?: 'PRICED' | 'BY_AGREEMENT'
 }
 
 export interface PublicQuoteRequest {

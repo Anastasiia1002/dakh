@@ -29,7 +29,12 @@ import {
   useStaySearch,
   type GuestFieldErrors,
 } from '../lib/publicBooking'
-import { selectedServiceLines } from '../lib/publicBooking/publicServices'
+import {
+  loadStoredServiceQuantities,
+  persistServiceQuantities,
+  selectedServiceLines,
+  SERVICE_DROPPED_COPY,
+} from '../lib/publicBooking/publicServices'
 import { pruneServiceQuantities, usePublicServices } from '../lib/publicBooking/usePublicServices'
 import {
   bookableAvailabilityRooms,
@@ -148,14 +153,23 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     }
     return covers
   }, [listedHouses.items, listedRooms.items])
-  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>({})
+  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>(loadStoredServiceQuantities)
+  const [extrasNotice, setExtrasNotice] = useState('')
   const serviceLines = useMemo(
     () => selectedServiceLines(serviceQuantities, catalog.items, nights),
     [catalog.items, nights, serviceQuantities],
   )
 
   useEffect(() => {
-    setServiceQuantities((current) => pruneServiceQuantities(current, catalog.items))
+    persistServiceQuantities(serviceQuantities)
+  }, [serviceQuantities])
+
+  useEffect(() => {
+    setServiceQuantities((current) => {
+      const next = pruneServiceQuantities(current, catalog.items)
+      if (next !== current && Object.keys(current).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
+      return next
+    })
   }, [catalog.items])
   const quoteBlocked = calendarRejectsStay({
     status: activeCalendar.status,
@@ -521,6 +535,12 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 </Link>
               </div>
             </div>
+          ) : null}
+
+          {bookingEnabled && extrasNotice ? (
+            <p className="text-sm text-wood/70" role="status">
+              {extrasNotice}
+            </p>
           ) : null}
 
           {bookingEnabled && search.selectedRoom ? (
