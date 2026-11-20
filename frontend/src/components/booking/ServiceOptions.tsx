@@ -7,7 +7,7 @@ import {
   SERVICE_LOADING_COPY,
   SERVICE_SECTION_HEADING,
   SERVICE_SECTION_HINT,
-  SERVICE_TRANSFER_HINT,
+  SERVICE_REQUEST_HINT,
   serviceQuantityBounds,
   serviceQuantityLabel,
   serviceUnitCopy,
@@ -113,7 +113,7 @@ export function ServiceOptions({
               )
             })}
           </ul>
-          {hasRequest ? <p className="mt-3 max-w-xl text-sm text-wood/70">{SERVICE_TRANSFER_HINT}</p> : null}
+          {hasRequest ? <p className="mt-3 max-w-xl text-sm text-wood/70">{SERVICE_REQUEST_HINT}</p> : null}
         </>
       ) : null}
     </fieldset>

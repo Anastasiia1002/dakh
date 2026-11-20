@@ -9,10 +9,12 @@ export const SERVICE_ERROR_COPY = 'Послуги зараз не вдалося
 export const SERVICE_DROPPED_COPY = 'Деякі послуги більше недоступні і зняті з заявки.'
 export const SERVICE_AGREED_PRICE_COPY = 'Оплата за домовленістю'
 export const SERVICE_AGREED_TOTAL_NOTE = 'Заявки з оплатою за домовленістю не входять у показану суму.'
-export const SERVICE_TRANSFER_HINT =
-  'Маршрут, час і побажання можна написати в коментарі нижче. Це заявка, не підтверджений трансфер.'
-export const SERVICE_BREAKFAST_QUANTITY_LABEL = 'Кількість сніданків'
-export const SERVICE_BREAKFAST_UNIT = 'грн / сніданок'
+export const SERVICE_REQUEST_HINT =
+  'Побажання можна написати в коментарі нижче. Це заявка, не підтверджене бронювання послуги.'
+export const SERVICE_QUANTITY_LABEL = 'Кількість'
+export const SERVICE_QUANTITY_UNIT = 'грн / шт.'
+export const SERVICE_FIXED_UNIT = 'фіксована ціна'
+export const SERVICE_NIGHT_UNIT = 'грн / ніч'
 
 const QUANTITY_CAP = 99
 
@@ -27,15 +29,14 @@ export function guestPicksServiceQuantity(item: Pick<PublicServiceCatalogItem, '
 export function serviceUnitCopy(item: Pick<PublicServiceCatalogItem, 'onlinePricing' | 'chargeBasis' | 'price'>) {
   const mode = onlinePricingOf(item)
   if (mode === 'REQUEST_ONLY') return SERVICE_AGREED_PRICE_COPY
-  if (item.chargeBasis === 'PER_PERSON_DAY') return SERVICE_BREAKFAST_UNIT
-  if (mode === 'PER_NIGHT') return 'за ніч'
-  if (mode === 'FIXED_ONCE') return 'фіксована ціна'
-  return 'за бронювання'
+  if (mode === 'PER_NIGHT') return SERVICE_NIGHT_UNIT
+  if (mode === 'FIXED_ONCE') return SERVICE_FIXED_UNIT
+  if (mode === 'GUEST_QUANTITY') return SERVICE_QUANTITY_UNIT
+  return SERVICE_FIXED_UNIT
 }
 
 export function serviceQuantityLabel(item: Pick<PublicServiceCatalogItem, 'chargeBasis' | 'onlinePricing' | 'price'>) {
-  if (item.chargeBasis === 'PER_PERSON_DAY' && guestPicksServiceQuantity(item)) return SERVICE_BREAKFAST_QUANTITY_LABEL
-  return null
+  return guestPicksServiceQuantity(item) ? SERVICE_QUANTITY_LABEL : null
 }
 
 export function serviceQuantityBounds(
