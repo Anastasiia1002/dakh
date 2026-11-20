@@ -169,7 +169,7 @@ export interface PublicServiceCatalogItem {
   description: string | null
   price: string
   currency: 'UAH'
-  chargeBasis: 'PER_STAY'
+  chargeBasis: 'PER_STAY' | 'PER_NIGHT'
   minQuantity: number | null
   maxQuantity: number | null
 }

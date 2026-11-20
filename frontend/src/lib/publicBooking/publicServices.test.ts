@@ -6,6 +6,7 @@ import { ServiceOptions } from '../../components/booking/ServiceOptions'
 import { errorCopy, PublicApiError } from './errors'
 import {
   canonicalServiceSelection,
+  guestPicksServiceQuantity,
   quoteServiceSelection,
   selectedServiceLines,
   SERVICE_CHARGE_UNIT,
@@ -13,6 +14,7 @@ import {
   serviceQuantityBounds,
   serviceSelectionKey,
 } from './publicServices'
+import { isCatalogItem } from './usePublicServices'
 import type { PublicServiceCatalogItem } from './types'
 
 const breakfast: PublicServiceCatalogItem = {
@@ -39,7 +41,25 @@ describe('public service selection', () => {
   it('offers extras after a stay with a per-stay price, and drops other charge bases', () => {
     assert.equal(SERVICE_SECTION_HEADING, 'Додайте до проживання')
     assert.equal(SERVICE_CHARGE_UNIT.PER_STAY, 'за бронювання')
+    assert.equal(SERVICE_CHARGE_UNIT.PER_NIGHT, 'за ніч')
     assert.equal(breakfast.chargeBasis, 'PER_STAY')
+    const extra: PublicServiceCatalogItem = {
+      id: 'svc-night',
+      name: 'Додаткове спальне місце',
+      description: null,
+      price: '40.00',
+      currency: 'UAH',
+      chargeBasis: 'PER_NIGHT',
+      minQuantity: null,
+      maxQuantity: null,
+    }
+    assert.equal(guestPicksServiceQuantity(extra), false)
+    assert.deepEqual(serviceQuantityBounds(extra), { min: 1, max: 1 })
+    assert.deepEqual(selectedServiceLines({ 'svc-night': 9 }, [extra]), [])
+    assert.deepEqual(selectedServiceLines({ 'svc-night': 9 }, [extra], 3), [{ serviceId: 'svc-night', quantity: 3 }])
+    assert.equal(isCatalogItem(breakfast), true)
+    assert.equal(isCatalogItem(extra), true)
+    assert.equal(isCatalogItem({ ...breakfast, chargeBasis: 'PER_PERSON_DAY' } as PublicServiceCatalogItem), false)
     const empty = renderToStaticMarkup(createElement(ServiceOptions, { items: [], quantities: {}, onChange() {} }))
     assert.equal(empty, '')
     const listed = renderToStaticMarkup(
@@ -48,6 +68,18 @@ describe('public service selection', () => {
     assert.match(listed, /Додайте до проживання/)
     assert.match(listed, /за бронювання/)
     assert.doesNotMatch(listed, /Додаткових послуг зараз немає/)
+    const nightListed = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [extra], quantities: { 'svc-night': 1 }, onChange() {} }),
+    )
+    assert.match(nightListed, /за ніч/)
+    assert.match(nightListed, /Прибрати/)
+    assert.doesNotMatch(nightListed, /Збільшити/)
+    assert.match(nightListed, /flex-col gap-3 sm:flex-row/)
+    const staySummary = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [breakfast, extra], quantities: {}, onChange() {} }),
+    )
+    assert.match(staySummary, /за бронювання/)
+    assert.match(staySummary, /за ніч/)
   })
 
   it('sends only the server quote lines and maps an invalid service error', () => {

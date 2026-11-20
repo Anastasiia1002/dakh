@@ -1,5 +1,10 @@
 import { formatMoneyAmount } from '../../lib/format'
-import { SERVICE_CHARGE_UNIT, SERVICE_SECTION_HEADING, serviceQuantityBounds } from '../../lib/publicBooking/publicServices'
+import {
+  guestPicksServiceQuantity,
+  SERVICE_CHARGE_UNIT,
+  SERVICE_SECTION_HEADING,
+  serviceQuantityBounds,
+} from '../../lib/publicBooking/publicServices'
 import type { PublicServiceCatalogItem } from '../../lib/publicBooking/types'
 
 export function ServiceOptions({
@@ -35,7 +40,7 @@ export function ServiceOptions({
                     {formatMoneyAmount(item.price)} {SERVICE_CHARGE_UNIT[item.chargeBasis]}
                   </p>
                 </div>
-                {selected ? (
+                {selected && guestPicksServiceQuantity(item) ? (
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -58,6 +63,14 @@ export function ServiceOptions({
                       +
                     </button>
                   </div>
+                ) : selected ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-11 items-center justify-center border border-wood/20 px-4 text-[0.72rem] tracking-[0.12em] uppercase"
+                    onClick={() => onChange(item.id, null)}
+                  >
+                    Прибрати
+                  </button>
                 ) : (
                   <button
                     type="button"
