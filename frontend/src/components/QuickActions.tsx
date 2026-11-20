@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { site } from '../data/catalog'
 import { officialSocials } from '../lib/siteSocials'
@@ -19,8 +19,77 @@ function hideQuickActions(pathname: string) {
   )
 }
 
-const actionClass =
+const socialClass =
   'pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center gap-2 border border-wood/15 bg-linen/95 px-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-wood shadow-[0_10px_28px_rgba(91,56,43,0.16)] backdrop-blur-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
+
+const iconActionClass =
+  'group pointer-events-auto relative inline-flex size-11 items-center justify-center border shadow-[0_10px_28px_rgba(91,56,43,0.16)] backdrop-blur-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
+
+function ActionTooltip({ label }: { label: string }) {
+  return (
+    <span
+      role="tooltip"
+      className="pointer-events-none absolute top-1/2 right-full z-10 mr-2 -translate-y-1/2 whitespace-nowrap border border-wood/15 bg-linen px-2 py-1 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-wood opacity-0 shadow-[0_10px_28px_rgba(91,56,43,0.16)] transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-focus-visible:opacity-100"
+    >
+      {label}
+    </span>
+  )
+}
+
+function CalendarDays({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M8 2v4M16 2v4" strokeLinecap="round" strokeLinejoin="round" />
+      <rect width="18" height="18" x="3" y="4" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function Phone({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path
+        d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A19.79 19.79 0 0 1 1 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconAction({
+  label,
+  className,
+  href,
+  to,
+  children,
+}: {
+  label: string
+  className: string
+  href?: string
+  to?: string
+  children: ReactNode
+}) {
+  const content = (
+    <>
+      {children}
+      <ActionTooltip label={label} />
+    </>
+  )
+  if (to) {
+    return (
+      <Link to={to} className={className} aria-label={label}>
+        {content}
+      </Link>
+    )
+  }
+  return (
+    <a href={href} className={className} aria-label={label}>
+      {content}
+    </a>
+  )
+}
 
 export function QuickActions() {
   const { pathname } = useLocation()
@@ -88,7 +157,7 @@ export function QuickActions() {
       {socials.length > 0 ? (
         <button
           type="button"
-          className={actionClass}
+          className={socialClass}
           aria-expanded={open}
           aria-controls={menuId}
           aria-haspopup="menu"
@@ -97,14 +166,16 @@ export function QuickActions() {
           Соцмережі
         </button>
       ) : null}
-      {bookingEnabled ? (
-        <Link to={bookTo} className={`${actionClass} bg-clay text-linen border-clay`}>
-          Забронювати
-        </Link>
-      ) : null}
-      <a href={site.phoneHrefs[0]} className={actionClass} aria-label={`Подзвонити ${site.phones[0]}`}>
-        Подзвонити
-      </a>
+      <div className="pointer-events-none flex flex-col items-end gap-2">
+        {bookingEnabled ? (
+          <IconAction label="Забронювати" to={bookTo} className={`${iconActionClass} border-clay bg-clay text-linen`}>
+            <CalendarDays className="size-6" />
+          </IconAction>
+        ) : null}
+        <IconAction label="Подзвонити" href={site.phoneHrefs[0]} className={`${iconActionClass} border-wood/15 bg-linen/95 text-wood`}>
+          <Phone className="size-6" />
+        </IconAction>
+      </div>
     </div>
   )
 }
