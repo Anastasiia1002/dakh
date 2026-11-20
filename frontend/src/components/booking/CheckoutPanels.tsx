@@ -20,6 +20,12 @@ import {
 } from '../../lib/publicBooking/bookingSelection'
 import { Photo } from '../Photo'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
+import {
+  isAgreedPriceLine,
+  publicServiceLineAmountCopy,
+  publicServiceLineTitle,
+  SERVICE_AGREED_TOTAL_NOTE,
+} from '../../lib/publicBooking/publicServices'
 import { guestCountLabel, partySummary } from '../../lib/ukrainian'
 import type { BookingDraft } from '../../lib/booking'
 import type {
@@ -171,13 +177,9 @@ export function PriceChangePanel({
         ))}
         {(quote.services ?? []).map((line) => (
           <li key={line.serviceId} className="flex justify-between gap-4">
-            <span className="min-w-0 break-words">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
-            </span>
+            <span className="min-w-0 break-words">{publicServiceLineTitle(line)}</span>
             <span className="shrink-0">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                ? 'Оплата за домовленістю'
-                : formatMoneyAmount(line.totalPrice)}
+              {publicServiceLineAmountCopy(line) ?? formatMoneyAmount(line.totalPrice as string)}
             </span>
           </li>
         ))}
@@ -597,20 +599,16 @@ export function QuoteSummary({
         ))}
         {(quote.services ?? []).map((line) => (
           <li key={line.serviceId} className="flex justify-between gap-4">
-            <span className="min-w-0 break-words">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
-            </span>
+            <span className="min-w-0 break-words">{publicServiceLineTitle(line)}</span>
             <span className="shrink-0">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                ? 'Оплата за домовленістю'
-                : formatMoneyAmount(line.totalPrice)}
+              {publicServiceLineAmountCopy(line) ?? formatMoneyAmount(line.totalPrice as string)}
             </span>
           </li>
         ))}
       </ul>
       <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      {(quote.services ?? []).some((line) => line.pricing === 'BY_AGREEMENT' || line.totalPrice == null) ? (
-        <p className="mt-2 text-[0.72rem] text-wood/55">Заявки з оплатою за домовленістю не входять у показану суму.</p>
+      {(quote.services ?? []).some((line) => isAgreedPriceLine(line)) ? (
+        <p className="mt-2 text-[0.72rem] text-wood/55">{SERVICE_AGREED_TOTAL_NOTE}</p>
       ) : null}
       <p className="mt-2 text-[0.72rem] text-wood/55">Це ще не підтверджене бронювання.</p>
     </div>

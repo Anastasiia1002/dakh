@@ -19,6 +19,7 @@ import {
   readStoredIntent,
   writeStoredConfirmationToken,
 } from '../lib/publicBooking/checkout'
+import { publicServiceLineAmountCopy, publicServiceLineTitle } from '../lib/publicBooking/publicServices'
 import type { PublicBookingConfirmationResponse } from '../lib/publicBooking/types'
 
 export function ConfirmationPage() {
@@ -135,13 +136,9 @@ export function ConfirmationPage() {
             <ul className="mt-4 space-y-1 text-sm text-wood/70">
               {confirmation.services?.map((line) => (
                 <li key={line.serviceId} className="flex justify-between gap-4">
+                  <span>{publicServiceLineTitle(line)}</span>
                   <span>
-                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
-                  </span>
-                  <span>
-                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                      ? 'Оплата за домовленістю'
-                      : formatMoneyAmount(line.totalPrice)}
+                    {publicServiceLineAmountCopy(line) ?? formatMoneyAmount(line.totalPrice as string)}
                   </span>
                 </li>
               ))}

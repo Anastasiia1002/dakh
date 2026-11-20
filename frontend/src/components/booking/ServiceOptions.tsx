@@ -51,7 +51,10 @@ export function ServiceOptions({
               const quantity = quantities[item.id]
               const selected = quantity != null
               const quantityLabel = serviceQuantityLabel(item)
-              const priced = onlinePricingOf(item) !== 'REQUEST_ONLY' && item.price
+              const priced =
+                onlinePricingOf(item) !== 'REQUEST_ONLY' &&
+                onlinePricingOf(item) !== 'FREE' &&
+                item.price
               return (
                 <li
                   key={item.id}
