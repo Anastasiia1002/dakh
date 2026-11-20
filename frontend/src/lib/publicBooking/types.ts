@@ -163,7 +163,7 @@ export interface PublicServiceSelection {
   quantity: number
 }
 
-export type PublicOnlinePricing = 'FIXED_ONCE' | 'GUEST_QUANTITY' | 'PER_NIGHT' | 'REQUEST_ONLY'
+export type PublicOnlinePricing = 'FIXED_ONCE' | 'GUEST_QUANTITY' | 'PER_NIGHT' | 'REQUEST_ONLY' | 'FREE'
 
 export interface PublicServiceCatalogItem {
   id: string
@@ -189,7 +189,7 @@ export interface PublicQuoteServiceLine {
   unitPrice: string | null
   totalPrice: string | null
   currency: 'UAH'
-  pricing?: 'PRICED' | 'BY_AGREEMENT'
+  pricing?: 'PRICED' | 'BY_AGREEMENT' | 'FREE'
 }
 
 export interface PublicQuoteRequest {

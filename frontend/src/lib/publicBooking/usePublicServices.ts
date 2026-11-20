@@ -41,7 +41,7 @@ export function usePublicServices(hotelSlug: string | undefined) {
 export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
   if (!value?.id || !value.name || value.currency !== 'UAH') return false
   const mode = value.onlinePricing
-  if (mode === 'REQUEST_ONLY') return true
+  if (mode === 'REQUEST_ONLY' || mode === 'FREE') return true
   if (mode === 'PER_NIGHT' || mode === 'GUEST_QUANTITY' || mode === 'FIXED_ONCE') return Boolean(value.price)
   return false
 }
