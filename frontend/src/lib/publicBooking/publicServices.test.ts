@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -14,7 +15,7 @@ import {
   serviceQuantityBounds,
   serviceSelectionKey,
 } from './publicServices'
-import { isCatalogItem } from './usePublicServices'
+import { isCatalogItem, pruneServiceQuantities } from './usePublicServices'
 import type { PublicServiceCatalogItem } from './types'
 
 const breakfast: PublicServiceCatalogItem = {
@@ -39,7 +40,7 @@ describe('public service selection', () => {
   })
 
   it('offers extras after a stay with a per-stay price, and drops other charge bases', () => {
-    assert.equal(SERVICE_SECTION_HEADING, 'Додайте до проживання')
+    assert.equal(SERVICE_SECTION_HEADING, 'Додаткові послуги')
     assert.equal(SERVICE_CHARGE_UNIT.PER_STAY, 'за бронювання')
     assert.equal(SERVICE_CHARGE_UNIT.PER_NIGHT, 'за ніч')
     assert.equal(breakfast.chargeBasis, 'PER_STAY')
@@ -60,26 +61,60 @@ describe('public service selection', () => {
     assert.equal(isCatalogItem(breakfast), true)
     assert.equal(isCatalogItem(extra), true)
     assert.equal(isCatalogItem({ ...breakfast, chargeBasis: 'PER_PERSON_DAY' } as PublicServiceCatalogItem), false)
-    const empty = renderToStaticMarkup(createElement(ServiceOptions, { items: [], quantities: {}, onChange() {} }))
-    assert.equal(empty, '')
-    const listed = renderToStaticMarkup(
-      createElement(ServiceOptions, { items: [breakfast], quantities: {}, onChange() {} }),
+    const loading = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [], quantities: {}, status: 'loading', onChange() {} }),
     )
-    assert.match(listed, /Додайте до проживання/)
+    assert.match(loading, /Додаткові послуги/)
+    assert.match(loading, /Завантажуємо послуги/)
+    const empty = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [], quantities: {}, status: 'empty', onChange() {} }),
+    )
+    assert.match(empty, /Додаткові послуги/)
+    assert.match(empty, /немає послуг, які можна додати/)
+    const failed = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [], quantities: {}, status: 'error', onChange() {} }),
+    )
+    assert.match(failed, /не вдалося показати/)
+    assert.doesNotMatch(failed, /catalog|PER_STAY|API/)
+    const listed = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [breakfast], quantities: {}, status: 'ready', onChange() {} }),
+    )
+    assert.match(listed, /Додаткові послуги/)
     assert.match(listed, /за бронювання/)
-    assert.doesNotMatch(listed, /Додаткових послуг зараз немає/)
+    assert.doesNotMatch(listed, /немає послуг, які можна додати/)
     const nightListed = renderToStaticMarkup(
-      createElement(ServiceOptions, { items: [extra], quantities: { 'svc-night': 1 }, onChange() {} }),
+      createElement(ServiceOptions, { items: [extra], quantities: { 'svc-night': 1 }, status: 'ready', onChange() {} }),
     )
     assert.match(nightListed, /за ніч/)
     assert.match(nightListed, /Прибрати/)
     assert.doesNotMatch(nightListed, /Збільшити/)
     assert.match(nightListed, /flex-col gap-3 sm:flex-row/)
     const staySummary = renderToStaticMarkup(
-      createElement(ServiceOptions, { items: [breakfast, extra], quantities: {}, onChange() {} }),
+      createElement(ServiceOptions, { items: [breakfast, extra], quantities: {}, status: 'ready', onChange() {} }),
     )
     assert.match(staySummary, /за бронювання/)
     assert.match(staySummary, /за ніч/)
+  })
+
+  it('drops extras that the current catalog no longer offers', () => {
+    assert.deepEqual(pruneServiceQuantities({ 'svc-1': 2, 'gone': 1 }, [breakfast]), { 'svc-1': 2 })
+    const same = { 'svc-1': 2 }
+    assert.equal(pruneServiceQuantities(same, [breakfast]), same)
+  })
+
+  it('keeps extras on the contacts step after a room is chosen', () => {
+    const flow = readFileSync(new URL('../../pages/BookingFlow.tsx', import.meta.url), 'utf8')
+    const options = readFileSync(new URL('../../components/booking/ServiceOptions.tsx', import.meta.url), 'utf8')
+    const summary = readFileSync(new URL('../../components/booking/CheckoutPanels.tsx', import.meta.url), 'utf8')
+    assert.match(flow, /bookingEnabled && search.selectedRoom/)
+    assert.match(flow, /pruneServiceQuantities/)
+    assert.match(flow, /<legend className="font-display text-3xl">Контакти<\/legend>/)
+    assert.match(options, /status === 'error'/)
+    assert.doesNotMatch(options, /if \(items.length === 0\) return null/)
+    assert.doesNotMatch(options, /сервер|PER_STAY|catalog/)
+    assert.match(summary, /quote.services/)
+    assert.match(summary, /line.totalPrice/)
+    assert.doesNotMatch(summary, /unitPrice/)
   })
 
   it('sends only the server quote lines and maps an invalid service error', () => {
