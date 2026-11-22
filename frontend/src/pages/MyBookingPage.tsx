@@ -11,6 +11,7 @@ import {
   normalizeAccessCode,
   type GuestBookingView,
 } from '../lib/publicBooking/myBooking'
+import { publicServiceLineAmountCopy, publicServiceLineTitle } from '../lib/publicBooking/publicServices'
 import { guestCountLabel } from '../lib/ukrainian'
 import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/config'
 
@@ -158,12 +159,10 @@ export function MyBookingPage() {
               {view.services.map((line) => (
                 <li key={line.serviceId} className="flex justify-between gap-4">
                   <span className="min-w-0 break-words">
-                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
+                    {publicServiceLineTitle(line)}
                   </span>
                   <span className="shrink-0">
-                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                      ? 'Оплата за домовленістю'
-                      : formatMoneyAmount(line.totalPrice)}
+                    {publicServiceLineAmountCopy(line) ?? formatMoneyAmount(line.totalPrice as string)}
                   </span>
                 </li>
               ))}

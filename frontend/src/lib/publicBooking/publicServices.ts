@@ -8,6 +8,7 @@ export const SERVICE_EMPTY_COPY = 'Зараз немає послуг, які м
 export const SERVICE_ERROR_COPY = 'Послуги зараз не вдалося показати. Проживання можна оформити без них.'
 export const SERVICE_DROPPED_COPY = 'Деякі послуги більше недоступні і зняті з заявки.'
 export const SERVICE_AGREED_PRICE_COPY = 'Оплата за домовленістю'
+export const SERVICE_FREE_COPY = 'Безкоштовно'
 export const SERVICE_AGREED_TOTAL_NOTE = 'Заявки з оплатою за домовленістю не входять у показану суму.'
 export const SERVICE_REQUEST_HINT =
   'Побажання можна написати в коментарі нижче. Це заявка, не підтверджене бронювання послуги.'
@@ -29,6 +30,7 @@ export function guestPicksServiceQuantity(item: Pick<PublicServiceCatalogItem, '
 export function serviceUnitCopy(item: Pick<PublicServiceCatalogItem, 'onlinePricing' | 'chargeBasis' | 'price'>) {
   const mode = onlinePricingOf(item)
   if (mode === 'REQUEST_ONLY') return SERVICE_AGREED_PRICE_COPY
+  if (mode === 'FREE') return SERVICE_FREE_COPY
   if (mode === 'PER_NIGHT') return SERVICE_NIGHT_UNIT
   if (mode === 'FIXED_ONCE') return SERVICE_FIXED_UNIT
   if (mode === 'GUEST_QUANTITY') return SERVICE_QUANTITY_UNIT
@@ -83,7 +85,7 @@ export function selectedServiceLines(
       lines.push({ serviceId: item.id, quantity: stayNights as number })
       continue
     }
-    if (mode === 'REQUEST_ONLY') {
+    if (mode === 'REQUEST_ONLY' || mode === 'FREE') {
       lines.push({ serviceId: item.id, quantity: 1 })
       continue
     }
@@ -102,6 +104,20 @@ export function quoteServiceSelection(
 
 export function isAgreedPriceLine(line: Pick<PublicQuoteServiceLine, 'pricing' | 'totalPrice'>) {
   return line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
+}
+
+export function isFreePriceLine(line: Pick<PublicQuoteServiceLine, 'pricing' | 'totalPrice'>) {
+  return line.pricing === 'FREE' || line.totalPrice === '0.00'
+}
+
+export function publicServiceLineAmountCopy(line: Pick<PublicQuoteServiceLine, 'pricing' | 'totalPrice'>) {
+  if (isAgreedPriceLine(line)) return SERVICE_AGREED_PRICE_COPY
+  if (isFreePriceLine(line)) return SERVICE_FREE_COPY
+  return null
+}
+
+export function publicServiceLineTitle(line: Pick<PublicQuoteServiceLine, 'name' | 'quantity' | 'pricing' | 'totalPrice'>) {
+  return isAgreedPriceLine(line) ? line.name : `${line.name} · ${line.quantity}`
 }
 
 const SERVICE_SELECTION_STORAGE_KEY = 'dakh-booking-service-quantities'

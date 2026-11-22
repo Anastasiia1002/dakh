@@ -39,7 +39,7 @@ export type GuestBookingView = {
     name: string
     quantity: number
     totalPrice: string | null
-    pricing?: 'PRICED' | 'BY_AGREEMENT'
+    pricing?: 'PRICED' | 'BY_AGREEMENT' | 'FREE'
   }>
   paymentLabel: string | null
 }

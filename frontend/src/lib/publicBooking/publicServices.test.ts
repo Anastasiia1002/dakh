@@ -11,7 +11,10 @@ import {
   quoteServiceSelection,
   selectedServiceLines,
   SERVICE_AGREED_PRICE_COPY,
+  SERVICE_FREE_COPY,
   SERVICE_FIXED_UNIT,
+  isFreePriceLine,
+  publicServiceLineAmountCopy,
   SERVICE_NIGHT_UNIT,
   SERVICE_QUANTITY_LABEL,
   SERVICE_QUANTITY_UNIT,
@@ -158,6 +161,41 @@ describe('public service selection', () => {
     assert.match(cellarUi, /Вино з льоху/)
     assert.match(cellarUi, /фіксована ціна/)
     assert.doesNotMatch(cellarUi, /Збільшити/)
+    const welcome: PublicServiceCatalogItem = {
+      id: 'svc-welcome',
+      name: 'Вітальний напій',
+      description: null,
+      price: null,
+      currency: 'UAH',
+      chargeBasis: 'PER_STAY',
+      onlinePricing: 'FREE',
+      minQuantity: null,
+      maxQuantity: null,
+    }
+    assert.equal(isCatalogItem(welcome), true)
+    assert.equal(isCatalogItem({ ...welcome, onlinePricing: 'FIXED_ONCE' }), false)
+    assert.equal(serviceUnitCopy(welcome), SERVICE_FREE_COPY)
+    assert.deepEqual(selectedServiceLines({ 'svc-welcome': 9 }, [welcome], 3), [{ serviceId: 'svc-welcome', quantity: 1 }])
+    assert.deepEqual(
+      selectedServiceLines({ 'svc-welcome': 1, 'svc-transfer': 1, 'svc-breakfast': 2 }, [welcome, transfer, meals], 3),
+      [
+        { serviceId: 'svc-breakfast', quantity: 2 },
+        { serviceId: 'svc-transfer', quantity: 1 },
+        { serviceId: 'svc-welcome', quantity: 1 },
+      ],
+    )
+    assert.equal(publicServiceLineAmountCopy({ pricing: 'FREE', totalPrice: '0.00' }), SERVICE_FREE_COPY)
+    assert.equal(publicServiceLineAmountCopy({ pricing: 'PRICED', totalPrice: '0.00' }), SERVICE_FREE_COPY)
+    assert.equal(publicServiceLineAmountCopy({ pricing: 'BY_AGREEMENT', totalPrice: null }), SERVICE_AGREED_PRICE_COPY)
+    assert.equal(isFreePriceLine({ pricing: 'BY_AGREEMENT', totalPrice: null }), false)
+    const welcomeUi = renderToStaticMarkup(
+      createElement(ServiceOptions, { items: [welcome], quantities: { 'svc-welcome': 1 }, status: 'ready', onChange() {} }),
+    )
+    assert.match(welcomeUi, /Вітальний напій/)
+    assert.match(welcomeUi, /Безкоштовно/)
+    assert.match(welcomeUi, /Прибрати/)
+    assert.doesNotMatch(welcomeUi, /0 ₴/)
+    assert.doesNotMatch(welcomeUi, /Оплата за домовленістю/)
   })
 
   it('drops extras that the current catalog no longer offers', () => {
@@ -179,12 +217,14 @@ describe('public service selection', () => {
     assert.match(summary, /quote.services/)
     assert.match(summary, /line.totalPrice/)
     assert.doesNotMatch(summary, /unitPrice/)
-    assert.match(summary, /Оплата за домовленістю/)
+    assert.match(summary, /publicServiceLineAmountCopy/)
+    assert.match(summary, /SERVICE_AGREED_TOTAL_NOTE/)
     assert.match(flow, /SERVICE_DROPPED_COPY/)
     assert.match(flow, /loadStoredServiceQuantities/)
     const roomBooking = readFileSync(new URL('../../components/booking/RoomBooking.tsx', import.meta.url), 'utf8')
     assert.match(roomBooking, /ServiceOptions/)
-    assert.match(summary, /Оплата за домовленістю/)
+    const confirmation = readFileSync(new URL('../../pages/ConfirmationPage.tsx', import.meta.url), 'utf8')
+    assert.match(confirmation, /publicServiceLineAmountCopy/)
   })
 
   it('sends only the server quote lines and maps an invalid service error', () => {
