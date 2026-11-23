@@ -10,7 +10,7 @@ const ActiveBooking =
 
 export function BookingPage() {
   return (
-    <div className={`pb-40 pt-24 md:pb-24 md:pt-28 ${PAGE_SHELL}`}>
+    <div className={`bg-linen pb-28 pt-8 md:pb-16 md:pt-10 ${PAGE_SHELL}`}>
       {ActiveBooking ? (
         <Suspense fallback={<p className="py-16 text-sm text-wood/60">Завантажуємо бронювання…</p>}>
           <ActiveBooking />

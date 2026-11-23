@@ -31,4 +31,17 @@ describe('site header', () => {
     assert.match(source, /event\.key !== 'Escape'/)
     assert.match(source, /onClick=\{\(\) => setOpen\(false\)\}/)
   })
+
+  it('keeps checkout on a sticky wood header over linen, not an absolute linen overlay', () => {
+    const booking = renderToStaticMarkup(
+      createElement(MemoryRouter, { initialEntries: ['/bronuvannya'] }, createElement(Layout)),
+    )
+    const rooms = renderToStaticMarkup(
+      createElement(MemoryRouter, { initialEntries: ['/rooms'] }, createElement(Layout)),
+    )
+    assert.match(booking, /sticky top-0/)
+    assert.match(booking, /text-wood/)
+    assert.doesNotMatch(booking, /absolute inset-x-0 top-0 text-linen/)
+    assert.match(rooms, /absolute inset-x-0 top-0 text-linen/)
+  })
 })

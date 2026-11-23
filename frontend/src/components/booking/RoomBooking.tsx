@@ -18,11 +18,11 @@ import { calendarRejectsStay, reconcileStay } from '../../lib/publicBooking/cale
 import {
   saveBookingHandoff,
   handoffToSearch,
-  loadBookingHandoff,
   rememberRoomDisplayName,
   type BookingHandoff,
 } from '../../lib/publicBooking/handoff'
-import { seedDraftFromHandoff } from '../../lib/publicBooking/bookingDraft'
+import { startNewAttemptFromHandoff } from '../../lib/publicBooking/bookingDraft'
+import { ResumeBookingLink } from './ResumeBookingLink'
 import { stayUrlFromSearch } from '../../lib/publicBooking/stayUrl'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
 import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
@@ -40,7 +40,7 @@ import {
 } from '../../lib/publicBooking/publicServices'
 import { extrasCatalogLoaded, pruneServiceQuantities, usePublicServices } from '../../lib/publicBooking/usePublicServices'
 
-function draftFromHandoff(publicSlug: string, params: URLSearchParams): BookingDraft {
+function draftFromStayUrl(params: URLSearchParams): BookingDraft {
   const fromUrl = stayUrlFromSearch(params)
   if (fromUrl.from && fromUrl.to) {
     return {
@@ -51,17 +51,7 @@ function draftFromHandoff(publicSlug: string, params: URLSearchParams): BookingD
       children: fromUrl.children,
     }
   }
-  const saved = loadBookingHandoff()
-  if (!saved || saved.catalogSlug !== publicSlug) return { ...emptyDraft, adults: 2 }
-  return {
-    ...emptyDraft,
-    checkIn: saved.checkIn,
-    checkOut: saved.checkOut,
-    adults: saved.adults,
-    children: saved.children,
-    roomTypeId: saved.roomTypeId,
-    ratePlanId: saved.ratePlanId,
-  }
+  return { ...emptyDraft, adults: 2 }
 }
 
 export function RoomBooking({
@@ -81,23 +71,19 @@ export function RoomBooking({
 }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const [draft, setDraft] = useState<BookingDraft>(() => draftFromHandoff(publicSlug, params))
+  const [draft, setDraft] = useState<BookingDraft>(() => draftFromStayUrl(params))
   const [now, setNow] = useState(() => Date.now())
   const [calendarRange, setCalendarRange] = useState<{ from: string; to: string } | null>(null)
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const catalog = usePublicServices(hotelSlug)
-  const [servicesByUnit, setServicesByUnit] = useState(() => {
-    const saved = loadBookingHandoff()
-    const knownId = saved?.catalogSlug === publicSlug ? saved.roomTypeId : ''
-    return migrateServicesByUnit({
-      roomTypeId: knownId,
+  const [servicesByUnit, setServicesByUnit] = useState(() =>
+    migrateServicesByUnit({
+      roomTypeId: '',
       servicesByUnit: loadServicesByUnit(),
-      handoffRoomTypeId: knownId,
-      handoffServices: knownId ? saved?.services : undefined,
       legacyStored: loadStoredServiceQuantities(),
-    })
-  })
+    }),
+  )
   const [extrasNotice, setExtrasNotice] = useState('')
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
@@ -230,11 +216,11 @@ export function RoomBooking({
       },
       services: serviceQuantities,
     }
-    seedDraftFromHandoff(handoff, serviceQuantities)
-    saveBookingHandoff(handoff)
+    const next = startNewAttemptFromHandoff(handoff, serviceQuantities)
+    saveBookingHandoff(next)
     navigate(
-      { pathname: '/bronuvannya', search: handoffToSearch(handoff).toString() },
-      { state: { handoff } },
+      { pathname: '/bronuvannya', search: handoffToSearch(next).toString() },
+      { state: { handoff: next } },
     )
   }
 
@@ -335,6 +321,7 @@ export function RoomBooking({
             >
               Забронювати
             </button>
+            <ResumeBookingLink />
             <p className="mt-4 text-[0.72rem] text-wood/55">
               Далі на сторінці бронювання зберемо контакти. {categorySingularLabel(category)}, дати й гості залишаються тими, що ви
               обрали. Ціну ще раз підтвердить сервер.

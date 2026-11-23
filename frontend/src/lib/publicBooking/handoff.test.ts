@@ -163,4 +163,29 @@ describe('booking handoff', () => {
     })
     assert.equal(resolved, null)
   })
+
+  it('keeps the checkout attempt in the booking URL', () => {
+    const attemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const params = new URLSearchParams({
+      hotel: handoff.hotelSlug,
+      room: handoff.catalogSlug,
+      roomType: roomTypeId,
+      type: handoff.roomTypeSlug,
+      from: handoff.checkIn,
+      to: handoff.checkOut,
+      adults: '2',
+      children: '0',
+      attempt: attemptId,
+    })
+    assert.equal(handoffFromSearch(params)?.attemptId, attemptId)
+    assert.equal(handoffToSearch({ ...handoff, attemptId }).get('attempt'), attemptId)
+    const other = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    const resolved = resolveBookingHandoff({
+      state: null,
+      params,
+      stored: { ...handoff, attemptId: other, ratePlanId, preview: handoff.preview },
+    })
+    assert.equal(resolved?.attemptId, attemptId)
+    assert.equal(resolved?.ratePlanId, '')
+  })
 })
