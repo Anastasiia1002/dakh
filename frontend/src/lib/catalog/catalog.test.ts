@@ -276,6 +276,25 @@ describe('catalog screens', () => {
     assert.match(html, /loading="lazy"/)
     assert.doesNotMatch(html, /fetchPriority="high"/)
     assert.doesNotMatch(html, /photos.example\/cover/)
+    assert.doesNotMatch(html, />Назад</)
+    assert.doesNotMatch(html, />Далі</)
+  })
+
+  it('uses one active image and a thumbnail row for several photos', () => {
+    const html = markup(
+      createElement(PhotoGallery, {
+        images: [
+          { url: 'https://photos.example/one.webp', alt: 'Перше', sortOrder: 0 },
+          { url: 'https://photos.example/two.webp', alt: 'Друге', sortOrder: 1 },
+        ],
+        title: 'Номер',
+      }),
+    )
+    assert.match(html, /aspect-ratio:3 \/ 2|aspect-ratio: 3 \/ 2/)
+    assert.match(html, /Фото 1/)
+    assert.match(html, /Фото 2/)
+    assert.match(html, /Наступне фото/)
+    assert.match(html, /Попереднє фото/)
   })
 
   it('lazy-loads offscreen photos and keeps a fallback when the file fails to render', () => {

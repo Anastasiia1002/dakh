@@ -21,6 +21,8 @@ export type StoredCheckout = {
   guestCount?: number
   adults?: number
   children?: number
+  cooldownUntil?: number
+  otpExpiresAt?: string
 }
 
 export type StoredStay = {
@@ -126,7 +128,11 @@ export function resumeIntentForStay(stay: StoredStay): PublicBookingIntentRespon
   }
 }
 
-export function writeStoredIntent(intent: PublicBookingIntentResponse, stay?: StoredStay) {
+export function writeStoredIntent(
+  intent: PublicBookingIntentResponse,
+  stay?: StoredStay,
+  verification?: { cooldownUntil?: number; otpExpiresAt?: string },
+) {
   const previous = readStoredIntent()
   const bound =
     stay ??
@@ -140,6 +146,8 @@ export function writeStoredIntent(intent: PublicBookingIntentResponse, stay?: St
           children: previous.children,
         }
       : undefined)
+  const cooldownUntil = verification?.cooldownUntil ?? previous?.cooldownUntil
+  const otpExpiresAt = verification?.otpExpiresAt ?? previous?.otpExpiresAt
   sessionStore()?.setItem(
     INTENT_SESSION_KEY,
     JSON.stringify({
@@ -152,8 +160,27 @@ export function writeStoredIntent(intent: PublicBookingIntentResponse, stay?: St
       guestCount: bound?.guestCount,
       adults: bound?.adults,
       children: bound?.children,
+      cooldownUntil,
+      otpExpiresAt,
     } satisfies StoredCheckout),
   )
+}
+
+export function storedIntentExpiredForStay(stay: StoredStay): StoredCheckout | null {
+  const stored = readStoredIntent()
+  if (!stored?.roomTypeId || !stored.checkIn || !stored.checkOut || stored.guestCount == null) return null
+  const splitMatches =
+    stay.adults == null && stay.children == null
+      ? true
+      : stored.adults === stay.adults && stored.children === stay.children
+  const sameStay =
+    stored.roomTypeId === stay.roomTypeId &&
+    stored.checkIn === stay.checkIn &&
+    stored.checkOut === stay.checkOut &&
+    stored.guestCount === stay.guestCount &&
+    splitMatches
+  if (!sameStay || !intentLooksExpired(stored.expiresAt)) return null
+  return stored
 }
 
 export function clearStoredIntent() {

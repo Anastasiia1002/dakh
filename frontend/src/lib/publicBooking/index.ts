@@ -48,6 +48,8 @@ export {
   guestComposition,
   guestCountOf,
   guestDraftFromParams,
+  occupancyIssueForCapacity,
+  typedAdultsWithinCapacity,
   intentStayFromQuote,
   publicQuoteBody,
   quoteRequestKey,

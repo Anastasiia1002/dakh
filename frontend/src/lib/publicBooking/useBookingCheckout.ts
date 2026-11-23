@@ -7,8 +7,10 @@ import {
   intentLooksExpired,
   isQuoteFresh,
   newIdempotencyKey,
+  readStoredIntent,
   resumeIntentForStay,
   shouldStartCheckout,
+  storedIntentExpiredForStay,
   type CheckoutStep,
   type StoredStay,
   writeStoredConfirmationToken,
@@ -36,15 +38,26 @@ type GuestInput = {
 export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
   const resumed =
     isBookingEnabled() && stay?.roomTypeId && stay.checkIn && stay.checkOut ? resumeIntentForStay(stay) : null
+  const stored = resumed ? readStoredIntent() : null
+  const expiredStored =
+    !resumed && stay?.roomTypeId && stay.checkIn && stay.checkOut ? storedIntentExpiredForStay(stay) : null
   const [step, setStep] = useState<CheckoutStep>(resumed ? 'verify' : 'collect')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    expiredStored ? 'Час на підтвердження минув. Перевірте дані й надішліть заявку знову — код не надіслано повторно.' : '',
+  )
   const [intent, setIntent] = useState<PublicBookingIntentResponse | null>(resumed)
-  const [otp, setOtp] = useState<PublicOtpRequestResponse | null>(null)
+  const [otp, setOtp] = useState<PublicOtpRequestResponse | null>(() =>
+    stored?.otpExpiresAt
+      ? { sent: true, cooldownSeconds: 0, otpExpiresAt: stored.otpExpiresAt }
+      : null,
+  )
   const [pendingQuote, setPendingQuote] = useState<PublicQuoteResponse | null>(null)
   const [priceChangeAt, setPriceChangeAt] = useState<'intent' | 'confirm' | 'email' | null>(null)
   const [confirmation, setConfirmation] = useState<PublicBookingConfirmationResponse | null>(null)
-  const [cooldownUntil, setCooldownUntil] = useState(0)
+  const [cooldownUntil, setCooldownUntil] = useState(() =>
+    stored?.cooldownUntil && stored.cooldownUntil > Date.now() ? stored.cooldownUntil : 0,
+  )
   const inflight = useRef(false)
   const idempotencyKey = useRef(newIdempotencyKey())
   const emailCorrection = useRef('')
@@ -55,8 +68,26 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
     return true
   }
 
-  function markCooldown(seconds: number) {
-    setCooldownUntil(Date.now() + Math.max(0, seconds) * 1000)
+  function persistVerification(
+    currentIntent: PublicBookingIntentResponse | null,
+    nextOtp: PublicOtpRequestResponse | null,
+    until: number,
+  ) {
+    if (!currentIntent) return
+    writeStoredIntent(currentIntent, stay, {
+      cooldownUntil: until,
+      otpExpiresAt: nextOtp?.otpExpiresAt,
+    })
+  }
+
+  function markCooldown(
+    seconds: number,
+    nextOtp: PublicOtpRequestResponse | null = otp,
+    currentIntent: PublicBookingIntentResponse | null = intent,
+  ) {
+    const until = Date.now() + Math.max(0, seconds) * 1000
+    setCooldownUntil(until)
+    persistVerification(currentIntent, nextOtp, until)
   }
 
   function resetAttempt() {
@@ -148,7 +179,7 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
     try {
       const sent = await publicBookingClient.requestEmailVerification(created.intentId)
       setOtp(sent)
-      markCooldown(sent.cooldownSeconds)
+      markCooldown(sent.cooldownSeconds, sent, created)
     } catch (otpError) {
       if (isAbortError(otpError)) throw otpError
       setError(errorCopy(otpError))
@@ -227,7 +258,7 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
     try {
       const sent = await publicBookingClient.requestEmailVerification(created.intentId)
       setOtp(sent)
-      markCooldown(sent.cooldownSeconds)
+      markCooldown(sent.cooldownSeconds, sent, created)
     } catch (otpError) {
       if (isAbortError(otpError)) throw otpError
       setError(errorCopy(otpError))
@@ -287,7 +318,7 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
     try {
       const sent = await publicBookingClient.requestEmailVerification(intent.intentId)
       setOtp(sent)
-      markCooldown(sent.cooldownSeconds)
+      markCooldown(sent.cooldownSeconds, sent, intent)
     } catch (caught) {
       if (isAbortError(caught)) return
       setError(errorCopy(caught))

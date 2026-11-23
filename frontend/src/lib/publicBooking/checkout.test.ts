@@ -7,6 +7,7 @@ import {
   isQuoteFresh,
   readStoredConfirmationToken,
   shouldStartCheckout,
+  storedIntentExpiredForStay,
   storedIntentMatchesStay,
   writeStoredConfirmationToken,
   hasInvalidConfirmationRoute,
@@ -133,5 +134,52 @@ describe('checkout helpers', () => {
     assert.equal(storedIntentMatchesStay(stored, { ...stay, adults: 1, children: 1 }), false)
     assert.equal(storedIntentMatchesStay({ ...stored, roomTypeId: undefined }, stay), false)
     assert.equal(storedIntentMatchesStay({ ...stored, expiresAt: '2000-01-01T00:00:00.000Z' }, stay), false)
+    assert.equal(storedIntentExpiredForStay({ ...stay, adults: 2, children: 0 }), null)
+  })
+
+  it('keeps an expired pending session identifiable without storing an OTP', () => {
+    const memory = new Map<string, string>()
+    const sessionStorage = {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        memory.set(key, value)
+      },
+      removeItem: (key: string) => {
+        memory.delete(key)
+      },
+    }
+    const previous = (globalThis as { window?: unknown }).window
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: { sessionStorage } })
+    try {
+      sessionStorage.setItem(
+        'dakh-booking-intent',
+        JSON.stringify({
+          intentId: '11111111-1111-4111-8111-111111111111',
+          emailMasked: 'ox***@example.test',
+          expiresAt: '2000-01-01T00:00:00.000Z',
+          roomTypeId: '33333333-3333-4333-8333-333333333331',
+          checkIn: '2026-12-15',
+          checkOut: '2026-12-17',
+          guestCount: 2,
+          adults: 2,
+          children: 0,
+          cooldownUntil: Date.now() + 20_000,
+          otpExpiresAt: '2000-01-01T00:10:00.000Z',
+        }),
+      )
+      const expired = storedIntentExpiredForStay({
+        roomTypeId: '33333333-3333-4333-8333-333333333331',
+        checkIn: '2026-12-15',
+        checkOut: '2026-12-17',
+        guestCount: 2,
+        adults: 2,
+        children: 0,
+      })
+      assert.equal(expired?.intentId, '11111111-1111-4111-8111-111111111111')
+      assert.equal(JSON.stringify(expired).includes('123456'), false)
+    } finally {
+      if (previous === undefined) delete (globalThis as { window?: unknown }).window
+      else Object.defineProperty(globalThis, 'window', { configurable: true, value: previous })
+    }
   })
 })
