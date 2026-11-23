@@ -437,6 +437,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
   const showMobileBar = bookingEnabled && checkout.step === 'collect' && !pickerOpen
   const selectedCover = draft.roomTypeId ? catalogCovers.get(draft.roomTypeId) : undefined
+  const bookingPanel =
+    'booking-panel overflow-hidden border border-linen/15 bg-wood text-linen shadow-[0_18px_40px_rgba(91,56,43,0.22)]'
   const stayLead = locked
     ? 'Помешкання вже обрано. Дати можна змінити.'
     : search.searchable
@@ -589,7 +591,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
         </div>
 
-        <aside className="hidden h-fit overflow-hidden border border-clay/20 bg-beige/40 p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)] md:sticky md:top-8 md:col-span-5 md:block">
+        <aside className={`${bookingPanel} hidden h-fit p-6 md:sticky md:top-8 md:col-span-5 md:block`}>
           <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
           {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
@@ -691,7 +693,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 type="submit"
                 disabled={!canSubmit}
                 aria-describedby={submitBlockReason ? 'booking-submit-reason' : undefined}
-                className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
+                className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-linen/20 disabled:text-linen/45"
               >
                 {checkout.busy && checkout.step === 'creating_intent'
                   ? 'Надсилаємо…'
@@ -705,7 +707,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           )}
         </aside>
 
-        <div className="border border-clay/20 bg-beige/40 p-5 md:hidden">
+        <div className={`${bookingPanel} p-5 md:hidden`}>
           <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
           <QuoteSummary
             checkIn={draft.checkIn}
