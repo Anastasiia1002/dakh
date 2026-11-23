@@ -14,15 +14,18 @@ export function widgetPhoneDetail(href: string) {
   return digits ? `+${digits}` : undefined
 }
 
-/** Phone, WhatsApp, and Viber use the published widget number. Telegram/Messenger are omitted unless configured. */
+/** Phone, WhatsApp, Viber, and Telegram use the published widget number. Messenger is omitted unless configured. */
 export function widgetContactChannels(
-  source: Pick<typeof site, 'widgetPhoneHref' | 'whatsappHref' | 'viberHref' | 'instagram'> = site,
+  source: Pick<typeof site, 'widgetPhoneHref' | 'whatsappHref' | 'viberHref' | 'telegramHref' | 'instagram'> = site,
 ): ContactChannel[] {
   const channels: ContactChannel[] = [
     { id: 'phone', label: 'Подзвонити', href: source.widgetPhoneHref, detail: widgetPhoneDetail(source.widgetPhoneHref) },
     { id: 'whatsapp', label: 'WhatsApp', href: source.whatsappHref, external: true },
     { id: 'viber', label: 'Viber', href: source.viberHref },
   ]
+  if (source.telegramHref) {
+    channels.push({ id: 'telegram', label: 'Telegram', href: source.telegramHref, external: true })
+  }
   const socials: OfficialSocial[] = officialSocials(source)
   for (const social of socials) {
     const id = social.label.toLowerCase()
