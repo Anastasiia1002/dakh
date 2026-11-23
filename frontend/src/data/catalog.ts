@@ -66,6 +66,7 @@ export const site = {
   widgetPhoneHref: 'tel:+380938180001',
   whatsappHref: 'https://wa.me/380938180001',
   viberHref: 'viber://chat?number=%2B380938180001',
+  telegramHref: 'https://t.me/+380938180001',
   email: 'hello@dakh.ua',
   instagram: 'https://www.instagram.com/dakh.myhovo/',
   checkIn: '14:00',
