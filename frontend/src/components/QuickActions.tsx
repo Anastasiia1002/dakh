@@ -22,8 +22,20 @@ function stayDetailPath(pathname: string) {
   return path.startsWith('/rooms/') || path.startsWith('/houses/')
 }
 
-const bookActionClass =
-  'group pointer-events-auto relative inline-flex size-11 items-center justify-center border border-clay bg-clay text-linen shadow-[0_10px_28px_rgba(91,56,43,0.16)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
+const fabClass =
+  'group pointer-events-auto relative inline-flex size-[52px] items-center justify-center rounded-full bg-wood text-linen shadow-[0_10px_28px_rgba(91,56,43,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
+
+function useFineHover() {
+  const [fineHover, setFineHover] = useState(false)
+  useEffect(() => {
+    const media = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () => setFineHover(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  return fineHover
+}
 
 function ActionTooltip({ label }: { label: string }) {
   return (
@@ -80,16 +92,26 @@ function PhoneIcon({ className }: { className?: string }) {
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-      <path d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.45 1.33 4.95L2 22l5.37-1.4a10 10 0 0 0 4.67 1.18h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2Zm0 18.02h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.19.83.85-3.1-.2-.32a8.14 8.14 0 0 1-1.26-4.37c0-4.5 3.69-8.16 8.23-8.16 4.39 0 8.22 3.54 8.22 8.16 0 4.5-3.69 8.29-8.16 8.29Zm4.51-6.2c-.25-.12-1.46-.72-1.69-.8-.23-.08-.39-.12-.56.12-.16.25-.64.8-.78.96-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.42h-.48c-.16 0-.43.06-.66.31-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.56.12.16 1.75 2.67 4.24 3.74 1.49.64 2.08.7 2.82.59.43-.07 1.46-.6 1.67-1.17.2-.58.2-1.07.14-1.17-.06-.1-.23-.16-.48-.29Z" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path
+        d="M20.5 11.5a8.5 8.5 0 0 1-12.4 7.55L4 20l.95-4.1A8.5 8.5 0 1 1 20.5 11.5Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M9.2 9.6c.2-.5.3-.5.6-.5h.5c.2 0 .3.1.4.3l.5 1.2c.1.2 0 .4-.1.5l-.4.4c-.1.1-.1.3 0 .5.4.7 1.1 1.4 1.8 1.8.2.1.4.1.5 0l.4-.4c.2-.1.4-.2.5-.1l1.2.5c.2.1.3.2.3.4v.5c0 .3 0 .4-.5.6-.5.2-1.3.1-2.7-.5-1.5-.7-2.6-1.8-3.3-3.3-.6-1.3-.7-2.1-.5-2.6Z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
 function ViberIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-      <path d="M11.4 2.1c-4.7.3-8.6 4.1-9 8.8-.3 3.5 1.3 6.8 4.1 8.7v2.3l2.2-1.2c.8.2 1.6.3 2.4.3h.3c5.2-.2 9.2-4.6 8.9-9.8-.3-4.8-4.4-8.6-8.9-9.1Zm4.7 13.1c-.2.5-.8 1-1.3 1.1-.4.1-1 .2-3-.8-2.4-1.2-4-3.6-4.1-3.8-.2-.2-1.3-1.7-1.3-3.3 0-1.6.8-2.3 1.1-2.6.3-.3.7-.4.9-.4h.7c.2 0 .5 0 .7.6.3.8.9 2.8 1 3 .1.2.1.4 0 .6-.1.2-.2.4-.4.6-.2.2-.4.4-.5.5-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.9 1 2.2 1.1.3.2.5.2.6.4.1.1.1.7-.2 1.2Z" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path
+        d="M7 19.5V16A7.5 7.5 0 1 1 17 16v3.5L14.2 18H12A7.5 7.5 0 0 1 7 19.5Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M10 9.5c.8 2 2 3.2 4 4" strokeLinecap="round" />
     </svg>
   )
 }
@@ -145,21 +167,19 @@ function IconAction({
   )
 }
 
-function ChannelLink({ channel, onSelect }: { channel: ContactChannel; onSelect: () => void }) {
+function ChannelButton({ channel, onSelect }: { channel: ContactChannel; onSelect: () => void }) {
   return (
     <a
       role="menuitem"
       href={channel.href}
       target={channel.external ? '_blank' : undefined}
       rel={channel.external ? 'noreferrer' : undefined}
-      className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-wood transition-colors hover:bg-wood/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
+      className={fabClass}
+      aria-label={channel.label}
       onClick={onSelect}
     >
-      <ChannelIcon id={channel.id} className="size-[22px] shrink-0" />
-      <span className="min-w-0">
-        <span className="block text-sm leading-5">{channel.label}</span>
-        {channel.detail ? <span className="mt-0.5 block text-xs leading-4 text-wood/60">{channel.detail}</span> : null}
-      </span>
+      <ChannelIcon id={channel.id} className="size-6" />
+      <ActionTooltip label={channel.label} />
     </a>
   )
 }
@@ -169,19 +189,26 @@ export function QuickActions() {
   const [params] = useSearchParams()
   const stay = stayUrlFromSearch(params)
   const channels = widgetContactChannels()
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const fineHover = useFineHover()
+  const [hoverOpen, setHoverOpen] = useState(false)
+  const [focusOpen, setFocusOpen] = useState(false)
+  const [tapOpen, setTapOpen] = useState(false)
+  const contactRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
-  const headingId = useId()
+  const open = tapOpen || hoverOpen || focusOpen
 
   function closeMenu() {
-    setOpen(false)
+    setHoverOpen(false)
+    setFocusOpen(false)
+    setTapOpen(false)
     queueMicrotask(() => buttonRef.current?.focus())
   }
 
   useEffect(() => {
-    setOpen(false)
+    setHoverOpen(false)
+    setFocusOpen(false)
+    setTapOpen(false)
   }, [pathname])
 
   useEffect(() => {
@@ -194,8 +221,8 @@ export function QuickActions() {
     function onPointerDown(event: PointerEvent) {
       const target = event.target
       if (!(target instanceof Node)) return
-      if (rootRef.current?.contains(target)) return
-      closeMenu()
+      if (contactRef.current?.contains(target)) return
+      setTapOpen(false)
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('pointerdown', onPointerDown)
@@ -216,47 +243,60 @@ export function QuickActions() {
 
   return (
     <div
-      ref={rootRef}
-      className={`pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right))] ${bottomClass} z-40 flex max-w-[calc(100vw-1.5rem-env(safe-area-inset-left)-env(safe-area-inset-right))] flex-col items-end gap-2`}
+      className={`pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right))] ${bottomClass} z-40 flex max-w-[calc(100vw-1.5rem-env(safe-area-inset-left)-env(safe-area-inset-right))] flex-col items-end gap-3`}
     >
       <div
-        id={menuId}
-        role="menu"
-        aria-labelledby={headingId}
-        aria-hidden={!open}
-        className={`w-[min(17.5rem,calc(100vw-1.5rem))] origin-bottom-right rounded-2xl border border-wood/12 bg-linen p-2 text-wood shadow-[0_12px_32px_rgba(91,56,43,0.18)] motion-safe:transition-[opacity,transform] motion-safe:duration-200 motion-reduce:transition-none ${
-          open
-            ? 'pointer-events-auto translate-y-0 opacity-100'
-            : 'pointer-events-none invisible translate-y-1.5 opacity-0'
-        }`}
+        ref={contactRef}
+        className="pointer-events-auto relative flex flex-col items-end gap-3"
+        onPointerEnter={() => {
+          if (fineHover) setHoverOpen(true)
+        }}
+        onPointerLeave={() => {
+          setHoverOpen(false)
+          if (fineHover) setTapOpen(false)
+        }}
+        onFocusCapture={() => setFocusOpen(true)}
+        onBlurCapture={(event) => {
+          const next = event.relatedTarget
+          if (next instanceof Node && contactRef.current?.contains(next)) return
+          setFocusOpen(false)
+        }}
       >
-        <p id={headingId} className="px-3 pb-1 pt-1.5 text-sm font-medium">
-          Зв’язатися з DAKH
-        </p>
-        {channels.map((channel) => (
-          <ChannelLink key={channel.id} channel={channel} onSelect={closeMenu} />
-        ))}
-      </div>
-      <div className="pointer-events-none flex items-end gap-2">
-        {bookingEnabled && !stayDetail ? (
-          <IconAction label="Забронювати" to={bookTo} className={bookActionClass}>
-            <CalendarDays className="size-6" />
-          </IconAction>
-        ) : null}
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="Зв’язатися з DAKH"
+          aria-hidden={!open}
+          inert={!open}
+          className={`flex flex-col items-end gap-3 motion-safe:transition-[opacity,transform] motion-safe:duration-200 motion-reduce:transition-none ${
+            open ? 'translate-y-0 opacity-100' : 'pointer-events-none hidden translate-y-1.5 opacity-0'
+          }`}
+        >
+          {channels.map((channel) => (
+            <ChannelButton key={channel.id} channel={channel} onSelect={() => setTapOpen(false)} />
+          ))}
+        </div>
         <button
           ref={buttonRef}
           type="button"
-          className="group pointer-events-auto relative inline-flex size-[52px] items-center justify-center rounded-full bg-wood text-linen shadow-[0_10px_28px_rgba(91,56,43,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
+          className={fabClass}
           aria-label={open ? 'Закрити контакти' : 'Зв’язатися'}
           aria-expanded={open}
           aria-controls={menuId}
           aria-haspopup="menu"
-          onClick={() => (open ? closeMenu() : setOpen(true))}
+          onClick={() => {
+            setTapOpen((current) => !current)
+          }}
         >
           {open ? <CloseIcon className="size-6" /> : <ChatIcon className="size-6" />}
           {open ? null : <ActionTooltip label="Зв’язатися" />}
         </button>
       </div>
+      {bookingEnabled && !stayDetail ? (
+        <IconAction label="Забронювати" to={bookTo} className={fabClass}>
+          <CalendarDays className="size-6" />
+        </IconAction>
+      ) : null}
     </div>
   )
 }
