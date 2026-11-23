@@ -8,6 +8,7 @@ export const SERVICE_EMPTY_COPY = 'Зараз немає послуг, які м
 export const SERVICE_ERROR_COPY = 'Послуги зараз не вдалося показати. Проживання можна оформити без них.'
 export const SERVICE_DROPPED_COPY = 'Деякі послуги більше недоступні і зняті з заявки.'
 export const SERVICE_AGREED_PRICE_COPY = 'Оплата за домовленістю'
+export const SERVICE_FREE_COPY = 'Безкоштовно'
 export const SERVICE_AGREED_TOTAL_NOTE = 'Заявки з оплатою за домовленістю не входять у показану суму.'
 export const SERVICE_REQUEST_HINT =
   'Побажання можна написати в коментарі нижче. Це заявка, не підтверджене бронювання послуги.'
@@ -102,6 +103,11 @@ export function quoteServiceSelection(
 
 export function isAgreedPriceLine(line: Pick<PublicQuoteServiceLine, 'pricing' | 'totalPrice'>) {
   return line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
+}
+
+export function isFreePriceLine(line: Pick<PublicQuoteServiceLine, 'pricing' | 'totalPrice'>) {
+  if (isAgreedPriceLine(line)) return false
+  return typeof line.totalPrice === 'string' && /^0+(?:\.0+)?$/.test(line.totalPrice)
 }
 
 const SERVICE_SELECTION_STORAGE_KEY = 'dakh-booking-service-quantities'

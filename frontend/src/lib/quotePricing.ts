@@ -1,4 +1,6 @@
-import type { PublicLengthStayOffer, PublicQuoteResponse } from './publicBooking/types'
+import { nightCountLabel } from './ukrainian'
+import { isAgreedPriceLine, isFreePriceLine, SERVICE_AGREED_PRICE_COPY, SERVICE_FREE_COPY } from './publicBooking/publicServices'
+import type { PublicLengthStayOffer, PublicQuoteNight, PublicQuoteResponse, PublicQuoteServiceLine } from './publicBooking/types'
 
 type QuoteMoneyFields = Pick<
   PublicQuoteResponse,
@@ -49,6 +51,95 @@ export function quotePriceLines(quote: QuoteMoneyFields) {
     discountLabel,
     total,
   }
+}
+
+export type QuoteExtraDisplay = {
+  serviceId: string
+  label: string
+  quantity: number
+  kind: 'money' | 'free' | 'request'
+  amount: string | null
+  display: string
+}
+
+export function extraLineDisplay(line: PublicQuoteServiceLine): QuoteExtraDisplay {
+  const quantity = Number.isInteger(line.quantity) && line.quantity > 0 ? line.quantity : 1
+  const label = `${line.name} · ${quantity}`
+  if (isAgreedPriceLine(line)) {
+    return {
+      serviceId: line.serviceId,
+      label,
+      quantity,
+      kind: 'request',
+      amount: null,
+      display: SERVICE_AGREED_PRICE_COPY,
+    }
+  }
+  if (isFreePriceLine(line)) {
+    return {
+      serviceId: line.serviceId,
+      label,
+      quantity,
+      kind: 'free',
+      amount: serverMoney(line.totalPrice),
+      display: SERVICE_FREE_COPY,
+    }
+  }
+  const amount = serverMoney(line.totalPrice)
+  if (amount == null) {
+    return {
+      serviceId: line.serviceId,
+      label,
+      quantity,
+      kind: 'request',
+      amount: null,
+      display: SERVICE_AGREED_PRICE_COPY,
+    }
+  }
+  return {
+    serviceId: line.serviceId,
+    label,
+    quantity,
+    kind: 'money',
+    amount,
+    display: amount,
+  }
+}
+
+export type QuoteSummaryModel = {
+  accommodationLabel: string
+  accommodation: string | null
+  discount: string | null
+  discountLabel: string | null
+  extras: QuoteExtraDisplay[]
+  total: string | null
+  nights: PublicQuoteNight[]
+  hasRequestOnly: boolean
+}
+
+export function quoteSummaryModel(
+  quote: QuoteMoneyFields & { nights?: readonly PublicQuoteNight[]; services?: readonly PublicQuoteServiceLine[] },
+  nightCount = quote.nights?.length ?? 0,
+): QuoteSummaryModel {
+  const lines = quotePriceLines(quote)
+  const extras = (quote.services ?? []).map(extraLineDisplay)
+  return {
+    accommodationLabel: nightCount > 0 ? `Проживання · ${nightCountLabel(nightCount)}` : 'Проживання',
+    accommodation: lines.accommodation,
+    discount: lines.discount,
+    discountLabel: lines.discountLabel,
+    extras,
+    total: lines.total,
+    nights: [...(quote.nights ?? [])],
+    hasRequestOnly: extras.some((line) => line.kind === 'request'),
+  }
+}
+
+export function isGenericStandardPlan(plan: { name?: string; type?: string } | null | undefined) {
+  if (!plan) return false
+  if (plan.type && plan.type !== 'STANDARD') return false
+  const title = (plan.name ?? '').trim()
+  return title === '' || title === 'Стандарт' || title === 'Стандартний' || title === 'STANDARD'
 }
 
 export function lengthStayTermsCopy(offers: readonly PublicLengthStayOffer[] | undefined, kind?: 'ROOM' | 'COTTAGE') {

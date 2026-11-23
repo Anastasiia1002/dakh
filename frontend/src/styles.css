@@ -73,14 +73,6 @@ em {
   text-transform: uppercase;
 }
 
-.booking-panel :is(.text-wood\/50, .text-wood\/55, .text-wood\/60, .text-wood\/70) {
-  color: color-mix(in srgb, var(--color-linen) 72%, transparent);
-}
-
-.booking-panel :is(.border-wood\/20, .border-wood\/25) {
-  border-color: color-mix(in srgb, var(--color-linen) 28%, transparent);
-}
-
 .photo-tone {
   filter: brightness(0.95) contrast(0.92) sepia(0.08) saturate(0.88);
 }
