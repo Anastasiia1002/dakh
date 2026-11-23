@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { BookingReview } from '../../components/booking/BookingReview'
+import { BookingSteps } from '../../components/booking/BookingSteps'
 import { PriceSummary } from '../../components/booking/PriceSummary'
 import type { PublicQuoteResponse } from './types'
 
@@ -106,5 +107,32 @@ describe('booking review summary', () => {
     assert.match(html, /guest@example.test/)
     assert.match(html, /Пізній заїзд/)
     assert.match(html, /Разом/)
+  })
+
+  it('shows a compact numbered stepper and hides empty summary sections', () => {
+    const steps = renderToStaticMarkup(createElement(BookingSteps, { active: 'extras', roomSelected: true }))
+    assert.match(steps, /Дати й гості/)
+    assert.match(steps, /Розміщення/)
+    assert.match(steps, /Послуги/)
+    assert.match(steps, /Контакти/)
+    assert.match(steps, /Підтвердження/)
+    assert.doesNotMatch(steps, /Змінити/)
+    const empty = renderToStaticMarkup(
+      createElement(BookingReview, {
+        roomName: 'Помешкання',
+        checkIn: '',
+        checkOut: '',
+        nights: 0,
+        adults: 2,
+        children: 0,
+        extras: [],
+        guest: { firstName: '', lastName: '', phone: '', email: '', comment: '' },
+        quote: null,
+      }),
+    )
+    assert.doesNotMatch(empty, /Розміщення/)
+    assert.doesNotMatch(empty, /Проживання/)
+    assert.doesNotMatch(empty, /Контакти/)
+    assert.doesNotMatch(empty, /Послуги/)
   })
 })

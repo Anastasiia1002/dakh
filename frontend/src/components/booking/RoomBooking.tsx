@@ -29,9 +29,13 @@ import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
 import { QuoteSummary } from './CheckoutPanels'
 import { ServiceOptions } from './ServiceOptions'
 import {
+  loadServicesByUnit,
   loadStoredServiceQuantities,
-  persistServiceQuantities,
+  migrateServicesByUnit,
+  persistServicesByUnit,
   selectedServiceLines,
+  servicesForUnit,
+  setServicesForUnit,
   SERVICE_DROPPED_COPY,
 } from '../../lib/publicBooking/publicServices'
 import { extrasCatalogLoaded, pruneServiceQuantities, usePublicServices } from '../../lib/publicBooking/usePublicServices'
@@ -83,16 +87,28 @@ export function RoomBooking({
   const guestCount = guestCountOf(draft.adults, draft.children)
   const nights = stayNights(draft.checkIn, draft.checkOut)
   const catalog = usePublicServices(hotelSlug)
-  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>(loadStoredServiceQuantities)
+  const [servicesByUnit, setServicesByUnit] = useState(() => {
+    const saved = loadBookingHandoff()
+    const knownId = saved?.catalogSlug === publicSlug ? saved.roomTypeId : ''
+    return migrateServicesByUnit({
+      roomTypeId: knownId,
+      servicesByUnit: loadServicesByUnit(),
+      handoffRoomTypeId: knownId,
+      handoffServices: knownId ? saved?.services : undefined,
+      legacyStored: loadStoredServiceQuantities(),
+    })
+  })
   const [extrasNotice, setExtrasNotice] = useState('')
-  const serviceLines = useMemo(
-    () => selectedServiceLines(serviceQuantities, catalog.items, nights),
-    [catalog.items, nights, serviceQuantities],
-  )
   const onVisibleRange = useCallback((range: { from: string; to: string }) => {
     setCalendarRange((current) => (current?.from === range.from && current?.to === range.to ? current : range))
   }, [])
   const calendar = useMappedRoomCalendar(apiSlug, calendarRange, { adults: draft.adults, children: draft.children }, hotelSlug)
+  const extrasUnitId = calendar.roomTypeId || draft.roomTypeId
+  const serviceQuantities = servicesForUnit(servicesByUnit, extrasUnitId)
+  const serviceLines = useMemo(
+    () => selectedServiceLines(serviceQuantities, catalog.items, nights),
+    [catalog.items, nights, serviceQuantities],
+  )
   const quoteBlocked = calendarRejectsStay({
     status: calendar.status,
     hotelToday: calendar.hotelToday,
@@ -117,17 +133,19 @@ export function RoomBooking({
   const quoteReady = isQuoteFresh(search.quote, now)
 
   useEffect(() => {
-    persistServiceQuantities(serviceQuantities)
-  }, [serviceQuantities])
+    persistServicesByUnit(servicesByUnit)
+  }, [servicesByUnit])
 
   useEffect(() => {
-    if (!extrasCatalogLoaded(catalog.status)) return
-    setServiceQuantities((current) => {
-      const next = pruneServiceQuantities(current, catalog.items, true)
-      if (next !== current && Object.keys(current).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
-      return next
+    if (!extrasCatalogLoaded(catalog.status) || !extrasUnitId) return
+    setServicesByUnit((current) => {
+      const selected = servicesForUnit(current, extrasUnitId)
+      const next = pruneServiceQuantities(selected, catalog.items, true)
+      if (next === selected) return current
+      if (Object.keys(selected).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
+      return setServicesForUnit(current, extrasUnitId, next)
     })
-  }, [catalog.items, catalog.status])
+  }, [catalog.items, catalog.status, extrasUnitId])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15_000)
@@ -297,11 +315,12 @@ export function RoomBooking({
               status={catalog.status}
               quantities={serviceQuantities}
               onChange={(serviceId, quantity) =>
-                setServiceQuantities((current) => {
-                  const next = { ...current }
-                  if (quantity == null) delete next[serviceId]
-                  else next[serviceId] = quantity
-                  return next
+                setServicesByUnit((current) => {
+                  if (!extrasUnitId) return current
+                  const selected = { ...servicesForUnit(current, extrasUnitId) }
+                  if (quantity == null) delete selected[serviceId]
+                  else selected[serviceId] = quantity
+                  return setServicesForUnit(current, extrasUnitId, selected)
                 })
               }
             />

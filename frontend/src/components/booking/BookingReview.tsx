@@ -15,9 +15,11 @@ export function BookingReview({
   adults,
   children,
   extras,
+  extrasEntered = false,
   guest,
   quote,
   onEditStay,
+  onEditDates,
   onEditExtras,
   onEditContacts,
 }: {
@@ -29,14 +31,23 @@ export function BookingReview({
   adults: number
   children: number
   extras: readonly ReviewExtra[]
+  extrasEntered?: boolean
   guest: { firstName: string; lastName: string; phone: string; email: string; comment: string }
   quote: PublicQuoteResponse | null
   onEditStay?: () => void
+  onEditDates?: () => void
   onEditExtras?: () => void
   onEditContacts?: () => void
 }) {
+  const hasRoom = Boolean(roomName && roomName !== 'Помешкання')
+  const hasStay = Boolean(checkIn && checkOut)
+  const hasContacts = Boolean(
+    guest.firstName.trim() || guest.lastName.trim() || guest.email.trim() || guest.phone.trim() || guest.comment.trim(),
+  )
+  const showExtras = extrasEntered || extras.length > 0
   return (
     <div className="divide-y divide-wood/10 text-sm text-wood">
+      {hasRoom ? (
       <section className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Розміщення</p>
@@ -55,12 +66,14 @@ export function BookingReview({
           <p className="min-w-0 font-medium leading-snug">{roomName}</p>
         </div>
       </section>
+      ) : null}
 
+      {hasStay ? (
       <section className="py-4">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Проживання</p>
           {onEditStay ? (
-            <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditStay}>
+            <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditDates ?? onEditStay}>
               Змінити дати
             </button>
           ) : null}
@@ -101,10 +114,12 @@ export function BookingReview({
           )}
         </dl>
       </section>
+      ) : null}
 
+      {showExtras ? (
       <section className="py-4">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Додаткові послуги</p>
+          <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Послуги</p>
           {onEditExtras ? (
             <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditExtras}>
               Змінити
@@ -124,7 +139,9 @@ export function BookingReview({
           </ul>
         )}
       </section>
+      ) : null}
 
+      {hasContacts ? (
       <section className="py-4">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Контакти</p>
@@ -157,11 +174,14 @@ export function BookingReview({
           </div>
         ) : null}
       </section>
+      ) : null}
 
+      {quote ? (
       <section className="pt-4">
         <p className="mb-3 text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Вартість</p>
         <PriceSummary quote={quote} nightCount={nights} />
       </section>
+      ) : null}
     </div>
   )
 }

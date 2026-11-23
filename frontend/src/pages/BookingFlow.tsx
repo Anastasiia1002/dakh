@@ -6,7 +6,6 @@ import {
   GuestFields,
   OtpPanel,
   PriceChangePanel,
-  QuoteSummary,
   RoomOptions,
 } from '../components/booking/CheckoutPanels'
 import { ServiceOptions } from '../components/booking/ServiceOptions'
@@ -36,16 +35,19 @@ import {
 import {
   clearBookingDraft,
   formDraftFromStored,
-  occupancySummary,
   readBookingDraft,
   visibleWizardSteps,
   writeBookingDraft,
   type WizardStepId,
 } from '../lib/publicBooking/bookingDraft'
 import {
+  loadServicesByUnit,
   loadStoredServiceQuantities,
-  persistServiceQuantities,
+  migrateServicesByUnit,
+  persistServicesByUnit,
   selectedServiceLines,
+  servicesForUnit,
+  setServicesForUnit,
   SERVICE_DROPPED_COPY,
 } from '../lib/publicBooking/publicServices'
 import { extrasCatalogLoaded, pruneServiceQuantities, usePublicServices } from '../lib/publicBooking/usePublicServices'
@@ -105,10 +107,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const [params] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const [handoff] = useState<BookingHandoff | null>(() =>
+  const [handoff, setHandoff] = useState<BookingHandoff | null>(() =>
     resolveBookingHandoff({ state: location.state, params, stored: loadBookingHandoff() }),
   )
-  const locked = Boolean(handoff)
   const configuredHotel = resolveHotelSlug()
   const categoryParam = params.get('category')
   const requestedCategory = categoryParam === 'houses' || categoryParam === 'rooms' ? categoryParam : null
@@ -137,28 +138,30 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   }, [])
   const onPickerOpen = useCallback((open: boolean) => setPickerOpen(open), [])
   const party = { adults: draft.adults, children: draft.children }
+  const boundToHandoff = Boolean(handoff && draft.roomTypeId === handoff.roomTypeId)
   const calendar = useAvailabilityCalendar(
-    locked ? null : calendarRange,
+    boundToHandoff ? null : calendarRange,
     party,
-    locked ? '' : draft.roomTypeId,
+    boundToHandoff ? '' : draft.roomTypeId,
     hotelSlug ?? undefined,
   )
   const mapped = useMappedRoomCalendar(
     handoff?.roomTypeSlug || handoff?.catalogSlug || '',
-    locked ? calendarRangeForStay(draft.checkIn, draft.checkOut, calendarRange) : null,
+    boundToHandoff ? calendarRangeForStay(draft.checkIn, draft.checkOut, calendarRange) : null,
     party,
     hotelSlug ?? undefined,
   )
   const identityReady =
-    !handoff ||
-    (mapped.status !== 'loading' &&
+    !boundToHandoff ||
+    (handoff != null &&
+      mapped.status !== 'loading' &&
       mapped.roomTypeId === handoff.roomTypeId &&
       mapped.expectedSlug === handoff.roomTypeSlug &&
       hotelSlug !== null &&
       acceptsBookingHotel(handoff.hotelSlug, configuredHotel) &&
       bookingHotelMatchesCategory(handoff.hotelSlug, category))
-  const roomRejected = Boolean(handoff && mapped.status !== 'loading' && !identityReady)
-  const activeCalendar = locked ? mapped : calendar
+  const roomRejected = Boolean(boundToHandoff && mapped.status !== 'loading' && !identityReady)
+  const activeCalendar = boundToHandoff ? mapped : calendar
   const catalog = usePublicServices(hotelSlug ?? undefined)
   const listedRooms = useAccommodationList('rooms')
   const listedHouses = useAccommodationList('houses')
@@ -175,9 +178,17 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     }
     return covers
   }, [listedHouses.items, listedRooms.items])
-  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>(
-    () => handoff?.services ?? storedDraft?.services ?? loadStoredServiceQuantities(),
+  const [servicesByUnit, setServicesByUnit] = useState(() =>
+    migrateServicesByUnit({
+      roomTypeId: storedDraft?.roomTypeId || handoff?.roomTypeId || '',
+      services: storedDraft?.services,
+      servicesByUnit: storedDraft?.servicesByUnit ?? loadServicesByUnit(),
+      handoffRoomTypeId: handoff?.roomTypeId,
+      handoffServices: handoff?.services,
+      legacyStored: loadStoredServiceQuantities(),
+    }),
   )
+  const serviceQuantities = servicesForUnit(servicesByUnit, draft.roomTypeId)
   const [extrasNotice, setExtrasNotice] = useState('')
   const serviceLines = useMemo(
     () => selectedServiceLines(serviceQuantities, catalog.items, nights),
@@ -185,17 +196,19 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   )
 
   useEffect(() => {
-    persistServiceQuantities(serviceQuantities)
-  }, [serviceQuantities])
+    persistServicesByUnit(servicesByUnit)
+  }, [servicesByUnit])
 
   useEffect(() => {
-    if (!extrasCatalogLoaded(catalog.status)) return
-    setServiceQuantities((current) => {
-      const next = pruneServiceQuantities(current, catalog.items, true)
-      if (next !== current && Object.keys(current).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
-      return next
+    if (!extrasCatalogLoaded(catalog.status) || !draft.roomTypeId) return
+    setServicesByUnit((current) => {
+      const selected = servicesForUnit(current, draft.roomTypeId)
+      const next = pruneServiceQuantities(selected, catalog.items, true)
+      if (next === selected) return current
+      if (Object.keys(selected).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
+      return setServicesForUnit(current, draft.roomTypeId, next)
     })
-  }, [catalog.items, catalog.status])
+  }, [catalog.items, catalog.status, draft.roomTypeId])
   const quoteBlocked = calendarRejectsStay({
     status: activeCalendar.status,
     hotelToday: activeCalendar.hotelToday,
@@ -212,7 +225,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     identityReady ? draft.roomTypeId : '',
     identityReady ? draft.ratePlanId : '',
     hotelSlug ?? undefined,
-    locked ? (category === 'houses' ? 'COTTAGE' : 'ROOM') : undefined,
+    boundToHandoff ? (category === 'houses' ? 'COTTAGE' : 'ROOM') : undefined,
     quoteBlocked,
     serviceLines,
   )
@@ -242,7 +255,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       roomTypeId: draft.roomTypeId,
       roomTypeSlug: handoff?.roomTypeSlug ?? '',
       ratePlanId: draft.ratePlanId,
-      services: serviceQuantities,
+      servicesByUnit,
       firstName: draft.firstName,
       lastName: draft.lastName,
       phone: draft.phone,
@@ -276,7 +289,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     extrasSkipped,
     handoff,
     hotelSlug,
-    serviceQuantities,
+    servicesByUnit,
     wizard,
   ])
 
@@ -296,7 +309,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const bookingEnabled = isBookingEnabled()
   const quoteReady = isQuoteFresh(search.quote, now)
   const roomMissing =
-    locked &&
+    boundToHandoff &&
     identityReady &&
     search.searchable &&
     (search.availabilityStatus === 'ready' || search.availabilityStatus === 'empty' || search.availabilityStatus === 'error') &&
@@ -350,15 +363,16 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       roomTypeId: draft.roomTypeId || handoff.roomTypeId,
       ratePlanId: draft.ratePlanId,
       preview: stayUnchanged ? handoff.preview : null,
-      services: serviceQuantities,
+      services: servicesForUnit(servicesByUnit, draft.roomTypeId || handoff.roomTypeId),
     }
     if (!draft.checkIn || !draft.checkOut) return
+    if (draft.roomTypeId && draft.roomTypeId !== handoff.roomTypeId) return
     saveBookingHandoff(next)
     const search = `?${handoffToSearch(next).toString()}`
     if (search !== location.search) {
       navigate({ pathname: '/bronuvannya', search }, { replace: true, state: { handoff: next } })
     }
-  }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, draft.ratePlanId, draft.roomTypeId, handoff, location.search, navigate, serviceQuantities])
+  }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, draft.ratePlanId, draft.roomTypeId, handoff, location.search, navigate, servicesByUnit])
 
   useEffect(() => {
     if (handoff) return
@@ -389,7 +403,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       checkOut: draft.checkOut,
       blockedCheckIns: stayGuard.blockedCheckIns,
       blockedRanges: stayGuard.blockedRanges,
-      roomScoped: locked || Boolean(draft.roomTypeId),
+      roomScoped: Boolean(draft.roomTypeId),
     })
     if (next.checkIn === draft.checkIn && next.checkOut === draft.checkOut) return
     if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
@@ -400,7 +414,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       ...current,
       checkIn: next.checkIn,
       checkOut: next.checkOut,
-      roomTypeId: locked ? current.roomTypeId : next.checkIn ? current.roomTypeId : '',
+      roomTypeId: next.checkIn ? current.roomTypeId : '',
       ratePlanId: next.checkOut ? current.ratePlanId : '',
     }))
   }, [
@@ -411,7 +425,6 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     draft.checkIn,
     draft.checkOut,
     draft.roomTypeId,
-    locked,
     stayGuard.blockedCheckIns,
     stayGuard.blockedRanges,
   ])
@@ -441,8 +454,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     setDraft((current) => {
       const merged = { ...current, ...next }
       const kept = roomSelectionAfterStayPatch({
-        locked,
-        roomTypeId: locked ? handoff?.roomTypeId || current.roomTypeId : current.roomTypeId,
+        locked: Boolean(current.roomTypeId),
+        roomTypeId: current.roomTypeId,
         ratePlanId: current.ratePlanId,
         next,
       })
@@ -474,7 +487,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const displayQuote = checkout.pendingQuote ?? search.quote
   const requestedRoomLabel = handoff ? (readRoomDisplayName(handoff.roomTypeId) ?? '') : ''
   const verifiedRoomLabel = handoff && identityReady ? requestedRoomLabel : ''
-  const checkingIdentity = Boolean(handoff) && !identityReady && !roomRejected
+  const checkingIdentity = boundToHandoff && !identityReady && !roomRejected
 
   useEffect(() => {
     if (verifiedRoomLabel && handoff) rememberRoomDisplayName(handoff.roomTypeId, verifiedRoomLabel)
@@ -509,23 +522,26 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       : ''
 
   const lockedCapacity = [...listedRooms.items, ...listedHouses.items].find((item) => item.id === draft.roomTypeId)?.maxGuests
-  const occupancyIssue = occupancyIssueForCapacity(draft.adults, locked ? lockedCapacity : undefined)
-  const wizardOrder = visibleWizardSteps(locked).map((item) => item.id)
-  const wizardSummaries: Partial<Record<WizardStepId, string>> = {
-    dates:
-      draft.checkIn && draft.checkOut
-        ? `${draft.checkIn} — ${draft.checkOut}, ${occupancySummary(draft.adults, draft.children)}`
-        : occupancySummary(draft.adults, draft.children),
-    stay: requestedRoomLabel || (draft.roomTypeId ? 'Обрано' : ''),
-    extras:
-      extrasSkipped || Object.keys(serviceQuantities).length === 0
-        ? 'Без додаткових послуг'
-        : `${Object.keys(serviceQuantities).length} послуг`,
-    contacts: draft.email.trim() || draft.phone.trim() || '',
-  }
+  const occupancyIssue = occupancyIssueForCapacity(draft.adults, lockedCapacity)
+  const wizardOrder = visibleWizardSteps().map((item) => item.id)
 
-  function goTo(step: WizardStepId) {
-    setWizard(step)
+  function selectRoom(room: PublicAvailabilityRoomType) {
+    const changed = room.roomTypeId !== draft.roomTypeId
+    if (changed) {
+      setExtrasSkipped(false)
+      if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+        checkout.resetToCollect()
+        setOtpCode('')
+      }
+      if (handoff && handoff.roomTypeId !== room.roomTypeId) {
+        clearBookingHandoff()
+        setHandoff(null)
+      }
+    }
+    patch({
+      roomTypeId: room.roomTypeId,
+      ratePlanId: selectedRatePlanId(room),
+    })
   }
 
   function goBack() {
@@ -536,7 +552,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   function goNext() {
     if (wizard === 'dates') {
       if (!search.searchable || occupancyIssue) return
-      setWizard(locked ? 'extras' : 'stay')
+      setWizard(draft.roomTypeId ? 'extras' : 'stay')
       return
     }
     if (wizard === 'stay') {
@@ -554,19 +570,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   }
 
   function editFromConfirm(step: WizardStepId) {
-    if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
-      checkout.resetToCollect()
-      setOtpCode('')
-    }
     setWizard(step)
   }
 
-  const codeStep =
-    wizard === 'confirm' ||
-    checkout.step === 'verify' ||
-    checkout.step === 'confirming' ||
-    checkout.step === 'price_changed' ||
-    checkout.step === 'looking_up'
+  const codeStep = wizard === 'confirm'
   const showMobileBar =
     bookingEnabled &&
     checkout.step === 'collect' &&
@@ -575,81 +582,122 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     !codeStep
   const selectedCover = draft.roomTypeId ? catalogCovers.get(draft.roomTypeId) : undefined
   const bookingPanel = 'overflow-hidden border border-wood/10 bg-linen p-5 shadow-[0_12px_28px_rgba(91,56,43,0.08)] md:p-6'
-  const reviewExtras = (displayQuote?.services ?? []).map((line) => ({
+  const extrasFromQuote = (displayQuote?.services ?? []).map((line) => ({
     serviceId: line.serviceId,
     name: line.name,
     quantity: line.quantity,
   }))
+  const extrasFromDraft = catalog.items
+    .filter((item) => serviceQuantities[item.id] != null)
+    .map((item) => ({
+      serviceId: item.id,
+      name: item.name,
+      quantity: serviceQuantities[item.id] ?? 0,
+    }))
+  const reviewExtras = extrasFromQuote.length > 0 ? extrasFromQuote : extrasFromDraft
+  const extrasEntered = extrasSkipped || extrasFromDraft.length > 0
   const roomTitle =
     (search.selectedRoom ? labelForRoom(search.selectedRoom) : '') || requestedRoomLabel || 'Помешкання'
   const sending = checkout.busy && checkout.step === 'creating_intent'
   const bookDisabled =
     sending || !bookingEnabled || checkout.step !== 'collect' || roomRejected || roomMissing
-  const stayLead = locked
-    ? 'Помешкання вже обрано. Дати можна змінити.'
-    : search.searchable
-      ? 'Оберіть помешкання нижче.'
-      : 'Спочатку дати. Максимум 30 ночей.'
+  const calendarLive = boundToHandoff ? mapped : calendar
+  const review = (
+    <BookingReview
+      roomName={roomTitle}
+      cover={selectedCover}
+      checkIn={draft.checkIn}
+      checkOut={draft.checkOut}
+      nights={nights}
+      adults={draft.adults}
+      children={draft.children}
+      extras={reviewExtras}
+      extrasEntered={extrasEntered}
+      guest={guest}
+      quote={roomRejected || checkingIdentity ? null : displayQuote}
+      onEditStay={() => editFromConfirm('stay')}
+      onEditDates={() => editFromConfirm('dates')}
+      onEditExtras={() => editFromConfirm('extras')}
+      onEditContacts={() => editFromConfirm('contacts')}
+    />
+  )
 
   return (
-    <section className={hideIntro ? 'contents' : 'mx-auto max-w-6xl px-6 pb-24 pt-32'}>
+    <section className={hideIntro ? 'contents' : 'space-y-8'}>
       {hideIntro ? null : (
-        <>
+        <header>
           <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-          <h1 className="mt-3 font-display text-5xl leading-tight text-clay">Бронювання</h1>
-        </>
+          <h1 className="mt-2 font-display text-4xl leading-tight text-clay">Бронювання</h1>
+          {!bookingEnabled ? (
+            <p className="mt-4 max-w-xl text-sm text-wood/70">{BOOKING_DISABLED_COPY}</p>
+          ) : null}
+        </header>
       )}
 
-      <div className="relative z-20 -mt-10 border border-wood/10 bg-linen/95 p-2.5 shadow-[0_18px_40px_rgba(91,56,43,0.12)] md:-mt-8 md:p-4">
-        {bookingEnabled ? (
-          <BookingSteps active={wizard} locked={locked} summaries={wizardSummaries} onEdit={goTo} />
-        ) : null}
-        <p className="mb-3 text-sm text-wood/70">{bookingEnabled ? stayLead : BOOKING_DISABLED_COPY}</p>
-        {wizard === 'dates' ? (
-        <div id="stay-dates">
-          <BookingCalendar
-            checkIn={draft.checkIn}
-            checkOut={draft.checkOut}
-            adults={draft.adults}
-            kids={draft.children}
-            nightPrices={search.nightPrices}
-            loading={search.availabilityStatus === 'loading' || search.quoteStatus === 'loading'}
-            live={{
-              status: locked ? mapped.status : calendar.status,
-              hotelToday: locked ? mapped.hotelToday : calendar.hotelToday,
-              earliestCheckIn: locked ? mapped.earliestCheckIn : calendar.earliestCheckIn,
-              days: locked ? mapped.days : calendar.days,
-              error: locked ? mapped.error : calendar.error,
-              capacityNote: locked ? mapped.capacityNote : calendar.capacityNote,
-            }}
-            blockedCheckIns={stayGuard.blockedCheckIns}
-            blockedRanges={stayGuard.blockedRanges}
-            notice={occupancyIssue || stayGuard.notice}
-            maxAdults={locked ? lockedCapacity : undefined}
-            occupancyIssue={occupancyIssue ?? undefined}
-            onVisibleRange={onVisibleRange}
-            onPanelChange={onPickerOpen}
-            onChange={patch}
-          />
-          {occupancyIssue ? (
-            <p className="mt-3 text-sm text-clay" role="alert">
-              {occupancyIssue}
-            </p>
-          ) : null}
-          <WizardNav
-            backHidden
-            onBack={goBack}
-            onNext={goNext}
-            nextDisabled={!search.searchable || Boolean(occupancyIssue)}
-            nextLabel="Далі"
-          />
-        </div>
-        ) : null}
-      </div>
+      {bookingEnabled ? (
+        <BookingSteps active={wizard} roomSelected={Boolean(draft.roomTypeId)} />
+      ) : null}
 
-      <form id="booking-form" noValidate onSubmit={submit} className={`mt-10 grid gap-10 md:grid-cols-12 md:gap-12 ${showMobileBar ? 'pb-28' : 'pb-8 md:pb-0'}`}>
-        <div className="space-y-12 md:col-span-7">
-          {wizard === 'stay' && !locked ? (
+      {bookingEnabled ? (
+        <details className="border border-wood/10 bg-linen md:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
+            <span className="font-medium">Ваше бронювання</span>
+            {displayQuote && !roomRejected && !checkingIdentity ? (
+              <span className="shrink-0 text-wood/70">{formatMoneyAmount(displayQuote.totalAmount)}</span>
+            ) : (
+              <span className="shrink-0 text-wood/50">Разом пізніше</span>
+            )}
+          </summary>
+          <div className={`${bookingPanel} border-0 shadow-none`}>{review}</div>
+        </details>
+      ) : null}
+
+      <form id="booking-form" noValidate onSubmit={submit} className={`grid items-start gap-8 md:grid-cols-12 md:gap-10 ${showMobileBar ? 'pb-28' : 'pb-8 md:pb-0'}`}>
+        <div className="space-y-10 md:col-span-7">
+          {wizard === 'dates' ? (
+            <div id="stay-dates">
+              <h2 className="font-display text-3xl text-clay">Дати й гості</h2>
+              <p className="mt-2 max-w-xl text-sm text-wood/70">Максимум 30 ночей.</p>
+              <BookingCalendar
+                checkIn={draft.checkIn}
+                checkOut={draft.checkOut}
+                adults={draft.adults}
+                kids={draft.children}
+                nightPrices={search.nightPrices}
+                loading={search.availabilityStatus === 'loading' || search.quoteStatus === 'loading'}
+                live={{
+                  status: calendarLive.status,
+                  hotelToday: calendarLive.hotelToday,
+                  earliestCheckIn: calendarLive.earliestCheckIn,
+                  days: calendarLive.days,
+                  error: calendarLive.error,
+                  capacityNote: calendarLive.capacityNote,
+                }}
+                blockedCheckIns={stayGuard.blockedCheckIns}
+                blockedRanges={stayGuard.blockedRanges}
+                notice={occupancyIssue || stayGuard.notice}
+                maxAdults={lockedCapacity}
+                occupancyIssue={occupancyIssue ?? undefined}
+                onVisibleRange={onVisibleRange}
+                onPanelChange={onPickerOpen}
+                onChange={patch}
+              />
+              {occupancyIssue ? (
+                <p className="mt-3 text-sm text-clay" role="alert">
+                  {occupancyIssue}
+                </p>
+              ) : null}
+              <WizardNav
+                backHidden
+                onBack={goBack}
+                onNext={goNext}
+                nextDisabled={!search.searchable || Boolean(occupancyIssue)}
+                nextLabel="Далі"
+              />
+            </div>
+          ) : null}
+
+          {wizard === 'stay' ? (
             <fieldset className="border-0 p-0">
               <legend className="font-display text-3xl text-clay">{ROOM_SELECTION_HEADING.room}</legend>
               <p className="mt-3 max-w-xl text-sm text-wood/70">{ROOM_SELECTION_INSTRUCTION}</p>
@@ -665,12 +713,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 emptyHouses={search.searchable && roomListStatus === 'ready' && groupedRooms.houses.length === 0}
                 emptyHousesCopy={cottageEmptyCopy({ adults: draft.adults, cottages: listedHouses.items })}
                 lengthStayOffers={search.availability?.lengthStayOffers}
-                onSelect={(room) =>
-                  patch({
-                    roomTypeId: room.roomTypeId,
-                    ratePlanId: selectedRatePlanId(room),
-                  })
-                }
+                onSelect={selectRoom}
               />
               <WizardNav
                 onBack={goBack}
@@ -708,7 +751,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             </p>
           ) : null}
 
-          {wizard === 'extras' && bookingEnabled && (search.selectedRoom || locked) ? (
+          {wizard === 'extras' && bookingEnabled && draft.roomTypeId ? (
             <>
             <ServiceOptions
               items={catalog.items}
@@ -719,11 +762,11 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   checkout.resetToCollect()
                   setOtpCode('')
                 }
-                setServiceQuantities((current) => {
-                  const next = { ...current }
-                  if (quantity == null) delete next[serviceId]
-                  else next[serviceId] = quantity
-                  return next
+                setServicesByUnit((current) => {
+                  const selected = { ...servicesForUnit(current, draft.roomTypeId) }
+                  if (quantity == null) delete selected[serviceId]
+                  else selected[serviceId] = quantity
+                  return setServicesForUnit(current, draft.roomTypeId, selected)
                 })
                 setExtrasSkipped(false)
               }}
@@ -733,8 +776,12 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 type="button"
                 className="min-h-11 border border-wood/20 px-5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
                 onClick={() => {
+                  if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+                    checkout.resetToCollect()
+                    setOtpCode('')
+                  }
                   setExtrasSkipped(true)
-                  setServiceQuantities({})
+                  setServicesByUnit((current) => setServicesForUnit(current, draft.roomTypeId, {}))
                   setWizard('contacts')
                 }}
               >
@@ -870,75 +917,17 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   </button>
                 </div>
               )}
-              <div className={`${bookingPanel} md:hidden`}>
-                <BookingReview
-                  roomName={roomTitle}
-                  cover={selectedCover}
-                  checkIn={draft.checkIn}
-                  checkOut={draft.checkOut}
-                  nights={nights}
-                  adults={draft.adults}
-                  children={draft.children}
-                  extras={reviewExtras}
-                  guest={guest}
-                  quote={roomRejected || checkingIdentity ? null : displayQuote}
-                  onEditStay={() => editFromConfirm(locked ? 'dates' : 'stay')}
-                  onEditExtras={() => editFromConfirm('extras')}
-                  onEditContacts={() => editFromConfirm('contacts')}
-                />
-              </div>
             </div>
           ) : null}
         </div>
 
         <aside className={`${bookingPanel} hidden h-fit md:sticky md:top-8 md:col-span-5 md:block`}>
-          {codeStep ? (
-            <BookingReview
-              roomName={roomTitle}
-              cover={selectedCover}
-              checkIn={draft.checkIn}
-              checkOut={draft.checkOut}
-              nights={nights}
-              adults={draft.adults}
-              children={draft.children}
-              extras={reviewExtras}
-              guest={guest}
-              quote={roomRejected || checkingIdentity ? null : displayQuote}
-              onEditStay={() => editFromConfirm(locked ? 'dates' : 'stay')}
-              onEditExtras={() => editFromConfirm('extras')}
-              onEditContacts={() => editFromConfirm('contacts')}
-            />
-          ) : (
-            <>
-          <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
-          {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
+          {review}
+          {bookingEnabled && boundToHandoff && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
-              Попередня сума {formatMoneyAmount(handoff.preview.totalAmount)} ще перевіряється на сервері.
+              Попередня сума {formatMoneyAmount(handoff.preview.totalAmount)} ще перевіряється.
             </p>
           ) : null}
-          <QuoteSummary
-            checkIn={draft.checkIn}
-            checkOut={draft.checkOut}
-            nights={nights}
-            guestCount={guestCount}
-            adults={draft.adults}
-            kids={draft.children}
-            room={roomRejected || checkingIdentity ? undefined : search.selectedRoom}
-            plan={roomRejected || checkingIdentity ? undefined : search.selectedPlan}
-            quote={roomRejected || checkingIdentity ? null : displayQuote}
-            quoteStatus={roomRejected ? 'idle' : checkingIdentity ? 'loading' : search.quoteStatus}
-            quoteError={search.quoteError}
-            availabilityStatus={checkingIdentity ? 'loading' : search.availabilityStatus}
-            availabilityError={search.availabilityError}
-            roomLabel={requestedRoomLabel || undefined}
-            fitNote={activeCalendar.capacityNote}
-            missingRoomCopy={
-              locked
-                ? 'На ці дати це розміщення недоступне. Інше не підставляємо.'
-                : 'Оберіть помешкання зі списку доступних.'
-            }
-            cover={selectedCover}
-          />
           {!bookingEnabled ? (
             <p className="mt-8 text-sm leading-relaxed text-wood/70" role="status">
               {BOOKING_DISABLED_COPY}
@@ -948,8 +937,6 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
               Розрахунок застарів. Оберіть дати ще раз.
             </p>
           ) : null}
-            </>
-          )}
         </aside>
       </form>
 
