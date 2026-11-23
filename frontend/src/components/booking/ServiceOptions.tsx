@@ -30,7 +30,9 @@ export function ServiceOptions({
   const hasRequest = items.some((item) => quantities[item.id] != null && onlinePricingOf(item) === 'REQUEST_ONLY')
   return (
     <fieldset className="border-0 p-0 pb-8 md:pb-0">
-      <legend className="font-display text-3xl text-clay">{SERVICE_SECTION_HEADING}</legend>
+      <legend id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">
+        {SERVICE_SECTION_HEADING}
+      </legend>
       {status === 'loading' || status === 'idle' ? (
         <p className="mt-3 text-sm text-wood/70">{SERVICE_LOADING_COPY}</p>
       ) : null}

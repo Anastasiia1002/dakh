@@ -68,7 +68,9 @@ export function OtpPanel({
 
   return (
     <div>
-      <h2 className="font-display text-4xl leading-tight text-clay">Підтвердіть бронювання</h2>
+      <h2 id="booking-active-heading" className="scroll-mt-28 font-display text-3xl leading-tight text-clay">
+        Підтвердіть бронювання
+      </h2>
       <p className="mt-3 text-sm text-wood/70">
         Код надіслано на <span className="font-medium text-wood">{email || 'вказану пошту'}</span>. Бронювання ще не
         створено.

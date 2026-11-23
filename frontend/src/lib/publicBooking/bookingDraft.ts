@@ -1,7 +1,8 @@
 import type { BookingDraft } from '../booking'
 import { emptyDraft } from '../booking'
 import { partySummary } from '../ukrainian'
-import { clearBookingHandoff, loadBookingHandoff, saveBookingHandoff, type BookingHandoff } from './handoff'
+import { clearStoredIntent } from './checkout'
+import { clearBookingHandoff, handoffToSearch, loadBookingHandoff, saveBookingHandoff, type BookingHandoff } from './handoff'
 import {
   migrateServicesByUnit,
   persistServicesByUnit,
@@ -11,7 +12,7 @@ import {
   type ServicesByUnit,
 } from './publicServices'
 
-export const BOOKING_DRAFT_VERSION = 2
+export const BOOKING_DRAFT_VERSION = 3
 export const BOOKING_DRAFT_KEY = 'dakh-booking-draft'
 export const BOOKING_DRAFT_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -33,8 +34,19 @@ export type PendingVerificationDraft = {
   otpExpiresAt: string
 }
 
+const ATTEMPT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function newBookingAttemptId() {
+  return crypto.randomUUID()
+}
+
+function parseAttemptId(value: unknown) {
+  return typeof value === 'string' && ATTEMPT_ID_PATTERN.test(value) ? value : ''
+}
+
 export type VersionedBookingDraft = {
   v: typeof BOOKING_DRAFT_VERSION
+  attemptId: string
   savedAt: number
   expiresAt: number
   step: WizardStepId
@@ -87,7 +99,7 @@ const STEPS = new Set<WizardStepId>(WIZARD_STEPS.map((step) => step.id))
 export function parseVersionedDraft(value: unknown, now = Date.now()): VersionedBookingDraft | null {
   if (!value || typeof value !== 'object') return null
   const raw = value as Record<string, unknown>
-  if (raw.v !== 1 && raw.v !== 2) return null
+  if (raw.v !== 1 && raw.v !== 2 && raw.v !== 3) return null
   if (typeof raw.expiresAt !== 'number' || raw.expiresAt <= now) return null
   if (typeof raw.otp === 'string' || typeof raw.code === 'string') return null
   const step = STEPS.has(raw.step as WizardStepId) ? (raw.step as WizardStepId) : 'dates'
@@ -101,6 +113,7 @@ export function parseVersionedDraft(value: unknown, now = Date.now()): Versioned
   })
   return {
     v: BOOKING_DRAFT_VERSION,
+    attemptId: parseAttemptId(raw.attemptId),
     savedAt: typeof raw.savedAt === 'number' ? raw.savedAt : now,
     expiresAt: raw.expiresAt,
     step,
@@ -146,6 +159,7 @@ export function writeBookingDraft(patch: Partial<VersionedBookingDraft>, now = D
     ...current,
     ...patch,
     v: BOOKING_DRAFT_VERSION,
+    attemptId: parseAttemptId(patch.attemptId) || current.attemptId || newBookingAttemptId(),
     savedAt: now,
     expiresAt: now + BOOKING_DRAFT_TTL_MS,
     roomTypeId,
@@ -168,6 +182,7 @@ export function clearBookingDraft() {
 function blankDraft(now: number): VersionedBookingDraft {
   return {
     v: BOOKING_DRAFT_VERSION,
+    attemptId: '',
     savedAt: now,
     expiresAt: now + BOOKING_DRAFT_TTL_MS,
     step: 'dates',
@@ -192,8 +207,13 @@ function blankDraft(now: number): VersionedBookingDraft {
   }
 }
 
-export function formDraftFromStored(stored: VersionedBookingDraft | null, fallback: BookingDraft = emptyDraft): BookingDraft {
+export function formDraftFromStored(
+  stored: VersionedBookingDraft | null,
+  fallback: BookingDraft = emptyDraft,
+  attemptId?: string,
+): BookingDraft {
   if (!stored) return fallback
+  if (attemptId && stored.attemptId && stored.attemptId !== attemptId) return fallback
   return {
     ...fallback,
     checkIn: stored.checkIn || fallback.checkIn,
@@ -210,10 +230,35 @@ export function formDraftFromStored(stored: VersionedBookingDraft | null, fallba
   }
 }
 
-export function seedDraftFromHandoff(handoff: BookingHandoff, services: ServiceQuantities = {}) {
-  const current = readBookingDraft()
+export function replaceBookingDraft(patch: Partial<VersionedBookingDraft>, now = Date.now()) {
+  sessionStore()?.removeItem(BOOKING_DRAFT_KEY)
+  persistServicesByUnit({})
+  return writeBookingDraft(patch, now)
+}
+
+export function draftIsResumable(draft: VersionedBookingDraft | null, now = Date.now()) {
+  if (!draft?.attemptId || draft.expiresAt <= now) return false
+  return Boolean(draft.roomTypeId || draft.checkIn || draft.pending || draft.email || draft.firstName)
+}
+
+export function resumeBookingHref(draft: VersionedBookingDraft) {
+  const stored = loadBookingHandoff()
+  const params =
+    stored && stored.roomTypeId === draft.roomTypeId
+      ? handoffToSearch({ ...stored, attemptId: draft.attemptId })
+      : new URLSearchParams()
+  if (draft.attemptId) params.set('attempt', draft.attemptId)
+  const query = params.toString()
+  return query ? `/bronuvannya?${query}` : '/bronuvannya'
+}
+
+export function startNewAttemptFromHandoff(handoff: BookingHandoff, services: ServiceQuantities = {}) {
+  const attemptId = newBookingAttemptId()
   const forUnit = Object.keys(services).length > 0 ? services : handoff.services ?? {}
-  writeBookingDraft({
+  const nextHandoff: BookingHandoff = { ...handoff, attemptId, services: forUnit }
+  clearStoredIntent()
+  replaceBookingDraft({
+    attemptId,
     checkIn: handoff.checkIn,
     checkOut: handoff.checkOut,
     adults: handoff.adults,
@@ -223,17 +268,22 @@ export function seedDraftFromHandoff(handoff: BookingHandoff, services: ServiceQ
     roomTypeId: handoff.roomTypeId,
     roomTypeSlug: handoff.roomTypeSlug,
     ratePlanId: handoff.ratePlanId,
-    servicesByUnit: migrateServicesByUnit({
-      roomTypeId: handoff.roomTypeId,
-      services: forUnit,
-      servicesByUnit: {
-        ...(current?.servicesByUnit ?? {}),
-        ...(Object.keys(forUnit).length > 0 ? { [handoff.roomTypeId]: forUnit } : {}),
-      },
-    }),
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    comment: '',
+    extrasSkipped: false,
+    pending: null,
+    servicesByUnit: Object.keys(forUnit).length > 0 ? { [handoff.roomTypeId]: forUnit } : {},
     step: 'extras',
   })
-  saveBookingHandoff(handoff)
+  saveBookingHandoff(nextHandoff)
+  return nextHandoff
+}
+
+export function seedDraftFromHandoff(handoff: BookingHandoff, services: ServiceQuantities = {}) {
+  return startNewAttemptFromHandoff(handoff, services)
 }
 
 export function visibleWizardSteps(_locked = false) {

@@ -172,6 +172,7 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
       guestCount: split.guestCount,
       adults: split.adults,
       children: split.children,
+      attemptId: stay?.attemptId,
     })
     setPendingQuote(quote)
     setPriceChangeAt(null)

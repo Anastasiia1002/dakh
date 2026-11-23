@@ -112,6 +112,7 @@ describe('checkout helpers', () => {
   })
 
   it('resumes a pending intent only for the same stay', () => {
+    const attemptId = '44444444-4444-4444-8444-444444444444'
     const stored = {
       intentId: '11111111-1111-4111-8111-111111111111',
       emailMasked: 'ox***@example.test',
@@ -120,12 +121,14 @@ describe('checkout helpers', () => {
       checkIn: '2026-12-15',
       checkOut: '2026-12-17',
       guestCount: 2,
+      attemptId,
     }
     const stay = {
       roomTypeId: stored.roomTypeId,
       checkIn: stored.checkIn,
       checkOut: stored.checkOut,
       guestCount: 2,
+      attemptId,
     }
     assert.equal(storedIntentMatchesStay(stored, stay), true)
     assert.equal(storedIntentMatchesStay(stored, { ...stay, checkOut: '2026-12-18' }), false)
@@ -134,6 +137,8 @@ describe('checkout helpers', () => {
     assert.equal(storedIntentMatchesStay(stored, { ...stay, adults: 1, children: 1 }), false)
     assert.equal(storedIntentMatchesStay({ ...stored, roomTypeId: undefined }, stay), false)
     assert.equal(storedIntentMatchesStay({ ...stored, expiresAt: '2000-01-01T00:00:00.000Z' }, stay), false)
+    assert.equal(storedIntentMatchesStay(stored, { ...stay, attemptId: '55555555-5555-4555-8555-555555555555' }), false)
+    assert.equal(storedIntentMatchesStay({ ...stored, attemptId: undefined }, stay), false)
     assert.equal(storedIntentExpiredForStay({ ...stay, adults: 2, children: 0 }), null)
   })
 
@@ -163,6 +168,7 @@ describe('checkout helpers', () => {
           guestCount: 2,
           adults: 2,
           children: 0,
+          attemptId: '44444444-4444-4444-8444-444444444444',
           cooldownUntil: Date.now() + 20_000,
           otpExpiresAt: '2000-01-01T00:10:00.000Z',
         }),
@@ -174,6 +180,7 @@ describe('checkout helpers', () => {
         guestCount: 2,
         adults: 2,
         children: 0,
+        attemptId: '44444444-4444-4444-8444-444444444444',
       })
       assert.equal(expired?.intentId, '11111111-1111-4111-8111-111111111111')
       assert.equal(JSON.stringify(expired).includes('123456'), false)

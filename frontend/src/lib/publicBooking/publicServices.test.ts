@@ -209,7 +209,7 @@ describe('public service selection', () => {
     assert.match(flow, /extrasCatalogLoaded/)
     assert.match(flow, /calendarRangeForStay/)
     assert.match(flow, /recoveringExpiredIntent/)
-    assert.match(flow, /<legend className="font-display text-3xl text-clay">Контакти<\/legend>/)
+    assert.match(flow, /Контакти/)
     assert.match(options, /status === 'error'/)
     assert.doesNotMatch(options, /if \(items.length === 0\) return null/)
     assert.doesNotMatch(options, /сервер|PER_STAY|catalog/)
@@ -223,9 +223,12 @@ describe('public service selection', () => {
     assert.doesNotMatch(summary, /unitPrice/)
     assert.match(prices, /Оплата за домовленістю|SERVICE_AGREED_TOTAL_NOTE/)
     assert.match(flow, /SERVICE_DROPPED_COPY/)
-    assert.match(flow, /loadStoredServiceQuantities/)
+    assert.match(flow, /attemptId/)
     const roomBooking = readFileSync(new URL('../../components/booking/RoomBooking.tsx', import.meta.url), 'utf8')
     assert.match(roomBooking, /ServiceOptions/)
+    assert.match(roomBooking, /startNewAttemptFromHandoff/)
+    assert.match(roomBooking, /ResumeBookingLink/)
+    assert.doesNotMatch(roomBooking, /loadBookingHandoff/)
   })
 
   it('sends only the server quote lines and maps an invalid service error', () => {

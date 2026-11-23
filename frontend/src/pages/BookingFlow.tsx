@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../components/BookingCalendar'
 import { BookingReview } from '../components/booking/BookingReview'
@@ -35,14 +35,13 @@ import {
 import {
   clearBookingDraft,
   formDraftFromStored,
+  newBookingAttemptId,
   readBookingDraft,
   visibleWizardSteps,
   writeBookingDraft,
   type WizardStepId,
 } from '../lib/publicBooking/bookingDraft'
 import {
-  loadServicesByUnit,
-  loadStoredServiceQuantities,
   migrateServicesByUnit,
   persistServicesByUnit,
   selectedServiceLines,
@@ -107,9 +106,20 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const [params] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const [handoff, setHandoff] = useState<BookingHandoff | null>(() =>
-    resolveBookingHandoff({ state: location.state, params, stored: loadBookingHandoff() }),
-  )
+  const storedDraft = readBookingDraft()
+  const [handoff, setHandoff] = useState<BookingHandoff | null>(() => {
+    const resolved = resolveBookingHandoff({ state: location.state, params, stored: loadBookingHandoff() })
+    if (
+      resolved &&
+      storedDraft?.attemptId &&
+      storedDraft.roomTypeId &&
+      resolved.roomTypeId !== storedDraft.roomTypeId &&
+      resolved.attemptId !== storedDraft.attemptId
+    ) {
+      return null
+    }
+    return resolved
+  })
   const configuredHotel = resolveHotelSlug()
   const categoryParam = params.get('category')
   const requestedCategory = categoryParam === 'houses' || categoryParam === 'rooms' ? categoryParam : null
@@ -117,15 +127,25 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     requestedCategory ?? (handoff?.hotelSlug === 'sunny-park' ? 'houses' : null) ?? 'rooms'
   const hotelSlug = apiHotelSlug(category)
   const listPath = categoryBase(category)
-  const storedDraft = readBookingDraft()
-  const [draft, setDraft] = useState<BookingDraft>(() =>
-    formDraftFromStored(storedDraft, handoff ? draftFromHandoff(handoff) : draftFromParams(params)),
+  const incomingAttempt = handoff?.attemptId || params.get('attempt') || ''
+  const resumeSameAttempt = Boolean(
+    storedDraft?.attemptId && (!incomingAttempt || storedDraft.attemptId === incomingAttempt),
   )
+  const [attemptId] = useState(() => incomingAttempt || storedDraft?.attemptId || newBookingAttemptId())
+  const [draft, setDraft] = useState<BookingDraft>(() => {
+    if (resumeSameAttempt) {
+      const fallback =
+        handoff && handoff.roomTypeId === storedDraft?.roomTypeId ? draftFromHandoff(handoff) : draftFromParams(params)
+      return formDraftFromStored(storedDraft, fallback, storedDraft?.attemptId)
+    }
+    if (handoff) return draftFromHandoff(handoff)
+    return draftFromParams(params)
+  })
   const [wizard, setWizard] = useState<WizardStepId>(() => {
-    if (storedDraft?.step) return storedDraft.step
+    if (resumeSameAttempt && storedDraft?.step) return storedDraft.step
     return handoff ? 'extras' : 'dates'
   })
-  const [extrasSkipped, setExtrasSkipped] = useState(() => storedDraft?.extrasSkipped === true)
+  const [extrasSkipped, setExtrasSkipped] = useState(() => (resumeSameAttempt ? storedDraft?.extrasSkipped === true : false))
   const [guestErr, setGuestErr] = useState<GuestFieldErrors>({})
   const [otpCode, setOtpCode] = useState('')
   const [now, setNow] = useState(() => Date.now())
@@ -181,11 +201,13 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const [servicesByUnit, setServicesByUnit] = useState(() =>
     migrateServicesByUnit({
       roomTypeId: storedDraft?.roomTypeId || handoff?.roomTypeId || '',
-      services: storedDraft?.services,
-      servicesByUnit: storedDraft?.servicesByUnit ?? loadServicesByUnit(),
+      servicesByUnit: resumeSameAttempt
+        ? (storedDraft?.servicesByUnit ?? {})
+        : handoff?.roomTypeId && handoff.services
+          ? { [handoff.roomTypeId]: handoff.services }
+          : {},
       handoffRoomTypeId: handoff?.roomTypeId,
-      handoffServices: handoff?.services,
-      legacyStored: loadStoredServiceQuantities(),
+      handoffServices: resumeSameAttempt || handoff?.attemptId === attemptId ? handoff?.services : undefined,
     }),
   )
   const serviceQuantities = servicesForUnit(servicesByUnit, draft.roomTypeId)
@@ -238,12 +260,14 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       guestCount,
       adults: draft.adults,
       children: draft.children,
+      attemptId,
     },
     hotelSlug ?? undefined,
   )
 
   useEffect(() => {
     writeBookingDraft({
+      attemptId,
       step: wizard,
       extrasSkipped,
       checkIn: draft.checkIn,
@@ -272,6 +296,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
         : null,
     })
   }, [
+    attemptId,
     checkout.cooldownUntil,
     checkout.intent,
     checkout.otp?.otpExpiresAt,
@@ -342,6 +367,15 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     setDraft((current) => ({ ...current, ratePlanId: nextRate }))
   }
 
+  const skipStepScroll = useRef(true)
+  useEffect(() => {
+    if (skipStepScroll.current) {
+      skipStepScroll.current = false
+      return
+    }
+    document.getElementById('booking-active-heading')?.scrollIntoView({ block: 'start' })
+  }, [wizard])
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15_000)
     return () => window.clearInterval(timer)
@@ -356,6 +390,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       draft.children === handoff.children
     const next: BookingHandoff = {
       ...handoff,
+      attemptId: handoff.attemptId || attemptId,
       checkIn: draft.checkIn,
       checkOut: draft.checkOut,
       adults: draft.adults,
@@ -627,7 +662,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       {hideIntro ? null : (
         <header>
           <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-          <h1 className="mt-2 font-display text-4xl leading-tight text-clay">Бронювання</h1>
+          <h1 className="mt-2 font-display text-3xl leading-tight text-clay">Бронювання</h1>
           {!bookingEnabled ? (
             <p className="mt-4 max-w-xl text-sm text-wood/70">{BOOKING_DISABLED_COPY}</p>
           ) : null}
@@ -656,7 +691,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
         <div className="space-y-10 md:col-span-7">
           {wizard === 'dates' ? (
             <div id="stay-dates">
-              <h2 className="font-display text-3xl text-clay">Дати й гості</h2>
+              <h2 id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">Дати й гості</h2>
               <p className="mt-2 max-w-xl text-sm text-wood/70">Максимум 30 ночей.</p>
               <BookingCalendar
                 checkIn={draft.checkIn}
@@ -699,7 +734,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
           {wizard === 'stay' ? (
             <fieldset className="border-0 p-0">
-              <legend className="font-display text-3xl text-clay">{ROOM_SELECTION_HEADING.room}</legend>
+              <legend id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">
+                {ROOM_SELECTION_HEADING.room}
+              </legend>
               <p className="mt-3 max-w-xl text-sm text-wood/70">{ROOM_SELECTION_INSTRUCTION}</p>
               <RoomOptions
                 rooms={bookableRooms}
@@ -794,7 +831,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
           {wizard === 'contacts' && bookingEnabled ? (
           <fieldset className="border-0 p-0">
-            <legend className="font-display text-3xl text-clay">Контакти</legend>
+            <legend id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">
+              Контакти
+            </legend>
             <GuestFields
               draft={draft}
               errors={guestErr}
@@ -901,7 +940,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 </div>
               ) : (
                 <div>
-                  <h2 className="font-display text-4xl leading-tight text-clay">Підтвердіть бронювання</h2>
+                  <h2 id="booking-active-heading" className="scroll-mt-28 font-display text-3xl leading-tight text-clay">
+                    Підтвердіть бронювання
+                  </h2>
                   <p className="mt-3 text-sm text-wood/70">Надішлемо код на вашу пошту для підтвердження бронювання.</p>
                   {checkout.error ? (
                     <p className="mt-4 text-sm text-clay" role="alert">
@@ -921,7 +962,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
         </div>
 
-        <aside className={`${bookingPanel} hidden h-fit md:sticky md:top-8 md:col-span-5 md:block`}>
+        <aside className={`${bookingPanel} hidden h-fit md:sticky md:top-28 md:col-span-5 md:block`}>
           {review}
           {bookingEnabled && boundToHandoff && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">

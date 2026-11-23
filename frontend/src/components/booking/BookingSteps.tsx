@@ -11,14 +11,14 @@ export function BookingSteps({
   const steps = visibleWizardSteps()
   const activeIndex = steps.findIndex((step) => step.id === active)
   return (
-    <ol className="grid w-full min-w-0 grid-cols-5 gap-1">
+    <ol className="grid w-full min-w-0 max-w-full grid-cols-5 gap-1 overflow-hidden">
       {steps.map((step, index) => {
         const current = index === activeIndex
         const done = index < activeIndex || (step.id === 'stay' && roomSelected && !current)
         return (
           <li
             key={step.id}
-            className={`min-w-0 ${current ? 'text-clay' : done ? 'text-wood' : 'text-wood/35'}`}
+            className={`min-w-0 max-w-full overflow-hidden ${current ? 'text-clay' : done ? 'text-wood' : 'text-wood/35'}`}
             aria-current={current ? 'step' : undefined}
           >
             <p className="flex flex-col items-start gap-1 text-[0.58rem] font-medium leading-tight tracking-[0.04em] uppercase sm:flex-row sm:items-baseline sm:gap-1.5 sm:text-[0.68rem] sm:tracking-[0.12em]">

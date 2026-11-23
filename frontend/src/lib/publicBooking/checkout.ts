@@ -23,6 +23,7 @@ export type StoredCheckout = {
   children?: number
   cooldownUntil?: number
   otpExpiresAt?: string
+  attemptId?: string
 }
 
 export type StoredStay = {
@@ -32,6 +33,7 @@ export type StoredStay = {
   guestCount: number
   adults?: number
   children?: number
+  attemptId?: string
 }
 
 const INTENT_SESSION_KEY = 'dakh-booking-intent'
@@ -103,6 +105,7 @@ export function readStoredIntent(): StoredCheckout | null {
 export function storedIntentMatchesStay(stored: StoredCheckout | null, stay: StoredStay) {
   if (!stored?.roomTypeId || !stored.checkIn || !stored.checkOut || stored.guestCount == null) return false
   if (intentLooksExpired(stored.expiresAt)) return false
+  if (!stay.attemptId || !stored.attemptId || stay.attemptId !== stored.attemptId) return false
   const splitMatches =
     stay.adults == null && stay.children == null
       ? true
@@ -144,6 +147,7 @@ export function writeStoredIntent(
           guestCount: previous.guestCount,
           adults: previous.adults,
           children: previous.children,
+          attemptId: previous.attemptId,
         }
       : undefined)
   const cooldownUntil = verification?.cooldownUntil ?? previous?.cooldownUntil
@@ -160,6 +164,7 @@ export function writeStoredIntent(
       guestCount: bound?.guestCount,
       adults: bound?.adults,
       children: bound?.children,
+      attemptId: bound?.attemptId,
       cooldownUntil,
       otpExpiresAt,
     } satisfies StoredCheckout),
@@ -169,6 +174,7 @@ export function writeStoredIntent(
 export function storedIntentExpiredForStay(stay: StoredStay): StoredCheckout | null {
   const stored = readStoredIntent()
   if (!stored?.roomTypeId || !stored.checkIn || !stored.checkOut || stored.guestCount == null) return null
+  if (!stay.attemptId || !stored.attemptId || stay.attemptId !== stored.attemptId) return null
   const splitMatches =
     stay.adults == null && stay.children == null
       ? true

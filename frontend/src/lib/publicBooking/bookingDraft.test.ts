@@ -4,6 +4,7 @@ import {
   BOOKING_DRAFT_KEY,
   parseVersionedDraft,
   readBookingDraft,
+  startNewAttemptFromHandoff,
   visibleWizardSteps,
   writeBookingDraft,
 } from './bookingDraft'
@@ -160,5 +161,73 @@ describe('versioned booking draft', () => {
     ]
     assert.deepEqual(selectedServiceLines({ [serviceA]: 1 }, nights, 2), [{ serviceId: serviceA, quantity: 2 }])
     assert.deepEqual(selectedServiceLines({ [serviceA]: 1 }, nights, 4), [{ serviceId: serviceA, quantity: 4 }])
+  })
+
+  it('starts a new attempt without contacts, pending intent, or extras from another unit', () => {
+    const sessionStorage = memorySession()
+    const previous = (globalThis as { window?: unknown }).window
+    const previousStorage = (globalThis as { sessionStorage?: unknown }).sessionStorage
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: { sessionStorage } })
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: sessionStorage })
+    try {
+      const unitA = roomTypeId
+      const unitB = '22222222-2222-4222-8222-222222222222'
+      writeBookingDraft({
+        attemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        roomTypeId: unitA,
+        firstName: 'Анна',
+        email: 'guest@example.test',
+        comment: 'пізно',
+        pending: {
+          intentId: 'intent-old',
+          emailMasked: 'g***@example.test',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          cooldownUntil: Date.now() + 30_000,
+          otpExpiresAt: '2099-01-01T00:10:00.000Z',
+        },
+        servicesByUnit: { [unitA]: { [serviceA]: 2 } },
+      })
+      sessionStorage.setItem(
+        'dakh-booking-intent',
+        JSON.stringify({
+          intentId: 'intent-old',
+          emailMasked: 'g***@example.test',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          roomTypeId: unitA,
+          attemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        }),
+      )
+      const next = startNewAttemptFromHandoff(
+        {
+          hotelSlug: 'dakh',
+          catalogSlug: 'goryshche',
+          roomTypeId: unitB,
+          roomTypeSlug: 'goryshche',
+          checkIn: '2026-12-20',
+          checkOut: '2026-12-22',
+          adults: 2,
+          children: 0,
+          ratePlanId: '',
+          preview: null,
+        },
+        { [serviceB]: 1 },
+      )
+      const draft = readBookingDraft()
+      assert.equal(next.attemptId, draft?.attemptId)
+      assert.notEqual(draft?.attemptId, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+      assert.equal(draft?.firstName, '')
+      assert.equal(draft?.email, '')
+      assert.equal(draft?.comment, '')
+      assert.equal(draft?.pending, null)
+      assert.equal(draft?.roomTypeId, unitB)
+      assert.equal(draft?.services[serviceB], 1)
+      assert.equal(draft?.servicesByUnit[unitA], undefined)
+      assert.equal(sessionStorage.getItem('dakh-booking-intent'), null)
+    } finally {
+      if (previous === undefined) delete (globalThis as { window?: unknown }).window
+      else Object.defineProperty(globalThis, 'window', { configurable: true, value: previous })
+      if (previousStorage === undefined) delete (globalThis as { sessionStorage?: unknown }).sessionStorage
+      else Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: previousStorage })
+    }
   })
 })

@@ -33,6 +33,8 @@ export type BookingHandoff = {
   preview: BookingHandoffPreview | null
   /** Selected extras. Never put in the URL. */
   services?: Record<string, number>
+  /** Checkout attempt. Distinguishes a new handoff from a resumed draft. */
+  attemptId?: string
 }
 
 function isSlug(value: unknown): value is string {
@@ -75,6 +77,7 @@ export function parseBookingHandoff(value: unknown): BookingHandoff | null {
   if (!(ratePlanId === '' || isUuid(ratePlanId))) return null
   const preview = parsePreview(raw.preview)
   const services = parseServiceQuantities(raw.services)
+  const attemptId = isUuid(raw.attemptId) ? raw.attemptId : undefined
   return {
     hotelSlug,
     catalogSlug,
@@ -87,6 +90,7 @@ export function parseBookingHandoff(value: unknown): BookingHandoff | null {
     ratePlanId,
     preview,
     ...(Object.keys(services).length > 0 ? { services } : {}),
+    ...(attemptId ? { attemptId } : {}),
   }
 }
 
@@ -126,6 +130,7 @@ export function handoffToSearch(handoff: BookingHandoff) {
   params.set('to', handoff.checkOut)
   params.set('adults', String(handoff.adults))
   params.set('children', String(handoff.children))
+  if (handoff.attemptId) params.set('attempt', handoff.attemptId)
   return params
 }
 
@@ -150,6 +155,7 @@ export function handoffFromSearch(params: URLSearchParams, env?: AccommodationMa
       children,
       ratePlanId: '',
       preview: null,
+      attemptId: params.get('attempt'),
     })
   }
   return parseBookingHandoff({
@@ -163,6 +169,7 @@ export function handoffFromSearch(params: URLSearchParams, env?: AccommodationMa
     children,
     ratePlanId: '',
     preview: null,
+    attemptId: params.get('attempt'),
   })
 }
 
@@ -187,12 +194,19 @@ export function resolveBookingHandoff(input: {
   const fromUrl = handoffFromSearch(input.params)
   const base = fromState ?? fromUrl
   if (!base) return null
-  if (!input.stored || !sameRoom(input.stored, base)) return base
+  if (
+    !input.stored ||
+    !sameRoom(input.stored, base) ||
+    (base.attemptId && input.stored.attemptId && base.attemptId !== input.stored.attemptId)
+  ) {
+    return base
+  }
   return {
     ...base,
     ratePlanId: input.stored.ratePlanId || base.ratePlanId,
     preview: fromState?.preview ?? input.stored.preview,
     services: fromState?.services ?? input.stored.services ?? base.services,
+    attemptId: base.attemptId || input.stored.attemptId,
   }
 }
 
