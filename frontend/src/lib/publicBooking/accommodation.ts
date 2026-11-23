@@ -71,24 +71,36 @@ function parseKind(value: unknown): PublicRoomKind {
   return value
 }
 
+function parseDescription(value: unknown): string {
+  if (value === null) return ''
+  if (typeof value !== 'string') invalidCatalog()
+  return value
+}
+
+function parseCover(value: unknown, images: PublicAccommodationImage[]): PublicAccommodationImage | null {
+  if (value === null) return images[0] ?? null
+  return parseImage(value)
+}
+
 function parseAccommodation(value: unknown, hotelSlug: PublicHotelSlug): PublicAccommodation {
   if (!isRecord(value)) invalidCatalog()
   if (value.hotelSlug !== hotelSlug) invalidCatalog()
-  if (typeof value.description !== 'string') invalidCatalog()
+  const description = parseDescription(value.description)
   if (typeof value.maxGuests !== 'number' || !Number.isInteger(value.maxGuests) || value.maxGuests < 1) {
     invalidCatalog()
   }
   if (!Array.isArray(value.images)) invalidCatalog()
+  const images = value.images.map(parseImage)
   const amenities = parseAmenities(value.amenities)
   return {
     id: requiredString(value.id),
     slug: requiredString(value.slug),
     name: requiredString(value.name),
     kind: parseKind(value.kind),
-    description: value.description,
+    description,
     maxGuests: value.maxGuests,
-    images: value.images.map(parseImage),
-    cover: parseImage(value.cover),
+    images,
+    cover: parseCover(value.cover, images),
     ...(amenities === undefined ? {} : { amenities }),
     hotelSlug,
   }

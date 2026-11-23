@@ -143,7 +143,7 @@ for (const path of detailPaths(catalog)) {
   const item = catalog.get(path)
   const publicSlug = path.split('/').at(-1) ?? ''
   let cover: CoverFiles | undefined
-  if (item) {
+  if (item?.cover) {
     const prepared = await writeCoverVariants(publicSlug, item.cover.url)
     if (prepared) {
       cover = { publicSlug }

@@ -176,6 +176,15 @@ describe('catalog display', () => {
     )
   })
 
+  it('keeps a catalog card without a cover photo', () => {
+    const empty = { ...cottage, cover: null, images: [] }
+    assert.deepEqual(galleryImages(empty), [])
+    const html = renderToStaticMarkup(
+      createElement(MemoryRouter, { initialEntries: ['/'] }, createElement(RoomCard, { accommodation: empty })),
+    )
+    assert.equal(html.includes('photos.example'), false)
+  })
+
   it('keeps a network failure distinct from an empty catalog', () => {
     assert.match(catalogErrorCopy(new Error('Failed to fetch')), /прокидається/)
     assert.doesNotMatch(catalogErrorCopy(new Error('Failed to fetch')), /немає опублікованих/)

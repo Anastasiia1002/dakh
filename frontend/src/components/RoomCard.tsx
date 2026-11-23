@@ -29,12 +29,16 @@ export function RoomCard({
   return (
     <article className="group">
       <Link to={to} className="block overflow-hidden">
-        <Photo
-          src={accommodation.cover.url}
-          alt={accommodation.cover.alt || title}
-          priority={priority}
-          className={`${photoClassName} w-full transition duration-700 group-hover:scale-[1.02]`}
-        />
+        {accommodation.cover ? (
+          <Photo
+            src={accommodation.cover.url}
+            alt={accommodation.cover.alt || title}
+            priority={priority}
+            className={`${photoClassName} w-full transition duration-700 group-hover:scale-[1.02]`}
+          />
+        ) : (
+          <div className={`${photoClassName} w-full bg-linen`} aria-hidden="true" />
+        )}
       </Link>
       <p className="kicker mt-5 text-[0.68rem] text-clay">{kindLabel(accommodation.kind)}</p>
       <h3 className="font-display text-[1.85rem] leading-[1.12]">

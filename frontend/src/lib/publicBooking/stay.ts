@@ -134,6 +134,18 @@ export function stayNights(checkIn: string, checkOut: string) {
   return nightsBetween(checkIn, checkOut)
 }
 
+/** Locked checkout must request identity from stay dates, not only after the calendar popover paints. */
+export function calendarRangeForStay(
+  checkIn: string,
+  checkOut: string,
+  pickerRange: { from: string; to: string } | null,
+) {
+  if (isIsoDate(checkIn) && isIsoDate(checkOut) && checkOut > checkIn) {
+    return { from: checkIn, to: checkOut }
+  }
+  return pickerRange
+}
+
 export function stayIsSearchable(checkIn: string, checkOut: string, guestCount: number) {
   const nights = stayNights(checkIn, checkOut)
   return (

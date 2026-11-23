@@ -20,7 +20,7 @@ import {
   serviceSelectionKey,
   serviceUnitCopy,
 } from './publicServices'
-import { isCatalogItem, pruneServiceQuantities } from './usePublicServices'
+import { extrasCatalogLoaded, isCatalogItem, pruneServiceQuantities } from './usePublicServices'
 import type { PublicServiceCatalogItem } from './types'
 
 const breakfast: PublicServiceCatalogItem = {
@@ -161,7 +161,11 @@ describe('public service selection', () => {
   })
 
   it('drops extras that the current catalog no longer offers', () => {
-    assert.deepEqual(pruneServiceQuantities({ 'svc-1': 2, 'gone': 1 }, [breakfast]), { 'svc-1': 2 })
+    const selected = { 'svc-1': 2, gone: 1 }
+    assert.equal(extrasCatalogLoaded('loading'), false)
+    assert.equal(extrasCatalogLoaded('idle'), false)
+    assert.equal(pruneServiceQuantities(selected, [], false), selected)
+    assert.deepEqual(pruneServiceQuantities({ 'svc-1': 2, gone: 1 }, [breakfast]), { 'svc-1': 2 })
     const same = { 'svc-1': 2 }
     assert.equal(pruneServiceQuantities(same, [breakfast]), same)
   })
@@ -177,6 +181,9 @@ describe('public service selection', () => {
     assert.match(flow, /bg-wood text-linen/)
     assert.doesNotMatch(flow, /bg-beige\/40/)
     assert.match(flow, /pruneServiceQuantities/)
+    assert.match(flow, /extrasCatalogLoaded/)
+    assert.match(flow, /calendarRangeForStay/)
+    assert.match(flow, /recoveringExpiredIntent/)
     assert.match(flow, /<legend className="font-display text-3xl">Контакти<\/legend>/)
     assert.match(options, /status === 'error'/)
     assert.doesNotMatch(options, /if \(items.length === 0\) return null/)

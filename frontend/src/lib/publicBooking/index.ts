@@ -75,6 +75,7 @@ export {
   soleRatePlanId,
   stayIsSearchable,
   stayNights,
+  calendarRangeForStay,
 } from './stay'
 export type {
   ApiErrorBody,
