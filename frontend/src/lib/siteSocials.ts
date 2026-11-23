@@ -36,6 +36,21 @@ function isPlaceholderSocial(url: string) {
   }
 }
 
+export function instagramProfileEmbedSrc(href = site.instagram) {
+  const value = href?.trim()
+  if (!value || isPlaceholderSocial(value)) return undefined
+  try {
+    const parsed = new URL(value)
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase()
+    if (host !== 'instagram.com') return undefined
+    const username = parsed.pathname.split('/').filter(Boolean)[0]
+    if (!username || username === 'p' || username === 'reel' || username === 'stories') return undefined
+    return `https://www.instagram.com/${encodeURIComponent(username)}/embed/`
+  } catch {
+    return undefined
+  }
+}
+
 export function officialSocials(source: Pick<typeof site, 'instagram'> = site): OfficialSocial[] {
   const candidates = [{ href: source.instagram }]
   const seen = new Set<string>()
