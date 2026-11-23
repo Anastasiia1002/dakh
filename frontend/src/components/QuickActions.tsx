@@ -22,11 +22,8 @@ function stayDetailPath(pathname: string) {
   return path.startsWith('/rooms/') || path.startsWith('/houses/')
 }
 
-const iconActionClass =
-  'group pointer-events-auto relative inline-flex size-11 items-center justify-center border shadow-[0_10px_28px_rgba(91,56,43,0.16)] backdrop-blur-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
-
-const channelClass =
-  'pointer-events-auto inline-flex min-h-11 min-w-11 items-center gap-3 px-3 text-sm text-wood focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
+const bookActionClass =
+  'group pointer-events-auto relative inline-flex size-11 items-center justify-center border border-clay bg-clay text-linen shadow-[0_10px_28px_rgba(91,56,43,0.16)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay'
 
 function ActionTooltip({ label }: { label: string }) {
   return (
@@ -57,6 +54,14 @@ function ChatIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  )
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
     </svg>
   )
 }
@@ -140,17 +145,21 @@ function IconAction({
   )
 }
 
-function ChannelLink({ channel }: { channel: ContactChannel }) {
+function ChannelLink({ channel, onSelect }: { channel: ContactChannel; onSelect: () => void }) {
   return (
     <a
       role="menuitem"
       href={channel.href}
       target={channel.external ? '_blank' : undefined}
       rel={channel.external ? 'noreferrer' : undefined}
-      className={channelClass}
+      className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-wood transition-colors hover:bg-wood/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
+      onClick={onSelect}
     >
-      <ChannelIcon id={channel.id} className="size-5 shrink-0" />
-      {channel.label}
+      <ChannelIcon id={channel.id} className="size-[22px] shrink-0" />
+      <span className="min-w-0">
+        <span className="block text-sm leading-5">{channel.label}</span>
+        {channel.detail ? <span className="mt-0.5 block text-xs leading-4 text-wood/60">{channel.detail}</span> : null}
+      </span>
     </a>
   )
 }
@@ -162,7 +171,14 @@ export function QuickActions() {
   const channels = widgetContactChannels()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
+  const headingId = useId()
+
+  function closeMenu() {
+    setOpen(false)
+    queueMicrotask(() => buttonRef.current?.focus())
+  }
 
   useEffect(() => {
     setOpen(false)
@@ -172,13 +188,14 @@ export function QuickActions() {
     if (!open) return
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      setOpen(false)
+      event.preventDefault()
+      closeMenu()
     }
     function onPointerDown(event: PointerEvent) {
       const target = event.target
       if (!(target instanceof Node)) return
       if (rootRef.current?.contains(target)) return
-      setOpen(false)
+      closeMenu()
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('pointerdown', onPointerDown)
@@ -200,37 +217,44 @@ export function QuickActions() {
   return (
     <div
       ref={rootRef}
-      className={`pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right))] ${bottomClass} z-40 flex flex-col items-end gap-2`}
+      className={`pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right))] ${bottomClass} z-40 flex max-w-[calc(100vw-1.5rem-env(safe-area-inset-left)-env(safe-area-inset-right))] flex-col items-end gap-2`}
     >
-      {open ? (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label="Зв’язатися з DAKH"
-          className="pointer-events-auto min-w-48 border border-wood/15 bg-linen py-1 shadow-[0_12px_32px_rgba(91,56,43,0.18)]"
-        >
-          {channels.map((channel) => (
-            <ChannelLink key={channel.id} channel={channel} />
-          ))}
-        </div>
-      ) : null}
-      <div className="pointer-events-none flex flex-col items-end gap-2">
+      <div
+        id={menuId}
+        role="menu"
+        aria-labelledby={headingId}
+        aria-hidden={!open}
+        className={`w-[min(17.5rem,calc(100vw-1.5rem))] origin-bottom-right rounded-2xl border border-wood/12 bg-linen p-2 text-wood shadow-[0_12px_32px_rgba(91,56,43,0.18)] motion-safe:transition-[opacity,transform] motion-safe:duration-200 motion-reduce:transition-none ${
+          open
+            ? 'pointer-events-auto translate-y-0 opacity-100'
+            : 'pointer-events-none invisible translate-y-1.5 opacity-0'
+        }`}
+      >
+        <p id={headingId} className="px-3 pb-1 pt-1.5 text-sm font-medium">
+          Зв’язатися з DAKH
+        </p>
+        {channels.map((channel) => (
+          <ChannelLink key={channel.id} channel={channel} onSelect={closeMenu} />
+        ))}
+      </div>
+      <div className="pointer-events-none flex items-end gap-2">
         {bookingEnabled && !stayDetail ? (
-          <IconAction label="Забронювати" to={bookTo} className={`${iconActionClass} border-clay bg-clay text-linen`}>
+          <IconAction label="Забронювати" to={bookTo} className={bookActionClass}>
             <CalendarDays className="size-6" />
           </IconAction>
         ) : null}
         <button
+          ref={buttonRef}
           type="button"
-          className={`${iconActionClass} border-wood/15 bg-linen/95 text-wood`}
+          className="group pointer-events-auto relative inline-flex size-[52px] items-center justify-center rounded-full bg-wood text-linen shadow-[0_10px_28px_rgba(91,56,43,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
           aria-label={open ? 'Закрити контакти' : 'Зв’язатися'}
           aria-expanded={open}
           aria-controls={menuId}
           aria-haspopup="menu"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => (open ? closeMenu() : setOpen(true))}
         >
-          <ChatIcon className="size-6" />
-          <ActionTooltip label="Зв’язатися" />
+          {open ? <CloseIcon className="size-6" /> : <ChatIcon className="size-6" />}
+          {open ? null : <ActionTooltip label="Зв’язатися" />}
         </button>
       </div>
     </div>
