@@ -89,7 +89,7 @@ describe('quick actions', () => {
     assert.equal(recover.includes('fixed right-'), false)
     assert.equal(contact.includes('fixed right-'), false)
     const layout = readFileSync(new URL('../components/Layout.tsx', import.meta.url), 'utf8')
-    const instagram = readFileSync(new URL('../components/InstagramSection.tsx', import.meta.url), 'utf8')
+    const instagram = readFileSync(new URL('../components/VisitSection.tsx', import.meta.url), 'utf8')
     assert.match(layout, /function HeaderActions/)
     assert.match(layout, />\s*Подзвонити\s*</)
     assert.match(layout, />\s*Забронювати\s*</)

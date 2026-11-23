@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { LocationMap } from '../components/LocationMap'
 import { site } from '../data/catalog'
 import { emailError } from '../lib/email'
 import {
@@ -223,21 +224,7 @@ export function ContactPage() {
           </Row>
 
           <p className="kicker mt-1 text-[0.68rem] text-wood/55">Як доїхати</p>
-          <div className="relative mt-3 min-h-64 flex-1 overflow-hidden border border-wood/10 md:min-h-80">
-            <iframe
-              title="DAKH, вул. Солонецька, 2-И, с. Мигове"
-              src={site.map.embed}
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              loading="lazy"
-            />
-            <a
-              href={site.map.directions}
-              target="_blank"
-              rel="noreferrer"
-              className="absolute inset-0"
-              aria-label="Прокласти маршрут до DAKH у Google Maps"
-            />
-          </div>
+          <LocationMap className="mt-3 min-h-64 flex-1 md:min-h-80" />
           <a href={site.map.directions} target="_blank" rel="noreferrer" className={`${cta} mt-4`}>
             Прокласти маршрут
           </a>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Spot } from '../components/BrandMarks'
 import { CatalogState } from '../components/CatalogState'
-import { InstagramSection } from '../components/InstagramSection'
+import { VisitSection } from '../components/VisitSection'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { categoryBase, categoryLabel, type AccommodationCategory } from '../lib/catalog/categories'
@@ -80,7 +80,6 @@ export function HomePage() {
 
       <HomeCatalog category="rooms" empty="Зараз немає опублікованих номерів." />
       <HomeCatalog category="houses" empty="Зараз немає опублікованих будиночків." />
-      <InstagramSection />
 
       <section className="photo-grain relative min-h-[70vh]">
         <Photo
@@ -105,27 +104,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-28 md:grid-cols-2">
-        <Photo
-          src={images.diningRoom}
-          alt="Зал DAKH зі столами й видом у двір"
-          tone={false}
-          className="w-full"
-        />
-        <div>
-          <p className="kicker text-[0.68rem] text-clay">{site.city}</p>
-          <h2 className="mt-3 font-display text-4xl leading-tight">У тихому куточку Карпат</h2>
-          <p className="mt-5 text-sm leading-relaxed text-wood/80">
-            {site.address}. Гори близько, місто — коли захочете. Якщо шукаєте тишу — вона тут.
-          </p>
-          <Link
-            to="/kontakty"
-            className="mt-6 inline-block min-h-11 text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
-          >
-            Як нас знайти
-          </Link>
-        </div>
-      </section>
+      <VisitSection />
     </>
   )
 }

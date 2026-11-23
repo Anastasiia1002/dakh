@@ -62,6 +62,8 @@ describe('approved DAKH map location', () => {
       'src/pages/ContactPage.tsx',
       'src/components/Layout.tsx',
       'src/pages/HomePage.tsx',
+      'src/components/VisitSection.tsx',
+      'src/components/LocationMap.tsx',
     ]
       .map(source)
       .join('\n')
@@ -81,8 +83,13 @@ describe('approved DAKH map location', () => {
   })
 
   it('keeps map links external and noreferrer', () => {
-    const anchors = [...mapAnchors('src/pages/ContactPage.tsx'), ...mapAnchors('src/components/Layout.tsx')]
-    assert.equal(anchors.length, 4)
+    const anchors = [
+      ...mapAnchors('src/pages/ContactPage.tsx'),
+      ...mapAnchors('src/components/Layout.tsx'),
+      ...mapAnchors('src/components/LocationMap.tsx'),
+      ...mapAnchors('src/components/VisitSection.tsx'),
+    ]
+    assert.equal(anchors.length, 6)
     for (const anchor of anchors) {
       assert.match(anchor, /target="_blank"/)
       assert.match(anchor, /rel="noreferrer"/)
