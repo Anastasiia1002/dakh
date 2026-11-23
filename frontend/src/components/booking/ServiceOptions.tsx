@@ -14,6 +14,7 @@ import {
 } from '../../lib/publicBooking/publicServices'
 import type { PublicServicesStatus } from '../../lib/publicBooking/usePublicServices'
 import type { PublicServiceCatalogItem } from '../../lib/publicBooking/types'
+import { bookingHeading, bookingHint } from './bookingChrome'
 
 export function ServiceOptions({
   items,
@@ -30,24 +31,24 @@ export function ServiceOptions({
   const hasRequest = items.some((item) => quantities[item.id] != null && onlinePricingOf(item) === 'REQUEST_ONLY')
   return (
     <fieldset className="border-0 p-0 pb-8 md:pb-0">
-      <legend id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">
+      <legend id="booking-active-heading" className={bookingHeading}>
         {SERVICE_SECTION_HEADING}
       </legend>
       {status === 'loading' || status === 'idle' ? (
-        <p className="mt-3 text-sm text-wood/70">{SERVICE_LOADING_COPY}</p>
+        <p className={bookingHint}>{SERVICE_LOADING_COPY}</p>
       ) : null}
       {status === 'error' ? (
-        <p className="mt-3 text-sm text-wood/70" role="status">
+        <p className={bookingHint} role="status">
           {SERVICE_ERROR_COPY}
         </p>
       ) : null}
       {status === 'empty' || (status === 'ready' && items.length === 0) ? (
-        <p className="mt-3 text-sm text-wood/70">{SERVICE_EMPTY_COPY}</p>
+        <p className={bookingHint}>{SERVICE_EMPTY_COPY}</p>
       ) : null}
       {listable ? (
         <>
-          <p className="mt-3 max-w-xl text-sm text-wood/70">{SERVICE_SECTION_HINT}</p>
-          <ul className="mt-6 space-y-4">
+          <p className={bookingHint}>{SERVICE_SECTION_HINT}</p>
+          <ul className="mt-7 space-y-3">
             {items.map((item) => {
               const bounds = serviceQuantityBounds(item)
               const quantity = quantities[item.id]
@@ -57,37 +58,48 @@ export function ServiceOptions({
               return (
                 <li
                   key={item.id}
-                  className={`min-w-0 border p-4 ${selected ? 'border-clay bg-beige/40' : 'border-wood/15 bg-linen'}`}
+                  className={`min-w-0 rounded-2xl border p-4 transition sm:p-5 ${
+                    selected ? 'border-clay/70 bg-beige/35 shadow-[0_10px_28px_rgba(178,95,56,0.08)]' : 'border-wood/10 bg-linen'
+                  }`}
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="break-words font-medium">{item.name}</p>
-                      {item.description ? <p className="mt-1 break-words text-sm text-wood/70">{item.description}</p> : null}
-                      <p className="mt-1 text-sm text-wood/70">
+                      <p className="flex items-center gap-2 break-words text-[1.02rem] font-medium">
+                        {selected ? (
+                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-clay text-linen" aria-hidden="true">
+                            <svg viewBox="0 0 16 16" className="size-3 fill-none stroke-current stroke-[2]">
+                              <path d="M3.5 8.2 6.4 11l6.1-7" />
+                            </svg>
+                          </span>
+                        ) : null}
+                        {item.name}
+                      </p>
+                      {item.description ? <p className="mt-1 break-words text-sm text-wood/65">{item.description}</p> : null}
+                      <p className="mt-1.5 text-sm text-wood/60">
                         {priced && item.price
                           ? `${formatMoneyAmount(item.price)} ${serviceUnitCopy(item)}`
                           : serviceUnitCopy(item)}
                       </p>
                       {quantityLabel && selected ? (
-                        <p className="mt-2 text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">{quantityLabel}</p>
+                        <p className="mt-2 text-xs text-wood/50">{quantityLabel}</p>
                       ) : null}
                     </div>
                     {selected && guestPicksServiceQuantity(item) ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-start sm:self-center">
                         <button
                           type="button"
-                          className="inline-flex min-h-11 min-w-11 items-center justify-center border border-wood/20"
+                          className="inline-flex size-11 items-center justify-center rounded-full border border-wood/15 text-lg"
                           aria-label={`Зменшити ${item.name}`}
                           onClick={() => onChange(item.id, quantity <= bounds.min ? null : quantity - 1)}
                         >
                           −
                         </button>
-                        <span className="min-w-8 text-center text-sm" aria-live="polite">
+                        <span className="min-w-8 text-center text-sm tabular-nums" aria-live="polite">
                           {quantity}
                         </span>
                         <button
                           type="button"
-                          className="inline-flex min-h-11 min-w-11 items-center justify-center border border-wood/20 disabled:opacity-40"
+                          className="inline-flex size-11 items-center justify-center rounded-full border border-wood/15 text-lg disabled:opacity-40"
                           aria-label={`Збільшити ${item.name}`}
                           disabled={quantity >= bounds.max}
                           onClick={() => onChange(item.id, Math.min(bounds.max, quantity + 1))}
@@ -98,7 +110,7 @@ export function ServiceOptions({
                     ) : selected ? (
                       <button
                         type="button"
-                        className="inline-flex min-h-11 items-center justify-center border border-wood/20 px-4 text-[0.72rem] tracking-[0.12em] uppercase"
+                        className="inline-flex min-h-11 items-center justify-center rounded-full border border-wood/15 px-5 text-sm font-medium"
                         onClick={() => onChange(item.id, null)}
                       >
                         Прибрати
@@ -106,7 +118,7 @@ export function ServiceOptions({
                     ) : (
                       <button
                         type="button"
-                        className="inline-flex min-h-11 items-center justify-center border border-wood/20 px-4 text-[0.72rem] tracking-[0.12em] uppercase"
+                        className="inline-flex min-h-11 items-center justify-center rounded-full bg-wood px-5 text-sm font-medium text-linen"
                         onClick={() => onChange(item.id, bounds.min)}
                       >
                         Додати
@@ -117,7 +129,7 @@ export function ServiceOptions({
               )
             })}
           </ul>
-          {hasRequest ? <p className="mt-3 max-w-xl text-sm text-wood/70">{SERVICE_REQUEST_HINT}</p> : null}
+          {hasRequest ? <p className="mt-4 max-w-xl text-sm text-wood/65">{SERVICE_REQUEST_HINT}</p> : null}
         </>
       ) : null}
     </fieldset>

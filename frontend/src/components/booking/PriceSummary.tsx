@@ -13,7 +13,7 @@ type QuoteLike = Pick<
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className={`flex justify-between gap-4 ${strong ? 'pt-3 text-base font-semibold text-wood' : 'text-sm text-wood/75'}`}>
+    <div className={`flex justify-between gap-4 ${strong ? 'pt-4 text-xl font-semibold tracking-tight text-wood' : 'text-sm text-wood/75'}`}>
       <dt className="min-w-0">{label}</dt>
       <dd className="shrink-0 tabular-nums">{value}</dd>
     </div>
@@ -53,7 +53,7 @@ export function PriceSummary({
       {model.hasRequestOnly ? <p className="mt-2 text-[0.72rem] text-wood/55">{SERVICE_AGREED_TOTAL_NOTE}</p> : null}
       {showNightlyDetails && model.nights.length > 0 ? (
         <details className="mt-3 border-t border-wood/10 pt-3">
-          <summary className="cursor-pointer text-[0.72rem] tracking-[0.08em] uppercase text-wood/55">
+          <summary className="cursor-pointer text-sm text-wood/50">
             Деталі вартості
           </summary>
           <ul className="mt-2 space-y-1 text-sm text-wood/70">
