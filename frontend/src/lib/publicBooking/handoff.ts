@@ -31,6 +31,8 @@ export type BookingHandoff = {
   children: number
   ratePlanId: string
   preview: BookingHandoffPreview | null
+  /** Selected extras. Never put in the URL. */
+  services?: Record<string, number>
 }
 
 function isSlug(value: unknown): value is string {
@@ -72,6 +74,7 @@ export function parseBookingHandoff(value: unknown): BookingHandoff | null {
   if (!stayIsSearchable(checkIn, checkOut, adults + children)) return null
   if (!(ratePlanId === '' || isUuid(ratePlanId))) return null
   const preview = parsePreview(raw.preview)
+  const services = parseServiceQuantities(raw.services)
   return {
     hotelSlug,
     catalogSlug,
@@ -83,7 +86,19 @@ export function parseBookingHandoff(value: unknown): BookingHandoff | null {
     children,
     ratePlanId,
     preview,
+    ...(Object.keys(services).length > 0 ? { services } : {}),
   }
+}
+
+function parseServiceQuantities(value: unknown): Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const next: Record<string, number> = {}
+  for (const [id, quantity] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof quantity === 'number' && Number.isInteger(quantity) && quantity >= 1 && quantity <= 99) {
+      next[id] = quantity
+    }
+  }
+  return next
 }
 
 function parsePreview(value: unknown): BookingHandoffPreview | null {
@@ -177,6 +192,7 @@ export function resolveBookingHandoff(input: {
     ...base,
     ratePlanId: input.stored.ratePlanId || base.ratePlanId,
     preview: fromState?.preview ?? input.stored.preview,
+    services: fromState?.services ?? input.stored.services ?? base.services,
   }
 }
 

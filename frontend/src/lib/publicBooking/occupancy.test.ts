@@ -17,11 +17,13 @@ import {
   calendarQueryFromParty,
   guestComposition,
   intentStayFromQuote,
+  occupancyIssueForCapacity,
   publicQuoteBody,
   quoteMatchesSearch,
   quoteRequestKey,
   roomAcceptsAdults,
   roomSelectionAfterStayPatch,
+  typedAdultsWithinCapacity,
 } from './stay'
 import type { PublicCalendarDay, PublicCalendarRoomType, PublicQuoteResponse } from './types'
 
@@ -65,6 +67,17 @@ describe('adult occupancy', () => {
     assert.equal(fits(3, 0), false)
     assert.equal(fits(3, 1), false)
     assert.equal(guestComposition(2, 2)?.guestCount, 4)
+  })
+
+  it('explains over-capacity occupancy without rewriting three adults on a two-person unit', () => {
+    assert.equal(occupancyIssueForCapacity(1, 2), null)
+    assert.equal(occupancyIssueForCapacity(2, 2), null)
+    const issue = occupancyIssueForCapacity(3, 2)
+    assert.match(issue ?? '', /2 дорослих/)
+    assert.match(issue ?? '', /3 дорослих/)
+    assert.equal(typedAdultsWithinCapacity(2, 2), 2)
+    assert.equal(typedAdultsWithinCapacity(1, 2), 1)
+    assert.equal(typedAdultsWithinCapacity(3, 2), null)
   })
 
   it('keeps a six-person cottage for two and six adults and rejects seven', () => {

@@ -88,7 +88,6 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
   const title = room ? publicTitle(room.name, room.maxGuests) : ''
 
   const opening = images[0]
-  const extras = images.slice(1)
   const publicSlug = toPublicAccommodationSlug(category, apiSlug)
   const highlights = room ? cardAmenities(room.amenities, 3) : []
 
@@ -146,8 +145,8 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
         <div className="h-48 bg-beige" />
       )}
 
-      {detail.status === 'ready' && room && extras.length > 0 ? (
-        <DeferredGallery key={room.id} images={extras} lightboxImages={images} title={title} />
+      {detail.status === 'ready' && room && images.length > 0 ? (
+        <DeferredGallery key={room.id} images={images} lightboxImages={images} title={title} />
       ) : null}
 
       <section className="mx-auto mt-8 grid max-w-6xl items-start gap-10 px-4 pb-28 sm:px-6 lg:mt-14 lg:grid-cols-[minmax(0,1.86fr)_minmax(18rem,1fr)] lg:gap-14 lg:pb-24">
@@ -168,6 +167,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
                     publicSlug={toPublicAccommodationSlug(category, room.slug)}
                     displayName={title}
                     hotelSlug={apiHotelSlug(category) ?? ''}
+                    maxGuests={room.maxGuests}
                   />
                 </Suspense>
               ) : null}

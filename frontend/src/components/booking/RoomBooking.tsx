@@ -7,6 +7,7 @@ import { emptyDraft, type BookingDraft } from '../../lib/booking'
 import {
   guestCountOf,
   isQuoteFresh,
+  occupancyIssueForCapacity,
   roomSelectionAfterStayPatch,
   selectedRatePlanId,
   stayNights,
@@ -21,6 +22,7 @@ import {
   rememberRoomDisplayName,
   type BookingHandoff,
 } from '../../lib/publicBooking/handoff'
+import { seedDraftFromHandoff } from '../../lib/publicBooking/bookingDraft'
 import { stayUrlFromSearch } from '../../lib/publicBooking/stayUrl'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
 import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
@@ -64,12 +66,14 @@ export function RoomBooking({
   publicSlug,
   displayName,
   hotelSlug,
+  maxGuests,
 }: {
   category: AccommodationCategory
   apiSlug: string
   publicSlug: string
   displayName: string
   hotelSlug: string
+  maxGuests: number
 }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -205,7 +209,9 @@ export function RoomBooking({
         totalAmount: search.quote.totalAmount,
         currency: 'UAH',
       },
+      services: serviceQuantities,
     }
+    seedDraftFromHandoff(handoff, serviceQuantities)
     saveBookingHandoff(handoff)
     navigate(
       { pathname: '/bronuvannya', search: handoffToSearch(handoff).toString() },
@@ -213,8 +219,10 @@ export function RoomBooking({
     )
   }
 
+  const occupancyIssue = occupancyIssueForCapacity(draft.adults, maxGuests)
   const bookingEnabled = isBookingEnabled()
-  const canContinue = bookingEnabled && quoteReady && Boolean(calendar.roomTypeId) && search.configured
+  const canContinue =
+    bookingEnabled && quoteReady && Boolean(calendar.roomTypeId) && search.configured && !occupancyIssue
   const [panelInView, setPanelInView] = useState(true)
 
   useEffect(() => {
@@ -249,7 +257,9 @@ export function RoomBooking({
           }}
           blockedCheckIns={stayGuard.blockedCheckIns}
           blockedRanges={stayGuard.blockedRanges}
-          notice={stayGuard.notice}
+          notice={occupancyIssue || stayGuard.notice}
+          maxAdults={maxGuests}
+          occupancyIssue={occupancyIssue ?? undefined}
           onVisibleRange={onVisibleRange}
           onChange={patch}
         />

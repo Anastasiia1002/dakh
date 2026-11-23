@@ -12,6 +12,7 @@ import type {
 } from './types'
 import { canonicalServiceSelection, serviceSelectionKey } from './publicServices'
 import { DATE_PATTERN, MAX_GUESTS, MAX_NIGHTS, MIN_GUESTS, MIN_NIGHTS } from './types'
+import { adultCountLabel } from '../ukrainian'
 
 export type StaySearch = {
   checkIn: string
@@ -257,6 +258,21 @@ export function isDemoRate(plan: { demo?: boolean; code?: string; name?: string;
 }
 
 export const CAPACITY_BLOCK_COPY = 'Це помешкання не вміщує стільки дорослих.'
+
+/** Explains over-capacity occupancy without rewriting it. */
+export function occupancyIssueForCapacity(adults: number, capacity: number | undefined): string | null {
+  if (capacity == null || !Number.isInteger(capacity) || capacity < MIN_GUESTS) return null
+  if (!Number.isInteger(adults) || adults < MIN_GUESTS) return 'Вкажіть кількість дорослих.'
+  if (adults <= capacity) return null
+  return `У цьому помешканні можуть проживати до ${adultCountLabel(capacity)}. Зараз зазначено ${adultCountLabel(adults)}. Змініть кількість дорослих, щоб продовжити.`
+}
+
+/** Rejects a typed/pasted adult count above the unit cap. Does not rewrite an existing over-capacity value. */
+export function typedAdultsWithinCapacity(next: number, capacity: number | undefined): number | null {
+  if (!Number.isInteger(next) || next < MIN_GUESTS || next > MAX_GUESTS) return null
+  if (capacity != null && Number.isInteger(capacity) && next > capacity) return null
+  return next
+}
 
 export const MISSING_PUBLIC_PRICE_COPY =
   'Публічної ціни для цих дат немає. Бронювання недоступне, доки з’явиться тариф.'

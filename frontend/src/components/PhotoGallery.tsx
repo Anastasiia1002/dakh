@@ -1,228 +1,214 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type UIEvent } from 'react'
-import type { PublicAccommodationImage } from '../lib/publicBooking/types'
+import { useCallback, useEffect, useId, useRef, useState, type PointerEvent } from 'react'
 import { Photo } from './Photo'
+
+type GalleryImage = { url: string; alt: string }
+
+const SWIPE_PX = 48
 
 export function PhotoGallery({
   images,
-  title,
   lightboxImages,
+  title,
 }: {
-  images: PublicAccommodationImage[]
+  images: readonly GalleryImage[]
+  lightboxImages?: readonly GalleryImage[]
   title: string
-  lightboxImages?: PublicAccommodationImage[]
 }) {
-  const frames = lightboxImages ?? images
+  const photos = images.filter((image) => image.url)
+  const lightbox = (lightboxImages ?? photos).filter((image) => image.url)
+  const headingId = useId()
   const [active, setActive] = useState(0)
   const [open, setOpen] = useState(false)
-  const index = Math.min(active, Math.max(0, frames.length - 1))
-  const selected = frames[index]
-  const labelId = useId()
-  const closeRef = useRef<HTMLButtonElement>(null)
+  const opener = useRef<HTMLElement | null>(null)
+  const closeButton = useRef<HTMLButtonElement>(null)
+  const swipe = useRef<{ x: number; y: number } | null>(null)
+  const count = photos.length
+  const lightCount = lightbox.length
+  const safeActive = count === 0 ? 0 : Math.min(active, count - 1)
+  const current = photos[safeActive]
+  const many = count > 1
+
+  const openAt = useCallback(
+    (index: number, from: HTMLElement | null) => {
+      if (lightCount === 0) return
+      opener.current = from
+      setActive(Math.min(Math.max(0, index), lightCount - 1))
+      setOpen(true)
+    },
+    [lightCount],
+  )
+
+  const close = useCallback(() => {
+    setOpen(false)
+    queueMicrotask(() => opener.current?.focus())
+  }, [])
+
+  const step = useCallback(
+    (delta: number) => {
+      const total = open ? lightCount : count
+      if (total <= 1) return
+      setActive((index) => (index + delta + total) % total)
+    },
+    [count, lightCount, open],
+  )
 
   useEffect(() => {
     if (!open) return
-    closeRef.current?.focus()
-    function onKey(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
-      if (event.key === 'ArrowRight') setActive((current) => (current + 1) % frames.length)
-      if (event.key === 'ArrowLeft') setActive((current) => (current === 0 ? frames.length - 1 : current - 1))
+    closeButton.current?.focus()
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') close()
+      if (event.key === 'ArrowLeft') step(-1)
+      if (event.key === 'ArrowRight') step(1)
     }
-    document.addEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
     }
-  }, [frames.length, open])
+  }, [close, open, step])
 
-  if (!selected) return null
-
-  function go(delta: number) {
-    setActive((current) => {
-      const next = current + delta
-      if (next < 0) return frames.length - 1
-      if (next >= frames.length) return 0
-      return next
-    })
+  function onPointerDown(event: PointerEvent<HTMLElement>) {
+    if (!many && lightCount <= 1) return
+    swipe.current = { x: event.clientX, y: event.clientY }
   }
 
-  function onStripScroll(event: UIEvent<HTMLDivElement>) {
-    const node = event.currentTarget
-    const width = node.clientWidth
-    if (width <= 0) return
-    const next = Math.round(node.scrollLeft / width)
-    if (next >= 0 && next < images.length) {
-      const slide = images[next]
-      const frameIndex = frames.findIndex((image) => image.url === slide.url)
-      setActive((current) => (frameIndex === current || frameIndex < 0 ? current : frameIndex))
-    }
+  function onPointerUp(event: PointerEvent<HTMLElement>) {
+    if (!swipe.current) return
+    const dx = event.clientX - swipe.current.x
+    const dy = event.clientY - swipe.current.y
+    swipe.current = null
+    if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy)) return
+    step(dx < 0 ? 1 : -1)
   }
 
-  function onDialogKey(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Tab') {
-      const focusable = event.currentTarget.querySelectorAll<HTMLElement>('button')
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-  }
-
-  const featured = images[0]
-  const rest = images.slice(1)
-
-  function openFrame(image: PublicAccommodationImage) {
-    const frameIndex = frames.findIndex((item) => item.url === image.url)
-    setActive(frameIndex < 0 ? 0 : frameIndex)
-    setOpen(true)
-  }
+  if (!current) return null
 
   return (
-    <section className="mt-6 md:mt-8" aria-label="Фото помешкання">
-      <div className="flex w-full max-w-full snap-x snap-mandatory overflow-x-auto md:hidden" onScroll={onStripScroll}>
-        {images.map((image) => (
-          <button
-            key={`${image.url}-${image.sortOrder}`}
-            type="button"
-            className="w-full shrink-0 basis-full snap-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
-            onClick={() => openFrame(image)}
-          >
-            <Photo src={image.url} alt={image.alt || title} className="aspect-[4/3] max-h-[24rem] w-full" />
-          </button>
-        ))}
+    <section className="mx-auto mt-6 max-w-6xl px-4 sm:mt-8 sm:px-6" aria-labelledby={headingId}>
+      <div className="flex items-end justify-between gap-4">
+        <h2 id={headingId} className="font-display text-3xl text-wood sm:text-4xl">
+          Фото
+        </h2>
+        {many ? (
+          <p className="text-sm text-wood/60">
+            {safeActive + 1} / {count}
+          </p>
+        ) : null}
       </div>
-      {images.length > 1 ? (
-        <p className="mt-3 text-center text-sm text-wood/70 md:hidden">
-          {Math.max(1, images.findIndex((image) => image.url === selected.url) + 1)} / {images.length}
-        </p>
-      ) : null}
-
-      {featured ? (
-        <div
-          className={`mx-auto hidden max-w-6xl gap-3 px-4 sm:px-6 md:grid ${rest.length > 0 ? 'md:grid-cols-[minmax(0,1.7fr)_minmax(11rem,0.85fr)]' : ''}`}
-        >
+      <div className="mt-4">
+        <div className="relative overflow-hidden bg-beige" style={{ aspectRatio: '3 / 2' }}>
           <button
             type="button"
-            className="relative aspect-[5/4] overflow-hidden text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
-            onClick={() => openFrame(featured)}
-            aria-label={`Відкрити фото ${frames.findIndex((item) => item.url === featured.url) + 1} з ${frames.length}`}
+            className="absolute inset-0 block h-full w-full focus-visible:ring-2 focus-visible:ring-clay focus-visible:outline-none"
+            aria-label={`Відкрити фото ${safeActive + 1} з ${count}`}
+            onClick={(event) => openAt(safeActive, event.currentTarget)}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
           >
-            <Photo src={featured.url} alt={featured.alt || title} className="absolute inset-0 h-full w-full" />
+            <Photo
+              src={current.url}
+              alt={current.alt || title}
+              tone={false}
+              sizes="(min-width: 1280px) 1120px, 100vw"
+              className="h-full w-full object-contain"
+            />
           </button>
-          {rest.length > 0 ? (
-            <div className={`grid min-h-0 gap-3 ${rest.length > 1 ? 'grid-rows-2' : 'grid-rows-1'}`}>
-              {rest.slice(0, 2).map((image, restIndex) => (
-                <button
-                  key={`${image.url}-${image.sortOrder}`}
-                  type="button"
-                  onClick={() => openFrame(image)}
-                  className="relative min-h-0 overflow-hidden text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
-                  aria-label={image.alt || `Показати фото ${restIndex + 2}`}
-                >
-                  <Photo src={image.url} alt="" className="absolute inset-0 h-full w-full" />
-                </button>
-              ))}
-            </div>
+          {many ? (
+            <>
+              <button
+                type="button"
+                className="absolute top-1/2 left-3 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-linen/90 text-wood"
+                aria-label="Попереднє фото"
+                onClick={() => step(-1)}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="absolute top-1/2 right-3 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-linen/90 text-wood"
+                aria-label="Наступне фото"
+                onClick={() => step(1)}
+              >
+                ›
+              </button>
+            </>
           ) : null}
         </div>
-      ) : null}
+        {many ? (
+          <ul className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {photos.map((image, index) => (
+              <li key={`${image.url}-${index}`} className="shrink-0">
+                <button
+                  type="button"
+                  aria-current={index === safeActive ? 'true' : undefined}
+                  aria-label={`Фото ${index + 1}`}
+                  onClick={() => setActive(index)}
+                  className={`block h-16 w-24 overflow-hidden border ${
+                    index === safeActive ? 'border-clay' : 'border-wood/15'
+                  }`}
+                >
+                  <Photo
+                    src={image.url}
+                    alt=""
+                    tone={false}
+                    sizes="96px"
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
 
-      {rest.length > 2 ? (
-        <div className="mx-auto mt-3 hidden max-w-6xl grid-cols-4 gap-3 px-4 sm:px-6 md:grid">
-          {rest.slice(2).map((image, restIndex) => (
-            <button
-              key={`rest-${image.url}-${image.sortOrder}`}
-              type="button"
-              onClick={() => openFrame(image)}
-              aria-label={image.alt || `Фото ${restIndex + 3}`}
-              className="block overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
-            >
-              <Photo src={image.url} alt="" className="aspect-[3/2] w-full" />
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {frames.length > 1 ? (
-        <div className="mx-auto mt-4 hidden max-w-6xl items-center justify-between px-4 sm:px-6 md:flex">
-          <p className="text-sm text-wood/70">
-            {index + 1} / {frames.length}
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="min-h-11 min-w-11 border border-wood/15 px-3 text-sm text-wood focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
-              aria-label="Попереднє фото"
-              onClick={() => go(-1)}
-            >
-              Назад
-            </button>
-            <button
-              type="button"
-              className="min-h-11 min-w-11 border border-wood/15 px-3 text-sm text-wood focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay"
-              aria-label="Наступне фото"
-              onClick={() => go(1)}
-            >
-              Далі
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {open ? (
+      {open && lightbox[safeActive] ? (
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby={labelId}
-          className="fixed inset-0 z-50 flex flex-col bg-wood/92 text-linen"
-          onKeyDown={onDialogKey}
+          aria-label="Перегляд фото"
+          className="fixed inset-0 z-[80] flex flex-col bg-wood/95 text-linen"
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
         >
-          <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
-            <p id={labelId} className="text-sm text-linen/80">
-              {index + 1} / {frames.length}
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <p className="text-sm">
+              {safeActive + 1} / {lightCount}
             </p>
             <button
-              ref={closeRef}
+              ref={closeButton}
               type="button"
-              className="min-h-11 px-3 text-[0.72rem] font-semibold tracking-[0.14em] uppercase focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-linen"
-              onClick={() => setOpen(false)}
+              className="min-h-11 px-3 text-sm underline decoration-linen/40 underline-offset-4"
+              onClick={close}
             >
               Закрити
             </button>
           </div>
           <div className="relative flex min-h-0 flex-1 items-center justify-center px-4 pb-8">
-            {frames.length > 1 ? (
+            {lightCount > 1 ? (
               <button
                 type="button"
-                className="absolute left-3 z-10 min-h-11 min-w-11 border border-linen/30 px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-linen"
+                className="absolute left-3 z-10 flex h-11 w-11 items-center justify-center bg-linen/15"
                 aria-label="Попереднє фото"
-                onClick={() => go(-1)}
+                onClick={() => step(-1)}
               >
-                Назад
+                ‹
               </button>
             ) : null}
-            <Photo
-              src={selected.url}
-              alt={selected.alt || title}
-              sizes="100vw"
-              fit="contain"
-              className="max-h-[80svh] w-auto max-w-full"
+            <img
+              src={lightbox[safeActive].url}
+              alt={lightbox[safeActive].alt || title}
+              className="max-h-full max-w-full object-contain"
             />
-            {frames.length > 1 ? (
+            {lightCount > 1 ? (
               <button
                 type="button"
-                className="absolute right-3 z-10 min-h-11 min-w-11 border border-linen/30 px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-linen"
+                className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center bg-linen/15"
                 aria-label="Наступне фото"
-                onClick={() => go(1)}
+                onClick={() => step(1)}
               >
-                Далі
+                ›
               </button>
             ) : null}
           </div>

@@ -13,11 +13,13 @@ import { Photo } from '../components/Photo'
 import { emptyDraft, type BookingDraft } from '../lib/booking'
 import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
+import { BookingSteps, WizardNav } from '../components/booking/BookingSteps'
 import {
   guestCountOf,
   guestFieldErrors,
   guestFormIsValid,
   isQuoteFresh,
+  occupancyIssueForCapacity,
   offerableRatePlans,
   roomAcceptsAdults,
   roomSelectionAfterStayPatch,
@@ -29,6 +31,15 @@ import {
   useStaySearch,
   type GuestFieldErrors,
 } from '../lib/publicBooking'
+import {
+  clearBookingDraft,
+  formDraftFromStored,
+  occupancySummary,
+  readBookingDraft,
+  visibleWizardSteps,
+  writeBookingDraft,
+  type WizardStepId,
+} from '../lib/publicBooking/bookingDraft'
 import {
   loadStoredServiceQuantities,
   persistServiceQuantities,
@@ -103,7 +114,15 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     requestedCategory ?? (handoff?.hotelSlug === 'sunny-park' ? 'houses' : null) ?? 'rooms'
   const hotelSlug = apiHotelSlug(category)
   const listPath = categoryBase(category)
-  const [draft, setDraft] = useState<BookingDraft>(() => (handoff ? draftFromHandoff(handoff) : draftFromParams(params)))
+  const storedDraft = readBookingDraft()
+  const [draft, setDraft] = useState<BookingDraft>(() =>
+    formDraftFromStored(storedDraft, handoff ? draftFromHandoff(handoff) : draftFromParams(params)),
+  )
+  const [wizard, setWizard] = useState<WizardStepId>(() => {
+    if (storedDraft?.step) return storedDraft.step
+    return handoff ? 'extras' : 'dates'
+  })
+  const [extrasSkipped, setExtrasSkipped] = useState(() => storedDraft?.extrasSkipped === true)
   const [guestErr, setGuestErr] = useState<GuestFieldErrors>({})
   const [otpCode, setOtpCode] = useState('')
   const [now, setNow] = useState(() => Date.now())
@@ -153,7 +172,9 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     }
     return covers
   }, [listedHouses.items, listedRooms.items])
-  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>(loadStoredServiceQuantities)
+  const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>(
+    () => handoff?.services ?? storedDraft?.services ?? loadStoredServiceQuantities(),
+  )
   const [extrasNotice, setExtrasNotice] = useState('')
   const serviceLines = useMemo(
     () => selectedServiceLines(serviceQuantities, catalog.items, nights),
@@ -203,6 +224,64 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     },
     hotelSlug ?? undefined,
   )
+
+  useEffect(() => {
+    writeBookingDraft({
+      step: wizard,
+      extrasSkipped,
+      checkIn: draft.checkIn,
+      checkOut: draft.checkOut,
+      adults: draft.adults,
+      children: draft.children,
+      hotelSlug: handoff?.hotelSlug ?? hotelSlug ?? '',
+      catalogSlug: handoff?.catalogSlug ?? '',
+      roomTypeId: draft.roomTypeId,
+      roomTypeSlug: handoff?.roomTypeSlug ?? '',
+      ratePlanId: draft.ratePlanId,
+      services: serviceQuantities,
+      firstName: draft.firstName,
+      lastName: draft.lastName,
+      phone: draft.phone,
+      email: draft.email,
+      comment: draft.comment,
+      pending: checkout.intent
+        ? {
+            intentId: checkout.intent.intentId,
+            emailMasked: checkout.intent.emailMasked,
+            expiresAt: checkout.intent.expiresAt,
+            cooldownUntil: checkout.cooldownUntil,
+            otpExpiresAt: checkout.otp?.otpExpiresAt ?? '',
+          }
+        : null,
+    })
+  }, [
+    checkout.cooldownUntil,
+    checkout.intent,
+    checkout.otp?.otpExpiresAt,
+    draft.adults,
+    draft.checkIn,
+    draft.checkOut,
+    draft.children,
+    draft.comment,
+    draft.email,
+    draft.firstName,
+    draft.lastName,
+    draft.phone,
+    draft.ratePlanId,
+    draft.roomTypeId,
+    extrasSkipped,
+    handoff,
+    hotelSlug,
+    serviceQuantities,
+    wizard,
+  ])
+
+  useEffect(() => {
+    if (checkout.step === 'verify' || checkout.step === 'confirming' || checkout.step === 'price_changed') {
+      setWizard('confirm')
+    }
+  }, [checkout.step])
+
   const guest = {
     firstName: draft.firstName,
     lastName: draft.lastName,
@@ -267,6 +346,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       roomTypeId: draft.roomTypeId || handoff.roomTypeId,
       ratePlanId: draft.ratePlanId,
       preview: stayUnchanged ? handoff.preview : null,
+      services: serviceQuantities,
     }
     if (!draft.checkIn || !draft.checkOut) return
     saveBookingHandoff(next)
@@ -274,7 +354,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     if (search !== location.search) {
       navigate({ pathname: '/bronuvannya', search }, { replace: true, state: { handoff: next } })
     }
-  }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, draft.ratePlanId, draft.roomTypeId, handoff, location.search, navigate])
+  }, [draft.adults, draft.checkIn, draft.checkOut, draft.children, draft.ratePlanId, draft.roomTypeId, handoff, location.search, navigate, serviceQuantities])
 
   useEffect(() => {
     if (handoff) return
@@ -334,7 +414,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
   useEffect(() => {
     if (checkout.step !== 'confirmed') return
-    clearBookingHandoff()
+    clearBookingDraft()
     const token = readStoredConfirmationToken()
     if (token) navigate('/bronuvannya/pidtverdzhennya', { replace: true })
   }, [checkout.step, navigate])
@@ -349,7 +429,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       next.adults !== undefined ||
       next.children !== undefined
     const selectionChanged = next.roomTypeId !== undefined || next.ratePlanId !== undefined
-    if ((stayChanged || selectionChanged) && checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+    const contactChanged = next.email !== undefined || next.phone !== undefined
+    if ((stayChanged || selectionChanged || contactChanged) && checkout.step !== 'collect' && checkout.step !== 'confirmed') {
       checkout.resetToCollect()
       setOtpCode('')
     }
@@ -373,6 +454,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (wizard !== 'contacts') {
+      goNext()
+      return
+    }
     if (!isBookingEnabled()) return
     const errors = guestFieldErrors(guest)
     setGuestErr(errors)
@@ -418,24 +503,52 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       ? search.availabilityError || search.quoteError || 'На ці дати це розміщення недоступне. Інше не підставляємо.'
       : ''
 
-  const step =
-    checkout.step === 'verify' || checkout.step === 'confirming' || checkout.step === 'looking_up'
-      ? 3
-      : checkout.step === 'confirmed'
-        ? 4
-        : search.searchable && (locked || Boolean(draft.roomTypeId))
-          ? 2
-          : search.searchable
-            ? 1
-            : 0
-  const steps = [
-    { label: 'Дати', hint: 'Заїзд і виїзд' },
-    { label: locked ? 'Помешкання' : 'Обрати', hint: locked ? 'Уже обрано' : 'Доступні помешкання' },
-    { label: 'Контакти', hint: 'Ім’я і пошта' },
-    { label: 'Код', hint: 'Лист на пошту' },
-  ]
+  const lockedCapacity = [...listedRooms.items, ...listedHouses.items].find((item) => item.id === draft.roomTypeId)?.maxGuests
+  const occupancyIssue = occupancyIssueForCapacity(draft.adults, locked ? lockedCapacity : undefined)
+  const wizardOrder = visibleWizardSteps(locked).map((item) => item.id)
+  const wizardSummaries: Partial<Record<WizardStepId, string>> = {
+    dates:
+      draft.checkIn && draft.checkOut
+        ? `${draft.checkIn} — ${draft.checkOut}, ${occupancySummary(draft.adults, draft.children)}`
+        : occupancySummary(draft.adults, draft.children),
+    stay: requestedRoomLabel || (draft.roomTypeId ? 'Обрано' : ''),
+    extras:
+      extrasSkipped || Object.keys(serviceQuantities).length === 0
+        ? 'Без додаткових послуг'
+        : `${Object.keys(serviceQuantities).length} послуг`,
+    contacts: draft.email.trim() || draft.phone.trim() || '',
+  }
 
-  const showMobileBar = bookingEnabled && checkout.step === 'collect' && !pickerOpen
+  function goTo(step: WizardStepId) {
+    setWizard(step)
+  }
+
+  function goBack() {
+    const index = wizardOrder.indexOf(wizard)
+    if (index > 0) setWizard(wizardOrder[index - 1])
+  }
+
+  function goNext() {
+    if (wizard === 'dates') {
+      if (!search.searchable || occupancyIssue) return
+      setWizard(locked ? 'extras' : 'stay')
+      return
+    }
+    if (wizard === 'stay') {
+      if (!draft.roomTypeId) return
+      setWizard('extras')
+      return
+    }
+    if (wizard === 'extras') {
+      setWizard('contacts')
+      return
+    }
+    if (wizard === 'contacts' && checkout.step === 'verify' && checkout.intent) {
+      setWizard('confirm')
+    }
+  }
+
+  const showMobileBar = bookingEnabled && checkout.step === 'collect' && !pickerOpen && wizard !== 'confirm'
   const selectedCover = draft.roomTypeId ? catalogCovers.get(draft.roomTypeId) : undefined
   const bookingPanel =
     'booking-panel overflow-hidden border border-linen/15 bg-wood text-linen shadow-[0_18px_40px_rgba(91,56,43,0.22)]'
@@ -456,15 +569,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
       <div className="relative z-20 -mt-10 border border-wood/10 bg-linen/95 p-2.5 shadow-[0_18px_40px_rgba(91,56,43,0.12)] md:-mt-8 md:p-4">
         {bookingEnabled ? (
-          <ol className="mb-3 grid grid-cols-4 gap-1 text-center">
-            {steps.map((item, index) => (
-              <li key={item.label} className={index <= step ? 'text-clay' : 'text-wood/40'}>
-                <p className="text-[0.62rem] tracking-[0.12em] uppercase">{item.label}</p>
-              </li>
-            ))}
-          </ol>
+          <BookingSteps active={wizard} locked={locked} summaries={wizardSummaries} onEdit={goTo} />
         ) : null}
         <p className="mb-3 text-sm text-wood/70">{bookingEnabled ? stayLead : BOOKING_DISABLED_COPY}</p>
+        {wizard === 'dates' ? (
         <div id="stay-dates">
           <BookingCalendar
             checkIn={draft.checkIn}
@@ -483,17 +591,32 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             }}
             blockedCheckIns={stayGuard.blockedCheckIns}
             blockedRanges={stayGuard.blockedRanges}
-            notice={stayGuard.notice}
+            notice={occupancyIssue || stayGuard.notice}
+            maxAdults={locked ? lockedCapacity : undefined}
+            occupancyIssue={occupancyIssue ?? undefined}
             onVisibleRange={onVisibleRange}
             onPanelChange={onPickerOpen}
             onChange={patch}
           />
+          {occupancyIssue ? (
+            <p className="mt-3 text-sm text-clay" role="alert">
+              {occupancyIssue}
+            </p>
+          ) : null}
+          <WizardNav
+            backHidden
+            onBack={goBack}
+            onNext={goNext}
+            nextDisabled={!search.searchable || Boolean(occupancyIssue)}
+            nextLabel="Далі"
+          />
         </div>
+        ) : null}
       </div>
 
       <form id="booking-form" noValidate onSubmit={submit} className="mt-10 grid gap-10 pb-8 md:grid-cols-12 md:gap-12 md:pb-0">
         <div className="space-y-12 md:col-span-7">
-          {locked ? null : (
+          {wizard === 'stay' && !locked ? (
             <fieldset className="border-0 p-0">
               <legend className="font-display text-3xl text-clay">{ROOM_SELECTION_HEADING.room}</legend>
               <p className="mt-3 max-w-xl text-sm text-wood/70">{ROOM_SELECTION_INSTRUCTION}</p>
@@ -516,8 +639,14 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   })
                 }
               />
+              <WizardNav
+                onBack={goBack}
+                onNext={goNext}
+                nextDisabled={!draft.roomTypeId}
+                nextLabel="Далі"
+              />
             </fieldset>
-          )}
+          ) : null}
 
           {unavailableCopy ? (
             <div className="border border-clay/40 bg-beige p-5" role="alert">
@@ -540,29 +669,50 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             </div>
           ) : null}
 
-          {bookingEnabled && extrasNotice ? (
+          {wizard === 'extras' && bookingEnabled && extrasNotice ? (
             <p className="text-sm text-wood/70" role="status">
               {extrasNotice}
             </p>
           ) : null}
 
-          {bookingEnabled && search.selectedRoom ? (
+          {wizard === 'extras' && bookingEnabled && (search.selectedRoom || locked) ? (
+            <>
             <ServiceOptions
               items={catalog.items}
               status={catalog.status}
               quantities={serviceQuantities}
-              onChange={(serviceId, quantity) =>
+              onChange={(serviceId, quantity) => {
+                if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+                  checkout.resetToCollect()
+                  setOtpCode('')
+                }
                 setServiceQuantities((current) => {
                   const next = { ...current }
                   if (quantity == null) delete next[serviceId]
                   else next[serviceId] = quantity
                   return next
                 })
-              }
+                setExtrasSkipped(false)
+              }}
             />
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="min-h-11 border border-wood/20 px-5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                onClick={() => {
+                  setExtrasSkipped(true)
+                  setServiceQuantities({})
+                  setWizard('contacts')
+                }}
+              >
+                Пропустити послуги
+              </button>
+            </div>
+            <WizardNav onBack={goBack} onNext={goNext} nextLabel="Далі" />
+            </>
           ) : null}
 
-          {bookingEnabled ? (
+          {wizard === 'contacts' && bookingEnabled ? (
           <fieldset className="border-0 p-0">
             <legend className="font-display text-3xl">Контакти</legend>
             <GuestFields
@@ -587,6 +737,15 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 }))
               }}
             />
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={goBack}
+                className="min-h-11 border border-wood/20 px-5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+              >
+                Назад
+              </button>
+            </div>
           </fieldset>
           ) : null}
         </div>
@@ -790,12 +949,13 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
               ) : null}
             </div>
             <button
-              type="submit"
-              form="booking-form"
-              disabled={!canSubmit}
+              type={wizard === 'contacts' ? 'submit' : 'button'}
+              form={wizard === 'contacts' ? 'booking-form' : undefined}
+              onClick={wizard === 'contacts' ? undefined : goNext}
+              disabled={wizard === 'contacts' ? !canSubmit : wizard === 'dates' && (!search.searchable || Boolean(occupancyIssue))}
               className="shrink-0 bg-clay px-4 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
             >
-              {checkout.busy && checkout.step === 'creating_intent' ? 'Надсилаємо…' : 'Далі'}
+              {checkout.busy && checkout.step === 'creating_intent' ? 'Надсилаємо…' : wizard === 'contacts' ? 'Надіслати' : 'Далі'}
             </button>
           </div>
         </div>

@@ -53,6 +53,9 @@ type Props = {
   blockedCheckIns?: ReadonlySet<string>
   blockedRanges?: ReadonlySet<string>
   notice?: string
+  /** Adult cap for a specific physical unit. Search stays on MAX_GUESTS when omitted. */
+  maxAdults?: number
+  occupancyIssue?: string
   onPanelChange?: (open: boolean) => void
   onChange: (next: {
     checkIn?: string
@@ -75,6 +78,8 @@ export function BookingCalendar({
   blockedCheckIns,
   blockedRanges,
   notice = '',
+  maxAdults,
+  occupancyIssue = '',
   onPanelChange,
   onChange,
 }: Props) {
@@ -395,20 +400,26 @@ export function BookingCalendar({
             label="Дорослі"
             value={adults}
             min={1}
-            max={Math.max(1, MAX_GUESTS - kids)}
+            max={Math.max(1, Math.min(maxAdults ?? MAX_GUESTS, MAX_GUESTS - kids))}
             onChange={(value) => onChange({ adults: value })}
           />
           <Stepper
             label="Діти"
             value={kids}
             min={0}
-            max={Math.max(0, MAX_GUESTS - adults)}
+            max={Math.max(0, MAX_GUESTS - Math.min(adults, maxAdults ?? adults))}
             onChange={(value) => onChange({ children: value })}
           />
           <Stepper label="Помешкання" value={1} min={1} max={1} onChange={() => undefined} />
-          <p className="mt-3 text-[0.72rem] text-wood/50">
-            Разом {guestCountLabel(guestTotal)}. Одна заявка — одне помешкання.
-          </p>
+          {occupancyIssue ? (
+            <p className="mt-3 text-sm text-clay" role="alert">
+              {occupancyIssue}
+            </p>
+          ) : (
+            <p className="mt-3 text-[0.72rem] text-wood/50">
+              Разом {guestCountLabel(guestTotal)}. Одна заявка — одне помешкання.
+            </p>
+          )}
         </div>
       ) : null}
     </div>
@@ -609,6 +620,13 @@ function Stepper({
   max: number
   onChange: (value: number) => void
 }) {
+  const overMax = value > max
+  function applyTyped(raw: string) {
+    if (!/^\d+$/.test(raw.trim())) return
+    const parsed = Number(raw)
+    if (!Number.isInteger(parsed) || parsed < min || parsed > max) return
+    onChange(parsed)
+  }
   return (
     <div className="flex items-center justify-between gap-3 border-b border-wood/10 py-3 last:border-0">
       <span className="text-sm">{label}</span>
@@ -622,7 +640,22 @@ function Stepper({
         >
           −
         </button>
-        <span className="w-6 text-center text-sm">{value}</span>
+        {overMax ? (
+          <span className="w-8 text-center text-sm text-clay" aria-invalid="true">
+            {value}
+          </span>
+        ) : (
+          <input
+            type="number"
+            inputMode="numeric"
+            min={min}
+            max={max}
+            value={value}
+            aria-label={label}
+            onChange={(event) => applyTyped(event.target.value)}
+            className="h-11 w-12 border border-wood/20 bg-linen text-center text-sm text-wood [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+        )}
         <button
           type="button"
           aria-label={`Більше: ${label}`}
