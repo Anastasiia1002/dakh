@@ -8,8 +8,11 @@ import { errorCopy, PublicApiError } from './errors'
 import {
   canonicalServiceSelection,
   guestPicksServiceQuantity,
+  migrateServicesByUnit,
   quoteServiceSelection,
   selectedServiceLines,
+  servicesForUnit,
+  setServicesForUnit,
   SERVICE_AGREED_PRICE_COPY,
   SERVICE_FIXED_UNIT,
   SERVICE_NIGHT_UNIT,
@@ -160,6 +163,21 @@ describe('public service selection', () => {
     assert.doesNotMatch(cellarUi, /Збільшити/)
   })
 
+  it('keeps extras on one unit and does not copy them to another', () => {
+    const unitA = '11111111-1111-4111-8111-111111111111'
+    const unitB = '22222222-2222-4222-8222-222222222222'
+    const byUnit = migrateServicesByUnit({
+      roomTypeId: unitA,
+      services: { 'svc-1': 2 },
+    })
+    assert.deepEqual(servicesForUnit(byUnit, unitA), { 'svc-1': 2 })
+    assert.deepEqual(servicesForUnit(byUnit, unitB), {})
+    const both = setServicesForUnit(byUnit, unitB, { 'svc-2': 1 })
+    assert.deepEqual(servicesForUnit(both, unitA), { 'svc-1': 2 })
+    assert.deepEqual(servicesForUnit(both, unitB), { 'svc-2': 1 })
+    assert.deepEqual(migrateServicesByUnit({ services: { 'svc-1': 2 } }), {})
+  })
+
   it('drops extras that the current catalog no longer offers', () => {
     const selected = { 'svc-1': 2, gone: 1 }
     assert.equal(extrasCatalogLoaded('loading'), false)
@@ -174,12 +192,16 @@ describe('public service selection', () => {
     const flow = readFileSync(new URL('../../pages/BookingFlow.tsx', import.meta.url), 'utf8')
     const options = readFileSync(new URL('../../components/booking/ServiceOptions.tsx', import.meta.url), 'utf8')
     const summary = readFileSync(new URL('../../components/booking/CheckoutPanels.tsx', import.meta.url), 'utf8')
-    assert.match(flow, /wizard === 'extras' && bookingEnabled && \(search.selectedRoom \|\| locked\)/)
-    assert.match(flow, /seedDraftFromHandoff|services: serviceQuantities/)
+    assert.match(flow, /wizard === 'extras' && bookingEnabled && draft.roomTypeId/)
+    assert.match(flow, /servicesByUnit/)
+    assert.match(flow, /selectRoom/)
+    assert.match(flow, /Ваше бронювання/)
     assert.match(flow, /Дати й гості|BookingSteps/)
     assert.match(flow, /Забронювати/)
     assert.match(flow, /Надішлемо код на вашу пошту для підтвердження бронювання/)
     assert.match(flow, /BookingReview/)
+    assert.doesNotMatch(flow, /Помешкання вже обрано/)
+    assert.doesNotMatch(flow, /Суму підтверджує сервер/)
     assert.doesNotMatch(flow, /bg-wood text-linen/)
     assert.doesNotMatch(flow, /Надіслати на перевірку пошти/)
     assert.doesNotMatch(flow, /bg-beige\/40/)

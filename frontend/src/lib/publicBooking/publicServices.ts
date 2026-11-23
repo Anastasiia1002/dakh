@@ -110,30 +110,105 @@ export function isFreePriceLine(line: Pick<PublicQuoteServiceLine, 'pricing' | '
   return typeof line.totalPrice === 'string' && /^0+(?:\.0+)?$/.test(line.totalPrice)
 }
 
-const SERVICE_SELECTION_STORAGE_KEY = 'dakh-booking-service-quantities'
+export type ServiceQuantities = Record<string, number>
+export type ServicesByUnit = Record<string, ServiceQuantities>
 
-export function loadStoredServiceQuantities(): Record<string, number> {
-  if (typeof sessionStorage === 'undefined') return {}
-  try {
-    const raw = sessionStorage.getItem(SERVICE_SELECTION_STORAGE_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as unknown
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-    const next: Record<string, number> = {}
-    for (const [id, quantity] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof quantity === 'number' && Number.isInteger(quantity) && quantity >= 1) next[id] = quantity
+const SERVICE_SELECTION_STORAGE_KEY = 'dakh-booking-service-quantities'
+const SERVICE_SELECTION_BY_UNIT_KEY = 'dakh-booking-service-quantities-by-unit'
+
+export function parseServiceQuantities(value: unknown): ServiceQuantities {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const next: ServiceQuantities = {}
+  for (const [id, quantity] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof quantity === 'number' && Number.isInteger(quantity) && quantity >= 1 && quantity <= QUANTITY_CAP) {
+      next[id] = quantity
     }
-    return next
+  }
+  return next
+}
+
+export function parseServicesByUnit(value: unknown): ServicesByUnit {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const next: ServicesByUnit = {}
+  for (const [unitId, quantities] of Object.entries(value as Record<string, unknown>)) {
+    if (!unitId) continue
+    const parsed = parseServiceQuantities(quantities)
+    if (Object.keys(parsed).length > 0) next[unitId] = parsed
+  }
+  return next
+}
+
+/** Legacy flat extras bind only to a known unit. Unscoped leftovers are dropped. */
+export function migrateServicesByUnit(input: {
+  roomTypeId?: string
+  services?: unknown
+  servicesByUnit?: unknown
+  handoffRoomTypeId?: string
+  handoffServices?: unknown
+  legacyStored?: unknown
+}): ServicesByUnit {
+  const scoped = parseServicesByUnit(input.servicesByUnit)
+  if (Object.keys(scoped).length > 0) return scoped
+  const unit = input.roomTypeId || input.handoffRoomTypeId || ''
+  const fromDraft = parseServiceQuantities(input.services)
+  if (unit && Object.keys(fromDraft).length > 0) return { [unit]: fromDraft }
+  const fromHandoff = parseServiceQuantities(input.handoffServices)
+  if (input.handoffRoomTypeId && Object.keys(fromHandoff).length > 0) return { [input.handoffRoomTypeId]: fromHandoff }
+  const stored = parseServiceQuantities(input.legacyStored)
+  if (unit && Object.keys(stored).length > 0) return { [unit]: stored }
+  return {}
+}
+
+export function servicesForUnit(byUnit: ServicesByUnit, roomTypeId: string | undefined): ServiceQuantities {
+  if (!roomTypeId) return {}
+  return byUnit[roomTypeId] ?? {}
+}
+
+export function setServicesForUnit(
+  byUnit: ServicesByUnit,
+  roomTypeId: string | undefined,
+  quantities: ServiceQuantities,
+): ServicesByUnit {
+  if (!roomTypeId) return byUnit
+  const next = { ...byUnit }
+  if (Object.keys(quantities).length === 0) delete next[roomTypeId]
+  else next[roomTypeId] = { ...quantities }
+  return next
+}
+
+export function loadStoredServiceQuantities(): ServiceQuantities {
+  return parseServiceQuantities(readJson(SERVICE_SELECTION_STORAGE_KEY))
+}
+
+export function loadServicesByUnit(): ServicesByUnit {
+  return parseServicesByUnit(readJson(SERVICE_SELECTION_BY_UNIT_KEY))
+}
+
+export function persistServiceQuantities(quantities: Readonly<ServiceQuantities>) {
+  writeJson(SERVICE_SELECTION_STORAGE_KEY, Object.keys(quantities).length === 0 ? null : quantities)
+}
+
+export function persistServicesByUnit(byUnit: ServicesByUnit) {
+  writeJson(SERVICE_SELECTION_BY_UNIT_KEY, Object.keys(byUnit).length === 0 ? null : byUnit)
+  writeJson(SERVICE_SELECTION_STORAGE_KEY, null)
+}
+
+function readJson(key: string): unknown {
+  if (typeof sessionStorage === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return null
+    return JSON.parse(raw) as unknown
   } catch {
-    return {}
+    return null
   }
 }
 
-export function persistServiceQuantities(quantities: Readonly<Record<string, number>>) {
+function writeJson(key: string, value: unknown) {
   if (typeof sessionStorage === 'undefined') return
   try {
-    if (Object.keys(quantities).length === 0) sessionStorage.removeItem(SERVICE_SELECTION_STORAGE_KEY)
-    else sessionStorage.setItem(SERVICE_SELECTION_STORAGE_KEY, JSON.stringify(quantities))
+    if (value == null) sessionStorage.removeItem(key)
+    else sessionStorage.setItem(key, JSON.stringify(value))
   } catch {
     /* ignore quota / private mode */
   }

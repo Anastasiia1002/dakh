@@ -66,11 +66,68 @@ describe('versioned booking draft', () => {
     }
   })
 
-  it('skips placement when a unit is already selected', () => {
+  it('keeps placement visible when a unit is already selected', () => {
     assert.deepEqual(
       visibleWizardSteps(true).map((step) => step.label),
-      ['Дати й гості', 'Додаткові послуги', 'Контакти', 'Підтвердження'],
+      ['Дати й гості', 'Розміщення', 'Послуги', 'Контакти', 'Підтвердження'],
     )
+  })
+
+  it('binds legacy extras only to the known unit', () => {
+    const now = Date.now()
+    const unitA = roomTypeId
+    const unitB = '22222222-2222-4222-8222-222222222222'
+    const v1 = parseVersionedDraft({
+      v: 1,
+      savedAt: now,
+      expiresAt: now + 60_000,
+      step: 'extras',
+      extrasSkipped: false,
+      checkIn: '2026-12-20',
+      checkOut: '2026-12-22',
+      adults: 2,
+      children: 0,
+      hotelSlug: 'dakh',
+      catalogSlug: 'bukovyna',
+      roomTypeId: unitA,
+      roomTypeSlug: 'bukovyna',
+      ratePlanId: '',
+      services: { [serviceA]: 2 },
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      comment: '',
+      pending: null,
+    }, now)
+    assert.equal(v1?.services[serviceA], 2)
+    assert.equal(v1?.servicesByUnit[unitA]?.[serviceA], 2)
+    assert.equal(v1?.servicesByUnit[unitB], undefined)
+    const unscoped = parseVersionedDraft({
+      v: 1,
+      savedAt: now,
+      expiresAt: now + 60_000,
+      step: 'extras',
+      extrasSkipped: false,
+      checkIn: '2026-12-20',
+      checkOut: '2026-12-22',
+      adults: 2,
+      children: 0,
+      hotelSlug: '',
+      catalogSlug: '',
+      roomTypeId: '',
+      roomTypeSlug: '',
+      ratePlanId: '',
+      services: { [serviceA]: 2 },
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      comment: '',
+      pending: null,
+    }, now)
+    assert.deepEqual(unscoped?.services, {})
+    assert.deepEqual(unscoped?.servicesByUnit, {})
   })
 
   it('keeps extras on the session handoff and recalculates per-night quantity after a date change', () => {

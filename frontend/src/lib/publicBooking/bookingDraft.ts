@@ -2,16 +2,23 @@ import type { BookingDraft } from '../booking'
 import { emptyDraft } from '../booking'
 import { partySummary } from '../ukrainian'
 import { clearBookingHandoff, loadBookingHandoff, saveBookingHandoff, type BookingHandoff } from './handoff'
-import { persistServiceQuantities } from './publicServices'
+import {
+  migrateServicesByUnit,
+  persistServicesByUnit,
+  servicesForUnit,
+  setServicesForUnit,
+  type ServiceQuantities,
+  type ServicesByUnit,
+} from './publicServices'
 
-export const BOOKING_DRAFT_VERSION = 1
+export const BOOKING_DRAFT_VERSION = 2
 export const BOOKING_DRAFT_KEY = 'dakh-booking-draft'
 export const BOOKING_DRAFT_TTL_MS = 24 * 60 * 60 * 1000
 
 export const WIZARD_STEPS = [
   { id: 'dates', label: 'Дати й гості' },
   { id: 'stay', label: 'Розміщення' },
-  { id: 'extras', label: 'Додаткові послуги' },
+  { id: 'extras', label: 'Послуги' },
   { id: 'contacts', label: 'Контакти' },
   { id: 'confirm', label: 'Підтвердження' },
 ] as const
@@ -41,7 +48,8 @@ export type VersionedBookingDraft = {
   roomTypeId: string
   roomTypeSlug: string
   ratePlanId: string
-  services: Record<string, number>
+  services: ServiceQuantities
+  servicesByUnit: ServicesByUnit
   firstName: string
   lastName: string
   phone: string
@@ -62,17 +70,6 @@ function isCount(value: unknown, min: number, max: number): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
 }
 
-function parseServices(value: unknown): Record<string, number> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-  const next: Record<string, number> = {}
-  for (const [id, quantity] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof quantity === 'number' && Number.isInteger(quantity) && quantity >= 1 && quantity <= 99) {
-      next[id] = quantity
-    }
-  }
-  return next
-}
-
 function parsePending(value: unknown): PendingVerificationDraft | null {
   if (!value || typeof value !== 'object') return null
   const raw = value as Record<string, unknown>
@@ -90,12 +87,18 @@ const STEPS = new Set<WizardStepId>(WIZARD_STEPS.map((step) => step.id))
 export function parseVersionedDraft(value: unknown, now = Date.now()): VersionedBookingDraft | null {
   if (!value || typeof value !== 'object') return null
   const raw = value as Record<string, unknown>
-  if (raw.v !== BOOKING_DRAFT_VERSION) return null
+  if (raw.v !== 1 && raw.v !== 2) return null
   if (typeof raw.expiresAt !== 'number' || raw.expiresAt <= now) return null
   if (typeof raw.otp === 'string' || typeof raw.code === 'string') return null
   const step = STEPS.has(raw.step as WizardStepId) ? (raw.step as WizardStepId) : 'dates'
   const adults = isCount(raw.adults, 1, 20) ? raw.adults : 2
   const children = isCount(raw.children, 0, 20) ? raw.children : 0
+  const roomTypeId = typeof raw.roomTypeId === 'string' ? raw.roomTypeId : ''
+  const servicesByUnit = migrateServicesByUnit({
+    roomTypeId,
+    services: raw.services,
+    servicesByUnit: raw.servicesByUnit,
+  })
   return {
     v: BOOKING_DRAFT_VERSION,
     savedAt: typeof raw.savedAt === 'number' ? raw.savedAt : now,
@@ -108,10 +111,11 @@ export function parseVersionedDraft(value: unknown, now = Date.now()): Versioned
     children,
     hotelSlug: typeof raw.hotelSlug === 'string' ? raw.hotelSlug : '',
     catalogSlug: typeof raw.catalogSlug === 'string' ? raw.catalogSlug : '',
-    roomTypeId: typeof raw.roomTypeId === 'string' ? raw.roomTypeId : '',
+    roomTypeId,
     roomTypeSlug: typeof raw.roomTypeSlug === 'string' ? raw.roomTypeSlug : '',
     ratePlanId: typeof raw.ratePlanId === 'string' ? raw.ratePlanId : '',
-    services: parseServices(raw.services),
+    services: servicesForUnit(servicesByUnit, roomTypeId),
+    servicesByUnit,
     firstName: typeof raw.firstName === 'string' ? raw.firstName : '',
     lastName: typeof raw.lastName === 'string' ? raw.lastName : '',
     phone: typeof raw.phone === 'string' ? raw.phone : '',
@@ -133,24 +137,31 @@ export function readBookingDraft(now = Date.now()): VersionedBookingDraft | null
 
 export function writeBookingDraft(patch: Partial<VersionedBookingDraft>, now = Date.now()) {
   const current = readBookingDraft(now) ?? blankDraft(now)
+  const roomTypeId = patch.roomTypeId ?? current.roomTypeId
+  let servicesByUnit = patch.servicesByUnit ?? current.servicesByUnit
+  if (patch.services && !patch.servicesByUnit) {
+    servicesByUnit = setServicesForUnit(servicesByUnit, roomTypeId, patch.services)
+  }
   const next: VersionedBookingDraft = {
     ...current,
     ...patch,
     v: BOOKING_DRAFT_VERSION,
     savedAt: now,
     expiresAt: now + BOOKING_DRAFT_TTL_MS,
-    services: patch.services ?? current.services,
+    roomTypeId,
+    servicesByUnit,
     pending: patch.pending === undefined ? current.pending : patch.pending,
   }
+  next.services = servicesForUnit(next.servicesByUnit, next.roomTypeId)
   const { otp: _otp, code: _code, ...safe } = next as VersionedBookingDraft & { otp?: unknown; code?: unknown }
   sessionStore()?.setItem(BOOKING_DRAFT_KEY, JSON.stringify(safe))
-  persistServiceQuantities(next.services)
+  persistServicesByUnit(next.servicesByUnit)
   return next
 }
 
 export function clearBookingDraft() {
   sessionStore()?.removeItem(BOOKING_DRAFT_KEY)
-  persistServiceQuantities({})
+  persistServicesByUnit({})
   clearBookingHandoff()
 }
 
@@ -171,6 +182,7 @@ function blankDraft(now: number): VersionedBookingDraft {
     roomTypeSlug: '',
     ratePlanId: '',
     services: {},
+    servicesByUnit: {},
     firstName: '',
     lastName: '',
     phone: '',
@@ -198,7 +210,9 @@ export function formDraftFromStored(stored: VersionedBookingDraft | null, fallba
   }
 }
 
-export function seedDraftFromHandoff(handoff: BookingHandoff, services: Record<string, number> = {}) {
+export function seedDraftFromHandoff(handoff: BookingHandoff, services: ServiceQuantities = {}) {
+  const current = readBookingDraft()
+  const forUnit = Object.keys(services).length > 0 ? services : handoff.services ?? {}
   writeBookingDraft({
     checkIn: handoff.checkIn,
     checkOut: handoff.checkOut,
@@ -209,14 +223,21 @@ export function seedDraftFromHandoff(handoff: BookingHandoff, services: Record<s
     roomTypeId: handoff.roomTypeId,
     roomTypeSlug: handoff.roomTypeSlug,
     ratePlanId: handoff.ratePlanId,
-    services: Object.keys(services).length > 0 ? services : handoff.services ?? {},
+    servicesByUnit: migrateServicesByUnit({
+      roomTypeId: handoff.roomTypeId,
+      services: forUnit,
+      servicesByUnit: {
+        ...(current?.servicesByUnit ?? {}),
+        ...(Object.keys(forUnit).length > 0 ? { [handoff.roomTypeId]: forUnit } : {}),
+      },
+    }),
     step: 'extras',
   })
   saveBookingHandoff(handoff)
 }
 
-export function visibleWizardSteps(locked: boolean) {
-  return locked ? WIZARD_STEPS.filter((step) => step.id !== 'stay') : [...WIZARD_STEPS]
+export function visibleWizardSteps(_locked = false) {
+  return [...WIZARD_STEPS]
 }
 
 export function wizardIndex(step: WizardStepId, locked: boolean) {

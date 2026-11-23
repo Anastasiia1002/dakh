@@ -2,37 +2,33 @@ import { visibleWizardSteps, type WizardStepId } from '../../lib/publicBooking/b
 
 export function BookingSteps({
   active,
-  locked,
-  summaries,
-  onEdit,
+  roomSelected = false,
 }: {
   active: WizardStepId
-  locked: boolean
-  summaries: Partial<Record<WizardStepId, string>>
-  onEdit: (step: WizardStepId) => void
+  locked?: boolean
+  roomSelected?: boolean
 }) {
-  const steps = visibleWizardSteps(locked)
+  const steps = visibleWizardSteps()
   const activeIndex = steps.findIndex((step) => step.id === active)
   return (
-    <ol className="mb-4 grid gap-2 sm:grid-cols-5">
+    <ol className="grid w-full min-w-0 grid-cols-5 gap-1">
       {steps.map((step, index) => {
-        const done = index < activeIndex
         const current = index === activeIndex
+        const done = index < activeIndex || (step.id === 'stay' && roomSelected && !current)
         return (
-          <li key={step.id} className={current ? 'text-clay' : done ? 'text-wood' : 'text-wood/40'}>
-            <p className="text-[0.62rem] tracking-[0.12em] uppercase">{step.label}</p>
-            {done && summaries[step.id] ? (
-              <div className="mt-1 flex items-start justify-between gap-2">
-                <p className="text-xs leading-snug text-wood/70">{summaries[step.id]}</p>
-                <button
-                  type="button"
-                  className="shrink-0 text-[0.62rem] tracking-[0.12em] uppercase underline decoration-wood/30 underline-offset-4"
-                  onClick={() => onEdit(step.id)}
-                >
-                  Змінити
-                </button>
-              </div>
-            ) : null}
+          <li
+            key={step.id}
+            className={`min-w-0 ${current ? 'text-clay' : done ? 'text-wood' : 'text-wood/35'}`}
+            aria-current={current ? 'step' : undefined}
+          >
+            <p className="flex flex-col items-start gap-1 text-[0.58rem] font-medium leading-tight tracking-[0.04em] uppercase sm:flex-row sm:items-baseline sm:gap-1.5 sm:text-[0.68rem] sm:tracking-[0.12em]">
+              <span className={`inline-flex size-5 shrink-0 items-center justify-center border text-[0.62rem] ${
+                current ? 'border-clay bg-clay text-linen' : done ? 'border-wood/30 text-wood' : 'border-wood/20'
+              }`}>
+                {index + 1}
+              </span>
+              <span className="min-w-0 break-words">{step.label}</span>
+            </p>
           </li>
         )
       })}
