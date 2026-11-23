@@ -124,7 +124,7 @@ export function Layout() {
         className={
           overHero
             ? `absolute inset-x-0 top-0 text-linen ${open ? 'z-[60]' : 'z-30'}`
-            : `sticky top-0 border-b border-wood/10 bg-linen/95 text-wood ${open ? 'z-[60]' : 'z-30'}`
+            : `sticky top-0 border-b border-wood/10 bg-linen text-wood ${open ? 'z-[60]' : 'z-30'}`
         }
       >
         <div className={`${PAGE_SHELL} flex items-center justify-between gap-2 py-4 sm:gap-3 sm:py-5 lg:gap-5`}>

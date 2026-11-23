@@ -2,9 +2,31 @@ import { Photo } from '../Photo'
 import { formatDate } from '../../lib/format'
 import { adultCountLabel, childCountLabel, nightCountLabel } from '../../lib/ukrainian'
 import { PriceSummary } from './PriceSummary'
+import { bookingEdit } from './bookingChrome'
 import type { PublicQuoteResponse } from '../../lib/publicBooking/types'
 
 export type ReviewExtra = { serviceId: string; name: string; quantity: number }
+
+function SectionLabel({
+  children,
+  onEdit,
+  editLabel = 'Змінити',
+}: {
+  children: string
+  onEdit?: () => void
+  editLabel?: string
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-xs font-medium tracking-[0.08em] uppercase text-wood/45">{children}</p>
+      {onEdit ? (
+        <button type="button" className={bookingEdit} onClick={onEdit}>
+          {editLabel}
+        </button>
+      ) : null}
+    </div>
+  )
+}
 
 export function BookingReview({
   roomName,
@@ -48,37 +70,25 @@ export function BookingReview({
   return (
     <div className="divide-y divide-wood/10 text-sm text-wood">
       {hasRoom ? (
-      <section className="pb-4">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Розміщення</p>
-          {onEditStay ? (
-            <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditStay}>
-              Змінити
-            </button>
-          ) : null}
-        </div>
+      <section className="pb-5">
+        <SectionLabel onEdit={onEditStay}>Розміщення</SectionLabel>
         <div className="mt-3 flex gap-3">
           {cover ? (
-            <span className="relative size-16 shrink-0 overflow-hidden bg-beige">
-              <Photo src={cover.url} alt="" coverKey={cover.coverKey} sizes="64px" className="h-full w-full" />
+            <span className="relative size-[4.5rem] shrink-0 overflow-hidden rounded-2xl bg-beige">
+              <Photo src={cover.url} alt="" coverKey={cover.coverKey} sizes="72px" className="h-full w-full" />
             </span>
           ) : null}
-          <p className="min-w-0 font-medium leading-snug">{roomName}</p>
+          <p className="min-w-0 pt-0.5 font-medium leading-snug">{roomName}</p>
         </div>
       </section>
       ) : null}
 
       {hasStay ? (
-      <section className="py-4">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Проживання</p>
-          {onEditStay ? (
-            <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditDates ?? onEditStay}>
-              Змінити дати
-            </button>
-          ) : null}
-        </div>
-        <dl className="mt-3 space-y-1.5 text-wood/80">
+      <section className="py-5">
+        <SectionLabel onEdit={onEditDates ?? onEditStay} editLabel="Змінити дати">
+          Проживання
+        </SectionLabel>
+        <dl className="mt-3 space-y-1.5 text-wood/75">
           {checkIn ? (
             <div className="flex justify-between gap-4">
               <dt>Заїзд</dt>
@@ -117,19 +127,12 @@ export function BookingReview({
       ) : null}
 
       {showExtras ? (
-      <section className="py-4">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Послуги</p>
-          {onEditExtras ? (
-            <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditExtras}>
-              Змінити
-            </button>
-          ) : null}
-        </div>
+      <section className="py-5">
+        <SectionLabel onEdit={onEditExtras}>Послуги</SectionLabel>
         {extras.length === 0 ? (
-          <p className="mt-3 text-wood/70">Без додаткових послуг</p>
+          <p className="mt-3 text-wood/65">Без додаткових послуг</p>
         ) : (
-          <ul className="mt-3 space-y-1.5 text-wood/80">
+          <ul className="mt-3 space-y-1.5 text-wood/75">
             {extras.map((line) => (
               <li key={line.serviceId} className="flex justify-between gap-4">
                 <span className="min-w-0">{line.name}</span>
@@ -142,16 +145,9 @@ export function BookingReview({
       ) : null}
 
       {hasContacts ? (
-      <section className="py-4">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Контакти</p>
-          {onEditContacts ? (
-            <button type="button" className="text-[0.62rem] tracking-[0.12em] uppercase text-clay" onClick={onEditContacts}>
-              Змінити
-            </button>
-          ) : null}
-        </div>
-        <dl className="mt-3 space-y-1.5 text-wood/80">
+      <section className="py-5">
+        <SectionLabel onEdit={onEditContacts}>Контакти</SectionLabel>
+        <dl className="mt-3 space-y-1.5 text-wood/75">
           <div className="flex justify-between gap-4">
             <dt>Ім’я</dt>
             <dd className="text-right">
@@ -169,16 +165,16 @@ export function BookingReview({
         </dl>
         {guest.comment.trim() ? (
           <div className="mt-3">
-            <p className="text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Коментар</p>
-            <p className="mt-2 whitespace-pre-wrap text-wood/80">{guest.comment.trim()}</p>
+            <p className="text-xs font-medium tracking-[0.08em] uppercase text-wood/45">Коментар</p>
+            <p className="mt-2 whitespace-pre-wrap text-wood/75">{guest.comment.trim()}</p>
           </div>
         ) : null}
       </section>
       ) : null}
 
       {quote ? (
-      <section className="pt-4">
-        <p className="mb-3 text-[0.62rem] tracking-[0.14em] uppercase text-wood/50">Вартість</p>
+      <section className="pt-5">
+        <p className="mb-3 text-xs font-medium tracking-[0.08em] uppercase text-wood/45">Вартість</p>
         <PriceSummary quote={quote} nightCount={nights} />
       </section>
       ) : null}

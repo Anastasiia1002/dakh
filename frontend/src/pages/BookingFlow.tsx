@@ -14,6 +14,7 @@ import { emptyDraft, type BookingDraft } from '../lib/booking'
 import { formatMoneyAmount } from '../lib/format'
 import { formatBookingPhone } from '../lib/phone'
 import { BookingSteps, WizardNav } from '../components/booking/BookingSteps'
+import { bookingBtnGhost, bookingBtnPrimary, bookingHeading, bookingHint, bookingPanel } from '../components/booking/bookingChrome'
 import {
   guestCountOf,
   guestFieldErrors,
@@ -616,7 +617,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     wizard !== 'confirm' &&
     !codeStep
   const selectedCover = draft.roomTypeId ? catalogCovers.get(draft.roomTypeId) : undefined
-  const bookingPanel = 'overflow-hidden border border-wood/10 bg-linen p-5 shadow-[0_12px_28px_rgba(91,56,43,0.08)] md:p-6'
+  const summaryPanel = bookingPanel
   const extrasFromQuote = (displayQuote?.services ?? []).map((line) => ({
     serviceId: line.serviceId,
     name: line.name,
@@ -658,14 +659,16 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   )
 
   return (
-    <section className={hideIntro ? 'contents' : 'space-y-8'}>
+    <section className={hideIntro ? 'contents' : 'space-y-7'}>
       {hideIntro ? null : (
-        <header>
-          <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
-          <h1 className="mt-2 font-display text-3xl leading-tight text-clay">Бронювання</h1>
+        <header className="max-w-xl">
+          <p className="text-sm font-medium tracking-[0.14em] uppercase text-clay/90">Готель DAKH</p>
+          <h1 className="mt-1 font-display text-[2.35rem] leading-[1.08] text-clay sm:text-[2.7rem]">Бронювання</h1>
           {!bookingEnabled ? (
             <p className="mt-4 max-w-xl text-sm text-wood/70">{BOOKING_DISABLED_COPY}</p>
-          ) : null}
+          ) : (
+            <p className="mt-2 text-[0.95rem] text-wood/60">Кілька коротких кроків — і заявка вже в готелі.</p>
+          )}
         </header>
       )}
 
@@ -674,25 +677,25 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       ) : null}
 
       {bookingEnabled ? (
-        <details className="border border-wood/10 bg-linen md:hidden">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
+        <details className={`${summaryPanel} md:hidden`}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-1 py-1 text-sm [&::-webkit-details-marker]:hidden">
             <span className="font-medium">Ваше бронювання</span>
             {displayQuote && !roomRejected && !checkingIdentity ? (
-              <span className="shrink-0 text-wood/70">{formatMoneyAmount(displayQuote.totalAmount)}</span>
+              <span className="shrink-0 tabular-nums text-wood">{formatMoneyAmount(displayQuote.totalAmount)}</span>
             ) : (
               <span className="shrink-0 text-wood/50">Разом пізніше</span>
             )}
           </summary>
-          <div className={`${bookingPanel} border-0 shadow-none`}>{review}</div>
+          <div className="mt-4 border-t border-wood/10 pt-4">{review}</div>
         </details>
       ) : null}
 
-      <form id="booking-form" noValidate onSubmit={submit} className={`grid items-start gap-8 md:grid-cols-12 md:gap-10 ${showMobileBar ? 'pb-28' : 'pb-8 md:pb-0'}`}>
+      <form id="booking-form" noValidate onSubmit={submit} className={`grid items-start gap-8 md:grid-cols-12 md:gap-8 lg:gap-12 ${showMobileBar ? 'pb-28' : 'pb-8 md:pb-0'}`}>
         <div className="space-y-10 md:col-span-7">
           {wizard === 'dates' ? (
             <div id="stay-dates">
-              <h2 id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">Дати й гості</h2>
-              <p className="mt-2 max-w-xl text-sm text-wood/70">Максимум 30 ночей.</p>
+              <h2 id="booking-active-heading" className={bookingHeading}>Дати й гості</h2>
+              <p className={bookingHint}>Максимум 30 ночей.</p>
               <BookingCalendar
                 checkIn={draft.checkIn}
                 checkOut={draft.checkOut}
@@ -734,10 +737,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
           {wizard === 'stay' ? (
             <fieldset className="border-0 p-0">
-              <legend id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">
+              <legend id="booking-active-heading" className={bookingHeading}>
                 {ROOM_SELECTION_HEADING.room}
               </legend>
-              <p className="mt-3 max-w-xl text-sm text-wood/70">{ROOM_SELECTION_INSTRUCTION}</p>
+              <p className={bookingHint}>{ROOM_SELECTION_INSTRUCTION}</p>
               <RoomOptions
                 rooms={bookableRooms}
                 selectedId={draft.roomTypeId}
@@ -762,19 +765,19 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
 
           {unavailableCopy ? (
-            <div className="border border-clay/40 bg-beige p-5" role="alert">
+            <div className="rounded-2xl border border-clay/30 bg-beige/50 p-5" role="alert">
               <p className="text-sm text-clay">{unavailableCopy}</p>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="#stay-dates"
-                  className="inline-flex flex-1 items-center justify-center border border-wood/20 py-3 text-center text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                  className={`flex-1 ${bookingBtnGhost}`}
                 >
                   Змінити дати
                 </a>
                 <Link
                   to={listPath}
                   onClick={() => clearBookingHandoff()}
-                  className="inline-flex flex-1 items-center justify-center border border-wood/20 py-3 text-center text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                  className={`flex-1 ${bookingBtnGhost}`}
                 >
                   {`Обрати інший ${categorySingularLabel(category).toLowerCase()}`}
                 </Link>
@@ -811,7 +814,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
-                className="min-h-11 border border-wood/20 px-5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                className={bookingBtnGhost}
                 onClick={() => {
                   if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
                     checkout.resetToCollect()
@@ -831,7 +834,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
           {wizard === 'contacts' && bookingEnabled ? (
           <fieldset className="border-0 p-0">
-            <legend id="booking-active-heading" className="scroll-mt-28 font-display text-3xl text-clay">
+            <legend id="booking-active-heading" className={bookingHeading}>
               Контакти
             </legend>
             <GuestFields
@@ -866,7 +869,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
               type="submit"
               disabled={bookDisabled}
               aria-describedby={submitBlockReason ? 'booking-submit-reason' : undefined}
-              className="mt-4 hidden min-h-12 w-full bg-clay py-3 text-[0.82rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50 md:block"
+              className={`mt-5 hidden w-full md:inline-flex ${bookingBtnPrimary}`}
             >
               {sending ? 'Надсилаємо…' : 'Забронювати'}
             </button>
@@ -879,7 +882,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
               <button
                 type="button"
                 onClick={goBack}
-                className="min-h-11 border border-wood/20 px-5 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                className={bookingBtnGhost}
               >
                 Назад
               </button>
@@ -933,14 +936,14 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                       checkout.resetToCollect()
                       setWizard('dates')
                     }}
-                    className="mt-6 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                    className={`mt-6 w-full ${bookingBtnGhost}`}
                   >
                     Обрати інші дати
                   </button>
                 </div>
               ) : (
                 <div>
-                  <h2 id="booking-active-heading" className="scroll-mt-28 font-display text-3xl leading-tight text-clay">
+                  <h2 id="booking-active-heading" className={bookingHeading}>
                     Підтвердіть бронювання
                   </h2>
                   <p className="mt-3 text-sm text-wood/70">Надішлемо код на вашу пошту для підтвердження бронювання.</p>
@@ -952,7 +955,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   <button
                     type="submit"
                     disabled={bookDisabled}
-                    className="mt-6 w-full bg-clay py-3 text-[0.82rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
+                    className={`mt-6 w-full ${bookingBtnPrimary}`}
                   >
                     {sending ? 'Надсилаємо…' : 'Забронювати'}
                   </button>
@@ -962,7 +965,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
           ) : null}
         </div>
 
-        <aside className={`${bookingPanel} hidden h-fit md:sticky md:top-28 md:col-span-5 md:block`}>
+        <aside className={`${summaryPanel} hidden h-fit md:sticky md:top-28 md:col-span-5 md:block`}>
           {review}
           {bookingEnabled && boundToHandoff && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
@@ -982,15 +985,15 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
       </form>
 
       {showMobileBar ? (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-wood/10 bg-linen/95 px-4 py-3 shadow-[0_-12px_28px_rgba(91,56,43,0.12)] backdrop-blur-sm md:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-wood/8 bg-linen/90 px-4 py-3 shadow-[0_-18px_40px_rgba(91,56,43,0.12)] backdrop-blur-md md:hidden">
           <div className="mx-auto flex max-w-6xl items-center gap-3 pb-[env(safe-area-inset-bottom)]">
             {selectedCover ? (
-              <span className="relative size-11 shrink-0 overflow-hidden bg-beige">
+              <span className="relative size-12 shrink-0 overflow-hidden rounded-2xl bg-beige">
                 <Photo
                   src={selectedCover.url}
                   alt=""
                   coverKey={selectedCover.coverKey}
-                  sizes="44px"
+                  sizes="48px"
                   className="h-full w-full"
                 />
               </span>
@@ -1002,7 +1005,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                   : requestedRoomLabel || 'Оберіть помешкання'}
               </p>
               {displayQuote && !roomRejected && !checkingIdentity ? (
-                <p className="text-[0.72rem] text-wood/60">{formatMoneyAmount(displayQuote.totalAmount)}</p>
+                <p className="text-sm tabular-nums text-wood/70">{formatMoneyAmount(displayQuote.totalAmount)}</p>
               ) : null}
             </div>
             <button
@@ -1010,7 +1013,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
               form={wizard === 'contacts' ? 'booking-form' : undefined}
               onClick={wizard === 'contacts' ? undefined : goNext}
               disabled={wizard === 'contacts' ? bookDisabled : wizard === 'dates' && (!search.searchable || Boolean(occupancyIssue))}
-              className="shrink-0 bg-clay px-4 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
+              className="shrink-0 rounded-full bg-clay px-5 py-3 text-[0.95rem] font-semibold text-linen shadow-[0_10px_22px_rgba(178,95,56,0.28)] disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50 disabled:shadow-none"
             >
               {sending ? 'Надсилаємо…' : wizard === 'contacts' ? 'Забронювати' : 'Далі'}
             </button>

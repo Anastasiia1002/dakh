@@ -19,6 +19,7 @@ import {
   type RoomPlace,
 } from '../../lib/publicBooking/bookingSelection'
 import { Photo } from '../Photo'
+import { bookingBtnGhost, bookingBtnPrimary, bookingHeading } from './bookingChrome'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
 import { isGenericStandardPlan, lengthStayTermsCopy } from '../../lib/quotePricing'
 import { PriceSummary } from './PriceSummary'
@@ -32,8 +33,8 @@ import type {
 
 function fieldClass(error?: string) {
   return [
-    'mt-1 w-full border-0 border-b bg-transparent py-2 outline-none',
-    error ? 'border-clay' : 'border-wood/25',
+    'mt-2 w-full rounded-2xl border bg-linen px-4 py-3 font-sans text-base outline-none transition focus:ring-2 focus:ring-clay/15',
+    error ? 'border-clay' : 'border-wood/12 focus:border-clay',
   ].join(' ')
 }
 
@@ -68,7 +69,7 @@ export function OtpPanel({
 
   return (
     <div>
-      <h2 id="booking-active-heading" className="scroll-mt-28 font-display text-3xl leading-tight text-clay">
+      <h2 id="booking-active-heading" className={bookingHeading}>
         Підтвердіть бронювання
       </h2>
       <p className="mt-3 text-sm text-wood/70">
@@ -77,21 +78,21 @@ export function OtpPanel({
       </p>
       {editing ? (
         <div className="mt-4">
-          <label className="block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+          <label className="block text-sm font-medium text-wood/70">
             Нова пошта
             <input
               type="email"
               autoComplete="email"
               value={nextEmail}
               onChange={(event) => setNextEmail(event.target.value)}
-              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 font-sans normal-case tracking-normal outline-none"
+              className="mt-2 w-full rounded-2xl border border-wood/12 bg-linen px-4 py-3 font-sans outline-none focus:border-clay focus:ring-2 focus:ring-clay/15"
             />
           </label>
           <button
             type="button"
             disabled={busy || !nextEmail.trim()}
             onClick={() => onCorrectEmail(nextEmail.trim())}
-            className="mt-4 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase disabled:opacity-40"
+            className={`mt-4 w-full ${bookingBtnGhost}`}
           >
             Надіслати код на цю адресу
           </button>
@@ -109,7 +110,7 @@ export function OtpPanel({
           Виправити пошту
         </button>
       )}
-      <label className="mt-6 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+      <label className="mt-6 block text-sm font-medium text-wood/70">
         Код з листа
         <input
           type="text"
@@ -125,7 +126,7 @@ export function OtpPanel({
             event.preventDefault()
             onCode(digitsFrom(pasted))
           }}
-          className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 font-sans tracking-[0.24em] outline-none"
+          className="mt-2 w-full rounded-2xl border border-wood/12 bg-linen px-4 py-3.5 font-sans text-xl tracking-[0.32em] outline-none focus:border-clay focus:ring-2 focus:ring-clay/15"
         />
       </label>
       {otpExpiresAt ? (
@@ -140,7 +141,7 @@ export function OtpPanel({
         type="button"
         disabled={busy || code.length !== 6}
         onClick={onConfirm}
-        className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+        className={`mt-6 w-full ${bookingBtnPrimary}`}
       >
         {busy ? 'Перевіряємо…' : 'Підтвердити бронювання'}
       </button>
@@ -148,7 +149,7 @@ export function OtpPanel({
         type="button"
         disabled={busy || cooldownLeft > 0}
         onClick={onResend}
-        className="mt-3 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase disabled:opacity-40"
+        className={`mt-3 w-full ${bookingBtnGhost}`}
       >
         {cooldownLeft > 0 ? `Надіслати знову через ${cooldownLeft} с` : 'Надіслати код знову'}
       </button>
@@ -186,7 +187,7 @@ export function PriceChangePanel({
         type="button"
         disabled={busy}
         onClick={onAccept}
-        className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+        className={`mt-6 w-full ${bookingBtnPrimary}`}
       >
         {busy ? 'Оновлюємо…' : 'Прийняти нову ціну'}
       </button>
@@ -194,7 +195,7 @@ export function PriceChangePanel({
         type="button"
         disabled={busy}
         onClick={onDecline}
-        className="mt-3 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+        className={`mt-3 w-full ${bookingBtnGhost}`}
       >
         Відмовитись
       </button>
@@ -232,21 +233,21 @@ export function RoomOptions({
   const presentation = roomListPresentation({ searchable, status, error, place })
   if (presentation.state === 'need-dates' || presentation.state === 'loading') {
     return (
-      <p className="mt-6 border border-wood/15 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
+      <p className="mt-6 rounded-2xl border border-wood/12 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
         {presentation.message}
       </p>
     )
   }
   if (presentation.state === 'error') {
     return (
-      <p className="mt-6 border border-clay/40 bg-beige px-4 py-4 text-sm text-clay" role="alert">
+      <p className="mt-6 rounded-2xl border border-clay/30 bg-beige/50 px-4 py-4 text-sm text-clay" role="alert">
         {presentation.message}
       </p>
     )
   }
   if (presentation.state === 'empty') {
     return (
-      <p className="mt-6 border border-dashed border-wood/30 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
+      <p className="mt-6 rounded-2xl border border-dashed border-wood/25 bg-linen px-4 py-4 text-sm text-wood/70" role="status">
         {presentation.message}
       </p>
     )
@@ -284,7 +285,7 @@ export function RoomOptions({
               return (
                 <label
                   key={room.roomTypeId}
-                  className={`cursor-pointer overflow-hidden ${roomOptionFrame(selected)}`}
+                  className={`cursor-pointer overflow-hidden rounded-2xl ${roomOptionFrame(selected)}`}
                   onClick={() => {
                     if (!selected) onSelect(room)
                   }}
@@ -638,7 +639,7 @@ export function GuestFields({
         Ім’я, прізвище і телефон обов’язкові. Для України достатньо номера на 095…, для інших країн почніть з +.
       </p>
       <div className={`mt-6 grid gap-6 ${compact ? '' : 'md:grid-cols-2'}`}>
-        <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        <label className="text-sm font-medium text-wood/70">
           Ім’я *
           <input
             autoComplete="given-name"
@@ -653,7 +654,7 @@ export function GuestFields({
             </span>
           ) : null}
         </label>
-        <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        <label className="text-sm font-medium text-wood/70">
           Прізвище *
           <input
             autoComplete="family-name"
@@ -670,7 +671,7 @@ export function GuestFields({
         </label>
       </div>
       <div className="mt-6 grid gap-6">
-        <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        <label className="text-sm font-medium text-wood/70">
           Телефон *
           <input
             type="tel"
@@ -690,7 +691,7 @@ export function GuestFields({
             </span>
           ) : null}
         </label>
-        <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        <label className="text-sm font-medium text-wood/70">
           Пошта *
           <input
             type="email"
@@ -708,7 +709,7 @@ export function GuestFields({
             </span>
           ) : null}
         </label>
-        <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+        <label className="text-sm font-medium text-wood/70">
           Коментар
           <textarea
             rows={3}
@@ -716,7 +717,7 @@ export function GuestFields({
             value={draft.comment}
             aria-invalid={Boolean(errors.comment)}
             onChange={(event) => onChange({ comment: event.target.value })}
-            className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+            className="mt-2 w-full rounded-2xl border border-wood/12 bg-linen px-4 py-3 outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/15"
           />
           {errors.comment ? (
             <span className="mt-2 block text-sm font-normal normal-case tracking-normal text-clay" role="alert">
