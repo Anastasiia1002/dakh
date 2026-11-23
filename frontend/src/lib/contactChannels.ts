@@ -13,7 +13,7 @@ export function widgetContactChannels(
   source: Pick<typeof site, 'widgetPhoneHref' | 'whatsappHref' | 'viberHref' | 'instagram'> = site,
 ): ContactChannel[] {
   const channels: ContactChannel[] = [
-    { id: 'phone', label: 'Подзвонити', href: source.widgetPhoneHref },
+    { id: 'phone', label: 'Бронювання та повідомлення', href: source.widgetPhoneHref },
     { id: 'whatsapp', label: 'WhatsApp', href: source.whatsappHref, external: true },
     { id: 'viber', label: 'Viber', href: source.viberHref },
   ]

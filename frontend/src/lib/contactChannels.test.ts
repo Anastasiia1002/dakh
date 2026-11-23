@@ -12,6 +12,7 @@ describe('widget contact channels', () => {
       ['phone', 'whatsapp', 'viber', 'instagram'],
     )
     assert.equal(channels.find((channel) => channel.id === 'phone')?.href, 'tel:+380938180001')
+    assert.equal(channels.find((channel) => channel.id === 'phone')?.label, 'Бронювання та повідомлення')
     assert.equal(channels.find((channel) => channel.id === 'whatsapp')?.href, 'https://wa.me/380938180001')
     assert.equal(
       channels.find((channel) => channel.id === 'viber')?.href,

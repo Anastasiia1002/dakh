@@ -11,12 +11,15 @@ function hideQuickActions(pathname: string) {
   return (
     path === '/bronuvannya' ||
     path.startsWith('/bronuvannya/') ||
-    path.startsWith('/rooms/') ||
-    path.startsWith('/houses/') ||
     path === '/kontakty' ||
     path === '/moie-bronyuvannya' ||
     path === '/my-booking'
   )
+}
+
+function stayDetailPath(pathname: string) {
+  const path = normalizePublicPath(pathname)
+  return path.startsWith('/rooms/') || path.startsWith('/houses/')
 }
 
 const iconActionClass =
@@ -187,12 +190,17 @@ export function QuickActions() {
 
   if (hideQuickActions(pathname)) return null
 
+  const stayDetail = stayDetailPath(pathname)
   const bookTo = withStayUrl('/bronuvannya', stay)
+  const bottomClass =
+    stayDetail && bookingEnabled
+      ? 'bottom-[max(5.25rem,calc(env(safe-area-inset-bottom)+4.4rem))] lg:bottom-[max(0.85rem,env(safe-area-inset-bottom))]'
+      : 'bottom-[max(0.85rem,env(safe-area-inset-bottom))]'
 
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right))] bottom-[max(0.85rem,env(safe-area-inset-bottom))] z-40 flex flex-col items-end gap-2"
+      className={`pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right))] ${bottomClass} z-40 flex flex-col items-end gap-2`}
     >
       {open ? (
         <div
@@ -207,7 +215,7 @@ export function QuickActions() {
         </div>
       ) : null}
       <div className="pointer-events-none flex flex-col items-end gap-2">
-        {bookingEnabled ? (
+        {bookingEnabled && !stayDetail ? (
           <IconAction label="Забронювати" to={bookTo} className={`${iconActionClass} border-clay bg-clay text-linen`}>
             <CalendarDays className="size-6" />
           </IconAction>
