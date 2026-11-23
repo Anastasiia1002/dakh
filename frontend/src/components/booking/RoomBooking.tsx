@@ -34,7 +34,7 @@ import {
   selectedServiceLines,
   SERVICE_DROPPED_COPY,
 } from '../../lib/publicBooking/publicServices'
-import { pruneServiceQuantities, usePublicServices } from '../../lib/publicBooking/usePublicServices'
+import { extrasCatalogLoaded, pruneServiceQuantities, usePublicServices } from '../../lib/publicBooking/usePublicServices'
 
 function draftFromHandoff(publicSlug: string, params: URLSearchParams): BookingDraft {
   const fromUrl = stayUrlFromSearch(params)
@@ -121,12 +121,13 @@ export function RoomBooking({
   }, [serviceQuantities])
 
   useEffect(() => {
+    if (!extrasCatalogLoaded(catalog.status)) return
     setServiceQuantities((current) => {
-      const next = pruneServiceQuantities(current, catalog.items)
+      const next = pruneServiceQuantities(current, catalog.items, true)
       if (next !== current && Object.keys(current).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
       return next
     })
-  }, [catalog.items])
+  }, [catalog.items, catalog.status])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15_000)

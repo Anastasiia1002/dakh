@@ -26,6 +26,7 @@ import {
   selectedRatePlanId,
   selectEligibleRatePlan,
   stayNights,
+  calendarRangeForStay,
   useAvailabilityCalendar,
   useBookingCheckout,
   useStaySearch,
@@ -46,7 +47,7 @@ import {
   selectedServiceLines,
   SERVICE_DROPPED_COPY,
 } from '../lib/publicBooking/publicServices'
-import { pruneServiceQuantities, usePublicServices } from '../lib/publicBooking/usePublicServices'
+import { extrasCatalogLoaded, pruneServiceQuantities, usePublicServices } from '../lib/publicBooking/usePublicServices'
 import {
   bookableAvailabilityRooms,
   bookingSubmitBlockReason,
@@ -143,7 +144,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   )
   const mapped = useMappedRoomCalendar(
     handoff?.roomTypeSlug || handoff?.catalogSlug || '',
-    locked ? calendarRange : null,
+    locked ? calendarRangeForStay(draft.checkIn, draft.checkOut, calendarRange) : null,
     party,
     hotelSlug ?? undefined,
   )
@@ -163,6 +164,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   const catalogCovers = useMemo(() => {
     const covers = new Map<string, { url: string; coverKey: string; alt: string }>()
     for (const item of [...listedRooms.items, ...listedHouses.items]) {
+      if (!item.cover) continue
       const category = item.kind === 'COTTAGE' ? 'houses' : 'rooms'
       covers.set(item.id, {
         url: item.cover.url,
@@ -186,12 +188,13 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
   }, [serviceQuantities])
 
   useEffect(() => {
+    if (!extrasCatalogLoaded(catalog.status)) return
     setServiceQuantities((current) => {
-      const next = pruneServiceQuantities(current, catalog.items)
+      const next = pruneServiceQuantities(current, catalog.items, true)
       if (next !== current && Object.keys(current).length > 0) setExtrasNotice(SERVICE_DROPPED_COPY)
       return next
     })
-  }, [catalog.items])
+  }, [catalog.items, catalog.status])
   const quoteBlocked = calendarRejectsStay({
     status: activeCalendar.status,
     hotelToday: activeCalendar.hotelToday,
@@ -454,7 +457,8 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (wizard !== 'contacts') {
+    const recoveringExpiredIntent = wizard === 'confirm' && checkout.step === 'collect'
+    if (wizard !== 'contacts' && !recoveringExpiredIntent) {
       goNext()
       return
     }

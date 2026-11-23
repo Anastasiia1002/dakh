@@ -118,7 +118,7 @@ export function titleIncludesCapacity(name: string, maxGuests: number) {
 /** Cover first, then the rest by sortOrder, without repeating the cover URL. */
 export function galleryImages(accommodation: PublicAccommodation): PublicAccommodationImage[] {
   const rest = [...accommodation.images]
-    .filter((image) => image.url !== accommodation.cover.url)
+    .filter((image) => image.url !== accommodation.cover?.url)
     .sort((left, right) => left.sortOrder - right.sortOrder || left.url.localeCompare(right.url))
-  return [accommodation.cover, ...rest]
+  return accommodation.cover ? [accommodation.cover, ...rest] : rest
 }

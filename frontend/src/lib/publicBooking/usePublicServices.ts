@@ -46,10 +46,17 @@ export function isCatalogItem(value: PublicServiceCatalogItem): boolean {
   return false
 }
 
+/** True after the extras catalog has settled. An empty loading list is not a real catalog. */
+export function extrasCatalogLoaded(status: PublicServicesStatus) {
+  return status === 'ready' || status === 'empty'
+}
+
 export function pruneServiceQuantities(
   quantities: Readonly<Record<string, number>>,
   catalog: readonly Pick<PublicServiceCatalogItem, 'id'>[],
+  catalogLoaded = true,
 ) {
+  if (!catalogLoaded) return quantities
   const allowed = new Set(catalog.map((item) => item.id))
   let changed = false
   const next: Record<string, number> = {}

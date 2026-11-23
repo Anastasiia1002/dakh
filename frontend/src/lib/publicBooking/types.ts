@@ -38,7 +38,7 @@ export interface PublicAccommodation {
   description: string
   maxGuests: number
   images: PublicAccommodationImage[]
-  cover: PublicAccommodationImage
+  cover: PublicAccommodationImage | null
   /** Assigned amenities. Missing on an older catalog response means none are shown. */
   amenities?: PublicAmenity[]
   hotelSlug: PublicHotelSlug

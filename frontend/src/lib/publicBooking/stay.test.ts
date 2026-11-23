@@ -38,6 +38,7 @@ import {
   soleRatePlanId,
   stayIsSearchable,
   stayNights,
+  calendarRangeForStay,
 } from './stay'
 
 const roomTypeId = '11111111-1111-4111-8111-111111111111'
@@ -87,6 +88,14 @@ describe('stay helpers', () => {
     assert.deepEqual(guestDraftFromParams('1', '1'), { adults: 1, children: 1, guestCount: 2 })
     assert.deepEqual(guestDraftFromParams('0', '2'), { adults: 2, children: 2, guestCount: 4 })
     assert.deepEqual(guestDraftFromParams('18', '8'), { adults: 2, children: 0, guestCount: 2 })
+  })
+
+  it('uses stay dates for a locked calendar request before the popover opens', () => {
+    assert.deepEqual(calendarRangeForStay('2026-12-23', '2026-12-26', null), {
+      from: '2026-12-23',
+      to: '2026-12-26',
+    })
+    assert.equal(calendarRangeForStay('', '', { from: '2026-01-01', to: '2026-02-01' })?.from, '2026-01-01')
   })
 
   it('accepts a 1–30 night stay and rejects a 31st night', () => {

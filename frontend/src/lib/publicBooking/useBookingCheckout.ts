@@ -359,6 +359,14 @@ export function useBookingCheckout(stay?: StoredStay, hotelSlug?: string) {
         setError(errorCopy(caught))
         return
       }
+      if (isPublicApiError(caught) && (caught.error === 'INTENT_EXPIRED' || caught.error === 'INTENT_NOT_FOUND')) {
+        setStep('collect')
+        setIntent(null)
+        setOtp(null)
+        clearStoredIntent()
+        setError(errorCopy(caught))
+        return
+      }
       setStep('verify')
       setError(errorCopy(caught))
     } finally {

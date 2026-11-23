@@ -73,7 +73,9 @@ function assertCatalogRecord(record: PublicAccommodation) {
     'slug',
   ])
   for (const key of forbidden) assert.equal(key in record, false)
-  assert.deepEqual(Object.keys(record.cover).sort(), ['alt', 'sortOrder', 'url'])
+  if (record.cover) {
+    assert.deepEqual(Object.keys(record.cover).sort(), ['alt', 'sortOrder', 'url'])
+  }
   assert.equal(record.images.some((item) => forbidden.some((key) => key in item)), false)
 }
 
@@ -104,6 +106,44 @@ describe('public accommodation catalog', () => {
         ['https://dakh-backend.onrender.com/api/public/v1/hotels/sunny-park/accommodations', 'GET'],
       ],
     )
+  })
+
+  it('accepts a catalog row with a null description and no cover photo', async () => {
+    const fetchMock: typeof fetch = async () =>
+      jsonResponse({
+        hotelSlug: 'dakh',
+        accommodations: [
+          {
+            id: '11111111-1111-4111-8111-111111111111',
+            slug: 'dakh-room-14-2',
+            name: 'E2E Bukovyna',
+            kind: 'ROOM',
+            description: null,
+            maxGuests: 2,
+            images: [image('https://photos.bookmenow.pro/one.webp', 0)],
+            cover: null,
+            amenities: [],
+            hotelSlug: 'dakh',
+          },
+          {
+            id: '11111111-1111-4111-8111-111111111112',
+            slug: 'dakh-room-14-3',
+            name: 'E2E Goryshche',
+            kind: 'ROOM',
+            description: null,
+            maxGuests: 2,
+            images: [],
+            cover: null,
+            amenities: [],
+            hotelSlug: 'dakh',
+          },
+        ],
+      })
+    const result = await client(fetchMock).listAccommodations('dakh')
+    assert.equal(result.accommodations.length, 2)
+    assert.equal(result.accommodations[0]?.description, '')
+    assert.equal(result.accommodations[0]?.cover?.url, 'https://photos.bookmenow.pro/one.webp')
+    assert.equal(result.accommodations[1]?.cover, null)
   })
 
   it('reads one accommodation from the unwrapped detail response', async () => {
