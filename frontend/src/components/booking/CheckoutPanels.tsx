@@ -20,7 +20,8 @@ import {
 } from '../../lib/publicBooking/bookingSelection'
 import { Photo } from '../Photo'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
-import { lengthStayTermsCopy, quotePriceLines } from '../../lib/quotePricing'
+import { isGenericStandardPlan, lengthStayTermsCopy } from '../../lib/quotePricing'
+import { PriceSummary } from './PriceSummary'
 import { guestCountLabel, partySummary } from '../../lib/ukrainian'
 import type { BookingDraft } from '../../lib/booking'
 import type {
@@ -61,10 +62,16 @@ export function OtpPanel({
 }) {
   const [editing, setEditing] = useState(false)
   const [nextEmail, setNextEmail] = useState(() => (email.includes('*') ? '' : email))
+  function digitsFrom(value: string) {
+    return value.replace(/\D/g, '').slice(0, 6)
+  }
+
   return (
-    <div className="mt-6">
-      <p className="text-sm text-wood/70">
-        Код надіслано на {email || 'вказану пошту'}. Бронювання ще не створено.
+    <div>
+      <h2 className="font-display text-4xl leading-tight text-clay">Підтвердіть бронювання</h2>
+      <p className="mt-3 text-sm text-wood/70">
+        Код надіслано на <span className="font-medium text-wood">{email || 'вказану пошту'}</span>. Бронювання ще не
+        створено.
       </p>
       {editing ? (
         <div className="mt-4">
@@ -75,7 +82,7 @@ export function OtpPanel({
               autoComplete="email"
               value={nextEmail}
               onChange={(event) => setNextEmail(event.target.value)}
-              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 normal-case tracking-normal outline-none"
+              className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 font-sans normal-case tracking-normal outline-none"
             />
           </label>
           <button
@@ -92,23 +99,31 @@ export function OtpPanel({
           type="button"
           disabled={busy}
           onClick={() => {
-            setNextEmail(email)
+            setNextEmail(email.includes('*') ? '' : email)
             setEditing(true)
           }}
           className="mt-3 text-sm text-clay underline-offset-4 hover:underline"
         >
-          Змінити email
+          Виправити пошту
         </button>
       )}
       <label className="mt-6 block text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
         Код з листа
         <input
+          type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
+          name="one-time-code"
           maxLength={6}
           value={code}
-          onChange={(event) => onCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 tracking-[0.24em] outline-none"
+          onChange={(event) => onCode(digitsFrom(event.target.value))}
+          onPaste={(event) => {
+            const pasted = event.clipboardData.getData('text')
+            if (!pasted) return
+            event.preventDefault()
+            onCode(digitsFrom(pasted))
+          }}
+          className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 font-sans tracking-[0.24em] outline-none"
         />
       </label>
       {otpExpiresAt ? (
@@ -125,7 +140,7 @@ export function OtpPanel({
         onClick={onConfirm}
         className="mt-6 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
       >
-        {busy ? 'Перевіряємо…' : 'Підтвердити код'}
+        {busy ? 'Перевіряємо…' : 'Підтвердити бронювання'}
       </button>
       <button
         type="button"
@@ -162,27 +177,9 @@ export function PriceChangePanel({
       {previousTotal && previousTotal !== quote.totalAmount ? (
         <p className="mt-3 text-sm text-wood/60">Було {formatMoneyAmount(previousTotal)}</p>
       ) : null}
-      <p className="mt-2 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      <ul className="mt-4 space-y-1 text-sm text-wood/70">
-        {quote.nights.map((night) => (
-          <li key={night.date} className="flex justify-between gap-4">
-            <span>{formatDate(night.date)}</span>
-            <span>{formatMoneyAmount(night.price)}</span>
-          </li>
-        ))}
-        {(quote.services ?? []).map((line) => (
-          <li key={line.serviceId} className="flex justify-between gap-4">
-            <span className="min-w-0 break-words">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
-            </span>
-            <span className="shrink-0">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                ? 'Оплата за домовленістю'
-                : formatMoneyAmount(line.totalPrice)}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-4">
+        <PriceSummary quote={quote} />
+      </div>
       <button
         type="button"
         disabled={busy}
@@ -430,6 +427,7 @@ export function QuoteSummary({
   roomLabel,
   fitNote = '',
   cover,
+  variant = 'compact',
 }: {
   checkIn: string
   checkOut: string
@@ -449,20 +447,23 @@ export function QuoteSummary({
   /** The selected room cannot hold this party. Dates stay selected. */
   fitNote?: string
   cover?: { url: string; coverKey: string; alt: string }
+  variant?: 'compact' | 'full'
 }) {
   const roomName = room ? publicRoomLabel(room.name, room.kind, roomLabel) : roomLabel
   const guests = partySummary(adults, kids)
   const coverFrame = cover ? (
-    <div className="relative mb-5 aspect-[5/3] overflow-hidden bg-beige">
+    <div className={`relative overflow-hidden bg-beige ${variant === 'full' ? 'mb-4 aspect-[5/3]' : 'mb-4 h-16 w-24'}`}>
       <Photo
         src={cover.url}
         alt=""
         coverKey={cover.coverKey}
-        sizes="(max-width: 768px) 100vw, 40vw"
+        sizes={variant === 'full' ? '(max-width: 768px) 100vw, 40vw' : '96px'}
         className="absolute inset-0 h-full w-full"
       />
     </div>
   ) : null
+  const cancellation = plan ? rateConditions(plan.type) : ''
+  const showPlanTitle = Boolean(plan && !isGenericStandardPlan({ name: publicPlanTitle(plan), type: plan.type }))
   if (!checkIn || !checkOut || nights < 1) {
     return (
       <div className="mt-6 text-sm">
@@ -547,15 +548,22 @@ export function QuoteSummary({
     return (
       <div className="mt-6 text-sm leading-relaxed">
         <p className="font-medium">{roomName}</p>
-        <p className="mt-1 text-wood/70">{publicPlanTitle(priced)}</p>
-        <p className="mt-1 text-wood/70">{rateConditions(priced.type)}</p>
+        {isGenericStandardPlan({ name: publicPlanTitle(priced), type: priced.type }) ? null : (
+          <p className="mt-1 text-wood/70">{publicPlanTitle(priced)}</p>
+        )}
+        <details className="mt-2 text-wood/70">
+          <summary className="cursor-pointer text-[0.72rem] tracking-[0.08em] uppercase text-wood/55">
+            Умови скасування
+          </summary>
+          <p className="mt-2">{rateConditions(priced.type)}</p>
+        </details>
         <p className="mt-2 text-wood/70">
           {formatDate(checkIn)} — {formatDate(checkOut)}
         </p>
         <p className="mt-1 text-wood/70">
           {guests} · {nights} н. · вільних {room.availableCount}
         </p>
-        <p className="mt-6 font-display text-3xl">{formatMoneyAmount(total)}</p>
+        <p className="mt-6 text-xl font-semibold tabular-nums text-wood">{formatMoneyAmount(total)}</p>
         <p className="mt-2 text-[0.72rem] text-wood/55">
           Тестова ціна за обрані дати, {priced.currency}. Це сума з сервера, не орієнтир каталогу і не підтверджене
           бронювання.
@@ -581,72 +589,28 @@ export function QuoteSummary({
   }
 
   return (
-    <div className="mt-6 text-sm leading-relaxed">
+    <div className="mt-4 text-sm leading-relaxed">
       {coverFrame}
-      <p className="font-medium">{roomName}</p>
-      {plan ? (
-        <div className="mt-1 text-wood/70">
-          <p>{publicPlanTitle(plan)}</p>
-          <p className="mt-1">{rateConditions(plan.type)}</p>
-        </div>
-      ) : null}
+      <p className="font-medium leading-snug">{roomName}</p>
+        {plan && showPlanTitle ? <p className="mt-1 text-wood/70">{publicPlanTitle(plan)}</p> : null}
       <p className="mt-2 text-wood/70">
         {formatDate(quote.checkIn)} — {formatDate(quote.checkOut)}
       </p>
       <p className="mt-1 text-wood/70">
         {guests} · {quote.nights.length} н.
       </p>
-      <ul className="mt-4 space-y-1 text-wood/70">
-        {quote.nights.map((night) => (
-          <li key={night.date} className="flex justify-between gap-4">
-            <span>{formatDate(night.date)}</span>
-            <span>{formatMoneyAmount(night.price)}</span>
-          </li>
-        ))}
-        {(quote.services ?? []).map((line) => (
-          <li key={line.serviceId} className="flex justify-between gap-4">
-            <span className="min-w-0 break-words">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
-            </span>
-            <span className="shrink-0">
-              {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                ? 'Оплата за домовленістю'
-                : formatMoneyAmount(line.totalPrice)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {(() => {
-        const lines = quotePriceLines(quote)
-        if (!lines.accommodation && !lines.discount) return null
-        return (
-          <dl className="mt-4 space-y-1 text-wood/70">
-            {lines.accommodation ? (
-              <div className="flex justify-between gap-4">
-                <dt>Проживання</dt>
-                <dd>{formatMoneyAmount(lines.accommodation)}</dd>
-              </div>
-            ) : null}
-            {lines.discount && lines.discountLabel ? (
-              <div className="flex justify-between gap-4">
-                <dt>{lines.discountLabel}</dt>
-                <dd>−{formatMoneyAmount(lines.discount)}</dd>
-              </div>
-            ) : null}
-            {lines.extras && lines.extras !== '0.00' ? (
-              <div className="flex justify-between gap-4">
-                <dt>Додаткові послуги</dt>
-                <dd>{formatMoneyAmount(lines.extras)}</dd>
-              </div>
-            ) : null}
-          </dl>
-        )
-      })()}
-      <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
-      {(quote.services ?? []).some((line) => line.pricing === 'BY_AGREEMENT' || line.totalPrice == null) ? (
-        <p className="mt-2 text-[0.72rem] text-wood/55">Заявки з оплатою за домовленістю не входять у показану суму.</p>
+      <div className="mt-4 border-t border-wood/10 pt-4">
+        <PriceSummary quote={quote} nightCount={quote.nights.length} />
+      </div>
+      {plan && cancellation ? (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-[0.72rem] tracking-[0.08em] uppercase text-wood/55">
+            Умови скасування
+          </summary>
+          <p className="mt-2 text-wood/70">{cancellation}</p>
+        </details>
       ) : null}
-      <p className="mt-2 text-[0.72rem] text-wood/55">Це ще не підтверджене бронювання.</p>
+      <p className="mt-3 text-[0.72rem] text-wood/55">Це ще не підтверджене бронювання.</p>
     </div>
   )
 }

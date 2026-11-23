@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingCalendar } from '../components/BookingCalendar'
+import { BookingReview } from '../components/booking/BookingReview'
 import {
   GuestFields,
   OtpPanel,
@@ -552,10 +553,38 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
     }
   }
 
-  const showMobileBar = bookingEnabled && checkout.step === 'collect' && !pickerOpen && wizard !== 'confirm'
+  function editFromConfirm(step: WizardStepId) {
+    if (checkout.step !== 'collect' && checkout.step !== 'confirmed') {
+      checkout.resetToCollect()
+      setOtpCode('')
+    }
+    setWizard(step)
+  }
+
+  const codeStep =
+    wizard === 'confirm' ||
+    checkout.step === 'verify' ||
+    checkout.step === 'confirming' ||
+    checkout.step === 'price_changed' ||
+    checkout.step === 'looking_up'
+  const showMobileBar =
+    bookingEnabled &&
+    checkout.step === 'collect' &&
+    !pickerOpen &&
+    wizard !== 'confirm' &&
+    !codeStep
   const selectedCover = draft.roomTypeId ? catalogCovers.get(draft.roomTypeId) : undefined
-  const bookingPanel =
-    'booking-panel overflow-hidden border border-linen/15 bg-wood text-linen shadow-[0_18px_40px_rgba(91,56,43,0.22)]'
+  const bookingPanel = 'overflow-hidden border border-wood/10 bg-linen p-5 shadow-[0_12px_28px_rgba(91,56,43,0.08)] md:p-6'
+  const reviewExtras = (displayQuote?.services ?? []).map((line) => ({
+    serviceId: line.serviceId,
+    name: line.name,
+    quantity: line.quantity,
+  }))
+  const roomTitle =
+    (search.selectedRoom ? labelForRoom(search.selectedRoom) : '') || requestedRoomLabel || 'Помешкання'
+  const sending = checkout.busy && checkout.step === 'creating_intent'
+  const bookDisabled =
+    sending || !bookingEnabled || checkout.step !== 'collect' || roomRejected || roomMissing
   const stayLead = locked
     ? 'Помешкання вже обрано. Дати можна змінити.'
     : search.searchable
@@ -618,7 +647,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
         ) : null}
       </div>
 
-      <form id="booking-form" noValidate onSubmit={submit} className="mt-10 grid gap-10 pb-8 md:grid-cols-12 md:gap-12 md:pb-0">
+      <form id="booking-form" noValidate onSubmit={submit} className={`mt-10 grid gap-10 md:grid-cols-12 md:gap-12 ${showMobileBar ? 'pb-28' : 'pb-8 md:pb-0'}`}>
         <div className="space-y-12 md:col-span-7">
           {wizard === 'stay' && !locked ? (
             <fieldset className="border-0 p-0">
@@ -718,7 +747,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
 
           {wizard === 'contacts' && bookingEnabled ? (
           <fieldset className="border-0 p-0">
-            <legend className="font-display text-3xl">Контакти</legend>
+            <legend className="font-display text-3xl text-clay">Контакти</legend>
             <GuestFields
               draft={draft}
               errors={guestErr}
@@ -741,7 +770,26 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 }))
               }}
             />
-            <div className="mt-8">
+            {checkout.step === 'collect' && checkout.error ? (
+              <p className="mt-6 text-sm text-clay" role="alert">
+                {checkout.error}
+              </p>
+            ) : null}
+            <p className="mt-8 text-sm text-wood/70">Надішлемо код на вашу пошту для підтвердження бронювання.</p>
+            <button
+              type="submit"
+              disabled={bookDisabled}
+              aria-describedby={submitBlockReason ? 'booking-submit-reason' : undefined}
+              className="mt-4 hidden min-h-12 w-full bg-clay py-3 text-[0.82rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50 md:block"
+            >
+              {sending ? 'Надсилаємо…' : 'Забронювати'}
+            </button>
+            {submitBlockReason ? (
+              <p className="mt-3 hidden text-sm text-wood/70 md:block" id="booking-submit-reason">
+                {submitBlockReason}
+              </p>
+            ) : null}
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={goBack}
@@ -752,9 +800,116 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             </div>
           </fieldset>
           ) : null}
+
+          {codeStep ? (
+            <div className="space-y-8">
+              {checkout.step === 'price_changed' && checkout.pendingQuote ? (
+                <PriceChangePanel
+                  previousTotal={search.quote?.totalAmount}
+                  quote={checkout.pendingQuote}
+                  busy={checkout.busy}
+                  error={checkout.error}
+                  onAccept={() => checkout.acceptChangedPrice(guest)}
+                  onDecline={() => {
+                    checkout.declineChangedPrice()
+                    setOtpCode('')
+                  }}
+                />
+              ) : checkout.step === 'looking_up' ? (
+                <p className="text-sm text-wood/70" role="status">
+                  Шукаємо підтвердження на сервері…
+                </p>
+              ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
+                <OtpPanel
+                  email={draft.email.trim() || checkout.intent?.emailMasked || ''}
+                  code={otpCode}
+                  busy={checkout.busy}
+                  error={checkout.error}
+                  cooldownLeft={cooldownLeft}
+                  otpExpiresAt={checkout.otp?.otpExpiresAt}
+                  onCode={setOtpCode}
+                  onConfirm={() => checkout.confirmCode(otpCode)}
+                  onResend={() => checkout.resendCode()}
+                  onCorrectEmail={(email) => {
+                    patch({ email })
+                    setOtpCode('')
+                    void checkout.correctEmail(email)
+                  }}
+                />
+              ) : checkout.step === 'unavailable' ? (
+                <div>
+                  <p className="text-sm text-clay" role="alert">
+                    {checkout.error || 'На ці дати немає вільних номерів або будиночків.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      checkout.resetToCollect()
+                      setWizard('dates')
+                    }}
+                    className="mt-6 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
+                  >
+                    Обрати інші дати
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="font-display text-4xl leading-tight text-clay">Підтвердіть бронювання</h2>
+                  <p className="mt-3 text-sm text-wood/70">Надішлемо код на вашу пошту для підтвердження бронювання.</p>
+                  {checkout.error ? (
+                    <p className="mt-4 text-sm text-clay" role="alert">
+                      {checkout.error}
+                    </p>
+                  ) : null}
+                  <button
+                    type="submit"
+                    disabled={bookDisabled}
+                    className="mt-6 w-full bg-clay py-3 text-[0.82rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
+                  >
+                    {sending ? 'Надсилаємо…' : 'Забронювати'}
+                  </button>
+                </div>
+              )}
+              <div className={`${bookingPanel} md:hidden`}>
+                <BookingReview
+                  roomName={roomTitle}
+                  cover={selectedCover}
+                  checkIn={draft.checkIn}
+                  checkOut={draft.checkOut}
+                  nights={nights}
+                  adults={draft.adults}
+                  children={draft.children}
+                  extras={reviewExtras}
+                  guest={guest}
+                  quote={roomRejected || checkingIdentity ? null : displayQuote}
+                  onEditStay={() => editFromConfirm(locked ? 'dates' : 'stay')}
+                  onEditExtras={() => editFromConfirm('extras')}
+                  onEditContacts={() => editFromConfirm('contacts')}
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
-        <aside className={`${bookingPanel} hidden h-fit p-6 md:sticky md:top-8 md:col-span-5 md:block`}>
+        <aside className={`${bookingPanel} hidden h-fit md:sticky md:top-8 md:col-span-5 md:block`}>
+          {codeStep ? (
+            <BookingReview
+              roomName={roomTitle}
+              cover={selectedCover}
+              checkIn={draft.checkIn}
+              checkOut={draft.checkOut}
+              nights={nights}
+              adults={draft.adults}
+              children={draft.children}
+              extras={reviewExtras}
+              guest={guest}
+              quote={roomRejected || checkingIdentity ? null : displayQuote}
+              onEditStay={() => editFromConfirm(locked ? 'dates' : 'stay')}
+              onEditExtras={() => editFromConfirm('extras')}
+              onEditContacts={() => editFromConfirm('contacts')}
+            />
+          ) : (
+            <>
           <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
           {bookingEnabled && handoff?.preview && (checkingIdentity || search.quoteStatus === 'loading') ? (
             <p className="mt-4 text-sm text-wood/60">
@@ -784,148 +939,18 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
             }
             cover={selectedCover}
           />
-
           {!bookingEnabled ? (
             <p className="mt-8 text-sm leading-relaxed text-wood/70" role="status">
               {BOOKING_DISABLED_COPY}
             </p>
-          ) : checkout.step === 'price_changed' && checkout.pendingQuote ? (
-            <PriceChangePanel
-              previousTotal={search.quote?.totalAmount}
-              quote={checkout.pendingQuote}
-              busy={checkout.busy}
-              error={checkout.error}
-              onAccept={() => checkout.acceptChangedPrice(guest)}
-              onDecline={() => {
-                checkout.declineChangedPrice()
-                setOtpCode('')
-              }}
-            />
-          ) : checkout.step === 'looking_up' ? (
-            <p className="mt-6 text-sm text-wood/70" role="status">
-              Шукаємо підтвердження на сервері…
+          ) : !quoteReady && search.quote ? (
+            <p className="mt-4 text-sm text-clay" role="alert">
+              Розрахунок застарів. Оберіть дати ще раз.
             </p>
-          ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
-            <OtpPanel
-              email={draft.email.trim() || checkout.intent?.emailMasked || ''}
-              code={otpCode}
-              busy={checkout.busy}
-              error={checkout.error}
-              cooldownLeft={cooldownLeft}
-              otpExpiresAt={checkout.otp?.otpExpiresAt}
-              onCode={setOtpCode}
-              onConfirm={() => checkout.confirmCode(otpCode)}
-              onResend={() => checkout.resendCode()}
-              onCorrectEmail={(email) => {
-                patch({ email })
-                setOtpCode('')
-                void checkout.correctEmail(email)
-              }}
-            />
-          ) : checkout.step === 'unavailable' ? (
-            <div className="mt-6">
-              <p className="text-sm text-clay" role="alert">
-                {checkout.error || 'На ці дати немає вільних номерів або будиночків.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => checkout.resetToCollect()}
-                className="mt-6 w-full border border-wood/20 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase"
-              >
-                Обрати інші дати
-              </button>
-            </div>
-          ) : (
-            <>
-              {checkout.error ? (
-                <p className="mt-6 text-sm text-clay" role="alert">
-                  {checkout.error}
-                </p>
-              ) : null}
-              {!quoteReady && search.quote ? (
-                <p className="mt-4 text-sm text-clay" role="alert">
-                  Розрахунок застарів. Оберіть дати ще раз.
-                </p>
-              ) : null}
-              {submitBlockReason ? (
-                <p className="mt-4 text-sm text-wood/70" id="booking-submit-reason">
-                  {submitBlockReason}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                aria-describedby={submitBlockReason ? 'booking-submit-reason' : undefined}
-                className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-linen/20 disabled:text-linen/45"
-              >
-                {checkout.busy && checkout.step === 'creating_intent'
-                  ? 'Надсилаємо…'
-                  : 'Надіслати на перевірку пошти'}
-              </button>
-              <p className="mt-4 text-[0.72rem] text-wood/55">
-                Це ще не бронювання. Підтвердження з’явиться лише після коду з листа.
-                Картку вводити не потрібно.
-              </p>
+          ) : null}
             </>
           )}
         </aside>
-
-        <div className={`${bookingPanel} p-5 md:hidden`}>
-          <p className="text-[0.7rem] tracking-[0.16em] uppercase text-clay">Ваше бронювання</p>
-          <QuoteSummary
-            checkIn={draft.checkIn}
-            checkOut={draft.checkOut}
-            nights={nights}
-            guestCount={guestCount}
-            adults={draft.adults}
-            kids={draft.children}
-            room={roomRejected || checkingIdentity ? undefined : search.selectedRoom}
-            plan={roomRejected || checkingIdentity ? undefined : search.selectedPlan}
-            quote={roomRejected || checkingIdentity ? null : displayQuote}
-            quoteStatus={roomRejected ? 'idle' : checkingIdentity ? 'loading' : search.quoteStatus}
-            quoteError={search.quoteError}
-            availabilityStatus={checkingIdentity ? 'loading' : search.availabilityStatus}
-            availabilityError={search.availabilityError}
-            roomLabel={requestedRoomLabel || undefined}
-            fitNote={activeCalendar.capacityNote}
-            missingRoomCopy={
-              locked
-                ? 'На ці дати це розміщення недоступне. Інше не підставляємо.'
-                : 'Оберіть помешкання зі списку доступних.'
-            }
-            cover={selectedCover}
-          />
-          {checkout.step === 'price_changed' && checkout.pendingQuote ? (
-            <PriceChangePanel
-              previousTotal={search.quote?.totalAmount}
-              quote={checkout.pendingQuote}
-              busy={checkout.busy}
-              error={checkout.error}
-              onAccept={() => checkout.acceptChangedPrice(guest)}
-              onDecline={() => {
-                checkout.declineChangedPrice()
-                setOtpCode('')
-              }}
-            />
-          ) : checkout.step === 'verify' || checkout.step === 'confirming' ? (
-            <OtpPanel
-              email={draft.email.trim() || checkout.intent?.emailMasked || ''}
-              code={otpCode}
-              busy={checkout.busy}
-              error={checkout.error}
-              cooldownLeft={cooldownLeft}
-              otpExpiresAt={checkout.otp?.otpExpiresAt}
-              onCode={setOtpCode}
-              onConfirm={() => checkout.confirmCode(otpCode)}
-              onResend={() => checkout.resendCode()}
-              onCorrectEmail={(email) => {
-                patch({ email })
-                setOtpCode('')
-                void checkout.correctEmail(email)
-              }}
-            />
-          ) : null}
-        </div>
       </form>
 
       {showMobileBar ? (
@@ -956,10 +981,10 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
               type={wizard === 'contacts' ? 'submit' : 'button'}
               form={wizard === 'contacts' ? 'booking-form' : undefined}
               onClick={wizard === 'contacts' ? undefined : goNext}
-              disabled={wizard === 'contacts' ? !canSubmit : wizard === 'dates' && (!search.searchable || Boolean(occupancyIssue))}
+              disabled={wizard === 'contacts' ? bookDisabled : wizard === 'dates' && (!search.searchable || Boolean(occupancyIssue))}
               className="shrink-0 bg-clay px-4 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-linen disabled:cursor-not-allowed disabled:bg-wood/20 disabled:text-wood/50"
             >
-              {checkout.busy && checkout.step === 'creating_intent' ? 'Надсилаємо…' : wizard === 'contacts' ? 'Надіслати' : 'Далі'}
+              {sending ? 'Надсилаємо…' : wizard === 'contacts' ? 'Забронювати' : 'Далі'}
             </button>
           </div>
         </div>

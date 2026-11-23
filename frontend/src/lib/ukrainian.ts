@@ -26,6 +26,10 @@ export function guestCountLabel(count: number) {
   return `${count} ${ukrainianPlural(count, { one: 'гість', few: 'гості', many: 'гостей' })}`
 }
 
+export function nightCountLabel(count: number) {
+  return `${count} ${ukrainianPlural(count, { one: 'ніч', few: 'ночі', many: 'ночей' })}`
+}
+
 /** Booking line: 1 дорослий, otherwise N дорослих; 1 дитина, otherwise N дітей. */
 export function partySummary(adults: number, children: number) {
   const adultLabel = adults === 1 ? '1 дорослий' : `${adults} дорослих`

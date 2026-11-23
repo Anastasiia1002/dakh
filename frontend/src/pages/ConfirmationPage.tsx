@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { formatDate, formatMoneyAmount } from '../lib/format'
-import { quotePriceLines } from '../lib/quotePricing'
+import { PriceSummary } from '../components/booking/PriceSummary'
+import { formatDate } from '../lib/format'
 import { publicBookingClient, recoverEmailError } from '../lib/publicBooking'
 import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/config'
 import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
@@ -132,54 +132,14 @@ export function ConfirmationPage() {
               confirmation.guestCount,
             ) ?? guestCountLabel(confirmation.guestCount)}
           </p>
-          {(confirmation.services ?? []).length > 0 ? (
-            <ul className="mt-4 space-y-1 text-sm text-wood/70">
-              {confirmation.services?.map((line) => (
-                <li key={line.serviceId} className="flex justify-between gap-4">
-                  <span>
-                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null ? line.name : `${line.name} · ${line.quantity}`}
-                  </span>
-                  <span>
-                    {line.pricing === 'BY_AGREEMENT' || line.totalPrice == null
-                      ? 'Оплата за домовленістю'
-                      : formatMoneyAmount(line.totalPrice)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
           <p className="mt-6 text-sm">
             Номер бронювання:{' '}
             <span className="font-medium break-all">{confirmation.bookingReference}</span>
           </p>
           {validToken ? <IssuedAccessCode code={validToken} /> : null}
-          {(() => {
-            const lines = quotePriceLines(confirmation)
-            if (!lines.accommodation && !lines.discount) return null
-            return (
-              <dl className="mt-6 space-y-1 text-sm text-wood/70">
-                {lines.accommodation ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>Проживання</dt>
-                    <dd>{formatMoneyAmount(lines.accommodation)}</dd>
-                  </div>
-                ) : null}
-                {lines.discount && lines.discountLabel ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>{lines.discountLabel}</dt>
-                    <dd>−{formatMoneyAmount(lines.discount)}</dd>
-                  </div>
-                ) : null}
-                {lines.extras && lines.extras !== '0.00' ? (
-                  <div className="flex justify-between gap-4">
-                    <dt>Додаткові послуги</dt>
-                    <dd>{formatMoneyAmount(lines.extras)}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            )
-          })()}
-          <p className="mt-6 font-display text-3xl">{formatMoneyAmount(confirmation.totalAmount)}</p>
+          <div className="mt-6">
+            <PriceSummary quote={confirmation} showNightlyDetails={false} />
+          </div>
           <p className="mt-2 text-[0.72rem] text-wood/55">Сума в {confirmation.currency}.</p>
         </div>
       ) : null}
