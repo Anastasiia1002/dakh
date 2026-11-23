@@ -5,6 +5,9 @@ import { CatalogState } from '../components/CatalogState'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { site } from '../data/catalog'
+import { setPageSeo } from '../components/DocumentHead'
+import { seoForDetail } from '../lib/seo'
+import { siteLink } from '../lib/siteChrome'
 import { amenityGroups, cardAmenities, detailPreviewAmenities, showAmenityGroupHeading } from '../lib/catalog/amenities'
 import {
   capacityLabel,
@@ -91,6 +94,20 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
   const publicSlug = toPublicAccommodationSlug(category, apiSlug)
   const highlights = room ? cardAmenities(room.amenities, 3) : []
 
+  useEffect(() => {
+    if (!room) return
+    const path = `${categoryBase(category)}/${toPublicAccommodationSlug(category, room.slug)}`
+    setPageSeo(
+      seoForDetail(path, {
+        name: room.name,
+        maxGuests: room.maxGuests,
+        description: room.description,
+        image: room.cover?.url,
+      }),
+    )
+    return () => setPageSeo(null)
+  }, [category, room])
+
   return (
     <article>
       {detail.status === 'ready' && room && opening ? (
@@ -106,7 +123,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
           />
           <div className="absolute inset-0 bg-wood/40" />
           <div className="relative mx-auto flex min-h-[42svh] w-full max-w-6xl flex-col justify-end px-4 pb-16 pt-28 sm:px-6 md:min-h-[56vh] md:pb-20">
-            <nav aria-label="Шлях" className="text-[0.72rem] tracking-[0.12em] uppercase text-linen/75">
+            <nav aria-label="Шлях" className="text-sm font-medium text-linen/80">
               <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <li>
                   <Link to="/" className="underline decoration-linen/30 underline-offset-4 hover:text-linen">
@@ -121,7 +138,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
                 </li>
               </ol>
             </nav>
-            <p className="kicker mt-5 text-[0.68rem] text-linen/80">{kindLabel(room.kind)}</p>
+            <p className="kicker mt-5 text-linen/80">{kindLabel(room.kind)}</p>
             <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.08] text-balance text-linen sm:text-5xl md:text-7xl">
               {title}
             </h1>
@@ -160,7 +177,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
             </div>
             <div id="booking-panel" className="min-w-0 scroll-mt-28 lg:sticky lg:top-28 lg:self-start">
               {ActiveRoomBooking ? (
-                <Suspense fallback={<p className="border border-wood/10 bg-linen px-6 py-8 text-base text-wood/70">Завантажуємо дати…</p>}>
+                <Suspense fallback={<p className="rounded-[1.6rem] border border-wood/10 bg-[#fbf8f1] px-6 py-8 text-base text-wood/70 shadow-[0_24px_50px_rgba(91,56,43,0.08)]">Завантажуємо дати…</p>}>
                   <ActiveRoomBooking
                     category={category}
                     apiSlug={room.slug}
@@ -197,7 +214,7 @@ function AccommodationDetail({ category, apiSlug }: { category: AccommodationCat
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <Link
           to={listPath}
-          className="inline-block text-sm tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+          className={`inline-flex ${siteLink}`}
         >
           {category === 'rooms' ? 'Усі номери' : 'Усі будиночки'}
         </Link>
@@ -218,11 +235,11 @@ export function AccommodationFacts({ room }: { room: PublicAccommodation }) {
   return (
     <dl className="flex flex-wrap gap-x-10 gap-y-4 border-y border-wood/10 py-5">
       <div>
-        <dt className="text-[0.72rem] font-medium tracking-[0.14em] uppercase text-wood/55">Тип</dt>
+        <dt className="text-sm font-medium text-wood/55">Тип</dt>
         <dd className="mt-1 text-base font-medium">{kindLabel(room.kind)}</dd>
       </div>
       <div>
-        <dt className="text-[0.72rem] font-medium tracking-[0.14em] uppercase text-wood/55">Місткість</dt>
+        <dt className="text-sm font-medium text-wood/55">Місткість</dt>
         <dd className="mt-1 text-base font-medium">{capacityLabel(room.maxGuests)}</dd>
       </div>
     </dl>
@@ -249,7 +266,7 @@ export function AmenitiesSection({ amenities }: { amenities: readonly PublicAmen
         {canToggle ? (
           <button
             type="button"
-            className="min-h-11 text-sm underline decoration-wood/30 underline-offset-4 focus-visible:ring-2 focus-visible:ring-wood/40 focus-visible:outline-none"
+            className={`min-h-11 ${siteLink} focus-visible:outline-none`}
             aria-expanded={expanded}
             aria-controls="amenities-list"
             onClick={() => setExpanded((value) => !value)}
@@ -264,7 +281,7 @@ export function AmenitiesSection({ amenities }: { amenities: readonly PublicAmen
           return [
             heading ? (
               <li key={`${group.category}-heading`} className="col-span-2 list-none pt-1 lg:col-span-3">
-                <h3 className="text-[0.72rem] font-medium tracking-[0.14em] uppercase text-wood/55">{group.label}</h3>
+                <h3 className="text-sm font-medium text-wood/55">{group.label}</h3>
               </li>
             ) : null,
             ...group.items.map((item) => (

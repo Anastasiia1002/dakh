@@ -6,3 +6,5 @@ Disallow: /moie-bronyuvannya
 Disallow: /dakh/moie-bronyuvannya
 Disallow: /my-booking
 Disallow: /dakh/my-booking
+
+Sitemap: https://anastasiia1002.github.io/dakh/sitemap.xml

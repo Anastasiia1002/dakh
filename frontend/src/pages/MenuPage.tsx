@@ -1,5 +1,6 @@
 import { Photo } from '../components/Photo'
 import { images, site } from '../data/catalog'
+import { siteBtnPrimary, siteCard } from '../lib/siteChrome'
 import { RestaurantPage } from './RestaurantPage'
 
 const links = [
@@ -22,13 +23,13 @@ export function MenuPage() {
         />
         <div className="absolute inset-0 bg-wood/40" />
         <div className="relative flex min-h-[58vh] flex-col items-start justify-end gap-5 px-6 pb-16 md:px-16">
-          <p className="kicker text-[0.68rem] text-linen/80">Кухня DAKH</p>
+          <p className="kicker text-linen/80">Кухня DAKH</p>
           <h1 className="font-display text-5xl text-linen md:text-7xl">Ресторан</h1>
           <a
             href={site.restaurantOrder}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 items-center bg-clay px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
+            className={siteBtnPrimary}
           >
             Переглянути меню
           </a>
@@ -42,7 +43,7 @@ export function MenuPage() {
             href={item.href}
             target="_blank"
             rel="noreferrer"
-            className="flex min-h-40 items-end bg-beige px-6 py-7 font-display text-4xl text-clay transition hover:bg-clay hover:text-linen"
+            className={`${siteCard} flex min-h-40 items-end px-6 py-7 font-display text-4xl text-clay transition hover:bg-clay hover:text-linen`}
           >
             {item.label}
           </a>

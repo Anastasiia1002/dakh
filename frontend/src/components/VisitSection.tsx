@@ -1,9 +1,9 @@
 import { site } from '../data/catalog'
 import { instagramProfileEmbedSrc } from '../lib/siteSocials'
+import { siteLink } from '../lib/siteChrome'
 import { LocationMap } from './LocationMap'
 
-const linkClass =
-  'inline-flex min-h-11 items-center text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4'
+const linkClass = `inline-flex min-h-11 items-center ${siteLink}`
 
 export function VisitSection() {
   const instagramHref = site.instagram
@@ -13,7 +13,7 @@ export function VisitSection() {
     <section className="border-t border-wood/10" aria-labelledby="visit-heading">
       <div className="mx-auto grid max-w-6xl items-start gap-16 px-6 py-28 lg:grid-cols-2">
         <div>
-          <p className="kicker text-[0.68rem] text-clay">{site.city}</p>
+          <p className="kicker text-clay">{site.city}</p>
           <h2 id="visit-heading" className="mt-3 font-display text-4xl leading-tight">
             У тихому куточку Карпат
           </h2>
@@ -33,12 +33,12 @@ export function VisitSection() {
 
         {embedSrc ? (
           <div>
-            <p className="kicker text-[0.68rem] text-clay">Instagram</p>
+            <p className="kicker text-clay">Instagram</p>
             <h2 className="mt-3 font-display text-4xl leading-tight">@dakh.myhovo</h2>
             <p className="mt-5 text-sm leading-relaxed text-wood/80">
               Останні дописи зі стрічки готелю в Мигові — так, як їх показує Instagram.
             </p>
-            <div className="mt-6 overflow-hidden border border-wood/10 bg-beige">
+            <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-wood/10 bg-beige shadow-[0_24px_50px_rgba(91,56,43,0.08)]">
               <iframe
                 title="Останні дописи Instagram @dakh.myhovo"
                 src={embedSrc}

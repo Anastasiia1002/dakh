@@ -2,9 +2,7 @@ import { Link } from 'react-router-dom'
 import { Photo } from '../components/Photo'
 import { images, site } from '../data/catalog'
 import { asset } from '../lib/asset'
-
-const sectionLink =
-  'text-[0.72rem] font-medium tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4'
+import { siteLink } from '../lib/siteChrome'
 
 export function AboutPage() {
   return (
@@ -20,7 +18,7 @@ export function AboutPage() {
         />
         <div className="absolute inset-0 bg-wood/40" />
         <div className="relative flex min-h-[42svh] flex-col justify-end px-6 pb-16 pt-28 md:min-h-[56vh] md:px-10 md:pb-20">
-          <p className="kicker text-[0.68rem] text-linen/80">Про нас</p>
+          <p className="kicker text-linen/80">Про нас</p>
           <h1 className="mt-3 max-w-2xl font-display text-5xl leading-[1.08] text-linen md:text-7xl">
             Місце, де тиша має звук
           </h1>
@@ -33,13 +31,13 @@ export function AboutPage() {
         викреслюємо.
       </p>
       <nav className="mt-8 flex flex-wrap gap-x-8 gap-y-3" aria-label="Розділи DAKH">
-        <Link to="/rooms" className={sectionLink}>
+        <Link to="/rooms" className={siteLink}>
           Номери
         </Link>
-        <Link to="/houses" className={sectionLink}>
+        <Link to="/houses" className={siteLink}>
           Будиночки
         </Link>
-        <Link to="/menu" className={sectionLink}>
+        <Link to="/menu" className={siteLink}>
           Ресторан
         </Link>
       </nav>
@@ -50,8 +48,8 @@ export function AboutPage() {
           alt=""
           className="absolute -right-2 -top-8 h-12 w-auto opacity-70"
         />
-        <Photo src={images.heroHouse} alt="DAKH увечері" tone={false} className="aspect-[4/3] w-full" />
-        <Photo src={images.pottery} alt="Зал DAKH із диванами й видом на гори" tone={false} className="aspect-[4/3] w-full" />
+        <Photo src={images.heroHouse} alt="DAKH увечері" tone={false} className="aspect-[4/3] w-full rounded-[1.6rem]" />
+        <Photo src={images.pottery} alt="Зал DAKH із диванами й видом на гори" tone={false} className="aspect-[4/3] w-full rounded-[1.6rem]" />
       </div>
 
       <section className="mt-20 grid gap-16 md:grid-cols-2">

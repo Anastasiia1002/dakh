@@ -1,7 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { useLocation } from 'react-router-dom'
 import { heroPreload, listingHeroPreload } from '../lib/localPhoto'
-import { canonicalUrl, hotelJsonLd, seoForPath } from '../lib/seo'
+import {
+  DEFAULT_SHARE_IMAGE,
+  canonicalBase,
+  canonicalUrl,
+  hotelJsonLd,
+  normalizePublicPath,
+  publicSiteOrigin,
+  seoForPath,
+  type PublicSeoRoute,
+} from '../lib/seo'
 
 function upsertMeta(selector: string, attributes: Record<string, string>) {
   let node = document.head.querySelector(selector) as HTMLMetaElement | HTMLLinkElement | null
@@ -15,10 +24,34 @@ function upsertMeta(selector: string, attributes: Record<string, string>) {
   }
 }
 
+let pageSeo: PublicSeoRoute | null = null
+const pageSeoListeners = new Set<() => void>()
+
+export function setPageSeo(seo: PublicSeoRoute | null) {
+  pageSeo = seo
+  pageSeoListeners.forEach((listener) => listener())
+}
+
+function usePageSeo() {
+  return useSyncExternalStore(
+    (listener) => {
+      pageSeoListeners.add(listener)
+      return () => pageSeoListeners.delete(listener)
+    },
+    () => pageSeo,
+    () => pageSeo,
+  )
+}
+
 export function DocumentHead() {
   const { pathname } = useLocation()
-  const seo = seoForPath(pathname)
-  const canonical = canonicalUrl(pathname)
+  const override = usePageSeo()
+  const routeSeo = seoForPath(pathname)
+  const seo =
+    override && normalizePublicPath(override.path) === normalizePublicPath(pathname) ? override : routeSeo
+  const origin = publicSiteOrigin()
+  const canonical = canonicalUrl(pathname, origin, canonicalBase(origin))
+  const image = seo.image || DEFAULT_SHARE_IMAGE
 
   useEffect(() => {
     document.title = seo.title
@@ -27,6 +60,13 @@ export function DocumentHead() {
     upsertMeta('meta[property="og:title"]', { property: 'og:title', content: seo.title })
     upsertMeta('meta[property="og:description"]', { property: 'og:description', content: seo.description })
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' })
+    upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: 'DAKH' })
+    upsertMeta('meta[property="og:locale"]', { property: 'og:locale', content: 'uk_UA' })
+    upsertMeta('meta[property="og:image"]', { property: 'og:image', content: image })
+    upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' })
+    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: seo.title })
+    upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: seo.description })
+    upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: image })
     if (canonical) {
       upsertMeta('link[rel="canonical"]', { rel: 'canonical', href: canonical })
       upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical })
@@ -61,7 +101,7 @@ export function DocumentHead() {
     } else if (existing) {
       existing.remove()
     }
-  }, [canonical, seo.description, seo.index, seo.path, seo.title])
+  }, [canonical, image, seo.description, seo.index, seo.path, seo.title])
 
   return null
 }

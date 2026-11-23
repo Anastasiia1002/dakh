@@ -16,6 +16,7 @@ import {
 } from '../lib/contactForm'
 import { formatUaMobile, uaMobileError } from '../lib/phone'
 import { resolvePublicApiBaseUrl } from '../lib/publicBooking/config'
+import { siteBtnPrimary, siteField, siteLabel, sitePanel } from '../lib/siteChrome'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
@@ -25,16 +26,13 @@ type Errors = ContactErrors
 const emptyFields = emptyContactFields
 
 function fieldClass(error?: string) {
-  return [
-    'mt-1 w-full border-0 border-b bg-transparent py-2 outline-none placeholder:text-wood/35',
-    error ? 'border-clay' : 'border-wood/25',
-  ].join(' ')
+  return [siteField, 'mt-2', error ? 'border-clay' : ''].join(' ')
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="py-5">
-      <p className="kicker text-[0.68rem] text-wood/55">{label}</p>
+      <p className="kicker text-wood/55">{label}</p>
       <div className="mt-2">{children}</div>
     </div>
   )
@@ -52,7 +50,7 @@ function FormField({
   children: ReactNode
 }) {
   return (
-    <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+    <label className={siteLabel}>
       {label}
       {required ? <span aria-hidden="true"> *</span> : null}
       {children}
@@ -67,8 +65,7 @@ function FormField({
 
 const tap = 'block py-1 transition-colors hover:text-clay focus-visible:outline-none focus-visible:text-clay'
 
-const cta =
-  'inline-flex w-full items-center justify-center bg-clay px-8 py-3 text-center text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen'
+const cta = `${siteBtnPrimary} w-full`
 
 export function ContactPage() {
   const [accepted, setAccepted] = useState(false)
@@ -178,7 +175,7 @@ export function ContactPage() {
   return (
     <article className="mx-auto max-w-5xl px-6 pb-24 pt-28 md:pt-32">
       <header className="max-w-2xl">
-        <p className="kicker text-[0.68rem] text-clay">Контакти</p>
+        <p className="kicker text-clay">Контакти</p>
         <h1 className="mt-3 font-display text-5xl leading-[1.08] text-clay md:text-6xl">Як з нами зв’язатися</h1>
       </header>
 
@@ -223,7 +220,7 @@ export function ContactPage() {
             </a>
           </Row>
 
-          <p className="kicker mt-1 text-[0.68rem] text-wood/55">Як доїхати</p>
+          <p className="kicker mt-1 text-wood/55">Як доїхати</p>
           <LocationMap className="mt-3 min-h-64 flex-1 md:min-h-80" />
           <a href={site.map.directions} target="_blank" rel="noreferrer" className={`${cta} mt-4`}>
             Прокласти маршрут
@@ -232,13 +229,13 @@ export function ContactPage() {
       </div>
 
       {accepted ? (
-        <p className="mt-20 max-w-2xl bg-beige px-6 py-8 text-sm leading-relaxed" role="status">
+        <p className={`mt-20 max-w-2xl text-sm leading-relaxed ${sitePanel}`} role="status">
           {CONTACT_ACCEPTED_COPY}
         </p>
       ) : (
         <form noValidate onSubmit={submit} className="mt-20 grid gap-6 border-t border-wood/10 pt-16">
           <div className="max-w-2xl">
-            <p className="kicker text-[0.68rem] text-clay">Повідомлення</p>
+            <p className="kicker text-clay">Повідомлення</p>
             <h2 className="mt-3 font-display text-4xl text-clay">Напишіть нам</h2>
             <p className="mt-3 text-sm leading-relaxed text-wood/75">
               Ім’я, телефон і пошта обов’язкові. Далі кілька слів — про стіл, номер чи просто дорогу.

@@ -322,7 +322,7 @@ export function RoomOptions({
                     </span>
                   </span>
                   <span className="block p-4">
-                    <span className="kicker block text-[0.68rem] text-clay">{roomKindLabel(room.kind)}</span>
+                    <span className="kicker block text-clay">{roomKindLabel(room.kind)}</span>
                     <span className="mt-1 block font-display text-2xl leading-[1.12]">
                       {roomLabel?.(room) ?? publicRoomLabel(room.name, room.kind)}
                     </span>

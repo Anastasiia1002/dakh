@@ -21,6 +21,7 @@ import {
   writeStoredConfirmationToken,
 } from '../lib/publicBooking/checkout'
 import type { PublicBookingConfirmationResponse } from '../lib/publicBooking/types'
+import { siteBtnPrimary, siteField, siteLabel, siteLink, sitePanel } from '../lib/siteChrome'
 
 export function ConfirmationPage() {
   const { token: routeToken = '' } = useParams()
@@ -100,7 +101,7 @@ export function ConfirmationPage() {
 
   return (
     <section className="mx-auto max-w-3xl px-6 pb-24 pt-28 md:pt-32">
-      <p className="kicker text-[0.68rem] text-clay">Готель DAKH</p>
+      <p className="kicker text-clay">Готель DAKH</p>
       <h1 className="mt-3 font-display text-5xl leading-[1.08] text-clay md:text-6xl">Підтвердження</h1>
 
       {!bookingEnabled ? (
@@ -112,8 +113,8 @@ export function ConfirmationPage() {
       {bookingEnabled && loading ? <p className="mt-10 text-sm text-wood/60">Шукаємо підтвердження на сервері…</p> : null}
 
       {bookingEnabled && !loading && confirmation ? (
-        <div className="mt-10 border border-wood/10 bg-linen p-6 shadow-[0_18px_40px_rgba(91,56,43,0.08)]">
-          <p className="text-[0.7rem] tracking-[0.16em] uppercase">
+        <div className={`mt-10 ${sitePanel}`}>
+          <p className="text-sm font-medium tracking-[0.14em] uppercase text-wood/55">
             {guestStatusLabel(confirmation.status) || 'Підтверджено'}
           </p>
           {confirmation.status === 'CANCELLED' ? (
@@ -150,14 +151,14 @@ export function ConfirmationPage() {
             {error || 'Підтвердження не знайдено. Успіх не показуємо з локальних даних.'}
           </p>
           <form noValidate onSubmit={recover} className="mt-8">
-            <label className="text-[0.7rem] tracking-[0.12em] uppercase text-wood/60">
+            <label className={siteLabel}>
               Пошта для відновлення
               <input
                 type="email"
                 autoComplete="email"
                 value={recoverEmail}
                 onChange={(event) => setRecoverEmail(event.target.value)}
-                className="mt-1 w-full border-0 border-b border-wood/25 bg-transparent py-2 outline-none"
+                className={`mt-2 ${siteField}`}
               />
             </label>
             {recoverHint ? (
@@ -173,7 +174,7 @@ export function ConfirmationPage() {
             <button
               type="submit"
               disabled={recoverBusy}
-              className="mt-6 bg-clay px-6 py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+              className={`mt-6 ${siteBtnPrimary}`}
             >
               {recoverBusy ? 'Надсилаємо…' : 'Надіслати доступ'}
             </button>
@@ -183,7 +184,7 @@ export function ConfirmationPage() {
 
       <Link
         to={bookingEnabled ? '/bronuvannya' : '/rooms'}
-        className="mt-10 inline-block text-[0.75rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+        className={`mt-10 inline-flex ${siteLink}`}
       >
         {bookingEnabled ? 'До бронювання' : 'До номерів'}
       </Link>

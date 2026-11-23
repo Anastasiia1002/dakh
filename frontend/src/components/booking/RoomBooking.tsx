@@ -27,6 +27,7 @@ import { stayUrlFromSearch } from '../../lib/publicBooking/stayUrl'
 import { useMappedRoomCalendar } from '../../lib/publicBooking/useMappedRoomCalendar'
 import { useStayGuard } from '../../lib/publicBooking/useStayGuard'
 import { QuoteSummary } from './CheckoutPanels'
+import { bookingBtnPrimary, bookingPanel } from './bookingChrome'
 import { ServiceOptions } from './ServiceOptions'
 import {
   loadServicesByUnit,
@@ -241,8 +242,8 @@ export function RoomBooking({
   }, [])
 
   return (
-    <aside className="h-fit w-full min-w-0 self-start border border-wood/10 bg-linen p-5 shadow-[0_18px_40px_rgba(91,56,43,0.08)] sm:p-6">
-      <p className="text-[0.7rem] tracking-[0.16em] uppercase">Дати</p>
+    <aside className={`h-fit w-full min-w-0 self-start ${bookingPanel}`}>
+      <p className="text-sm font-medium text-wood/70">Дати</p>
       <div className="mt-4">
         <BookingCalendar
           align="end"
@@ -317,7 +318,7 @@ export function RoomBooking({
             <button
               type="submit"
               disabled={!canContinue}
-              className="mt-8 w-full bg-clay py-3 text-[0.78rem] font-semibold tracking-[0.16em] uppercase text-linen disabled:opacity-40"
+              className={`mt-8 w-full ${bookingBtnPrimary}`}
             >
               Забронювати
             </button>
@@ -336,15 +337,13 @@ export function RoomBooking({
       {bookingEnabled && !panelInView ? (
         <a
           href="#booking-panel"
-          className="pointer-events-auto fixed inset-x-4 z-30 flex min-h-12 items-center justify-between gap-3 border border-wood/10 bg-linen/95 px-4 text-sm text-wood shadow-[0_10px_28px_rgba(91,56,43,0.16)] lg:hidden"
+          className="pointer-events-auto fixed inset-x-4 z-30 flex min-h-12 items-center justify-between gap-3 rounded-full border border-wood/10 bg-linen/95 px-5 text-sm text-wood shadow-[0_14px_28px_rgba(91,56,43,0.16)] lg:hidden"
           style={{ bottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
         >
           <span className="min-w-0 truncate">
             {quoteReady && search.quote ? formatMoneyAmount(search.quote.totalAmount) : 'Оберіть дати'}
           </span>
-          <span className="shrink-0 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-clay">
-            Забронювати
-          </span>
+          <span className="shrink-0 font-semibold text-clay">Забронювати</span>
         </a>
       ) : null}
     </aside>

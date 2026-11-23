@@ -7,6 +7,7 @@ import { RoomCard } from '../components/RoomCard'
 import { categoryBase, categoryLabel, type AccommodationCategory } from '../lib/catalog/categories'
 import { useAccommodationList } from '../lib/catalog/useAccommodations'
 import { images, site } from '../data/catalog'
+import { siteBtnOnPhoto, siteBtnPrimary, siteLink } from '../lib/siteChrome'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
 
@@ -24,7 +25,7 @@ export function HomePage() {
         />
         <div className="absolute inset-0 bg-wood/30" />
         <div className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 pt-24 text-center">
-          <p className="kicker text-[0.68rem] text-linen/80">DAKH · Мигове</p>
+          <p className="kicker text-linen/80">DAKH · Мигове</p>
           <h1 className="-rotate-1 font-display text-5xl leading-[1.05] text-linen md:text-7xl">
             «Вище даху тільки небо»
           </h1>
@@ -33,23 +34,14 @@ export function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {bookingEnabled ? (
-              <Link
-                to="/bronuvannya"
-                className="inline-flex min-h-11 items-center bg-clay px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
-              >
+              <Link to="/bronuvannya" className={siteBtnPrimary}>
                 Забронювати
               </Link>
             ) : null}
-            <Link
-              to="/rooms"
-              className="inline-flex min-h-11 items-center border border-linen/70 px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
-            >
+            <Link to="/rooms" className={siteBtnOnPhoto}>
               Номери
             </Link>
-            <Link
-              to="/houses"
-              className="inline-flex min-h-11 items-center border border-linen/70 px-6 py-3 text-[0.72rem] font-semibold tracking-[0.16em] uppercase text-linen"
-            >
+            <Link to="/houses" className={siteBtnOnPhoto}>
               Будиночки
             </Link>
           </div>
@@ -59,7 +51,7 @@ export function HomePage() {
       <section className="relative mx-auto grid max-w-6xl items-start gap-12 px-6 py-28 md:grid-cols-2">
         <Spot className="absolute -left-16 top-10 h-40 w-64 text-beige/80" />
         <div className="relative min-w-0 md:pt-8">
-          <p className="kicker text-[0.68rem] text-clay">Буковина на смак і дотик</p>
+          <p className="kicker text-clay">Буковина на смак і дотик</p>
           <h2 className="mt-3 font-display text-4xl leading-[1.15] text-clay md:text-5xl">
             «Тут не треба поспішати.»
           </h2>
@@ -73,7 +65,7 @@ export function HomePage() {
             src={images.pottery}
             alt="Зал DAKH із видом на гори"
             tone={false}
-            className="aspect-[4/3] w-full"
+            className="aspect-[4/3] w-full rounded-[1.6rem]"
           />
         </div>
       </section>
@@ -91,13 +83,13 @@ export function HomePage() {
         />
         <div className="absolute inset-0 bg-wood/35" />
         <div className="relative flex min-h-[70vh] flex-col items-start justify-end gap-6 px-6 py-20 md:px-16">
-          <p className="kicker text-[0.68rem] text-linen/80">Ресторан</p>
+          <p className="kicker text-linen/80">Ресторан</p>
           <h2 className="-rotate-1 font-display text-5xl text-linen md:text-6xl">«Тут смакують.»</h2>
           <a
             href={site.restaurantOrder}
             target="_blank"
             rel="noreferrer"
-            className="min-h-11 text-[0.72rem] font-medium tracking-[0.16em] uppercase text-linen underline decoration-linen/40 underline-offset-8"
+            className={siteBtnPrimary}
           >
             Переглянути меню
           </a>
@@ -119,7 +111,7 @@ function HomeCatalog({ category, empty }: { category: AccommodationCategory; emp
         <h2 className="max-w-xl font-display text-4xl leading-tight text-wood">{title}</h2>
         <Link
           to={categoryBase(category)}
-          className="text-[0.72rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
+          className={siteLink}
         >
           Усі
         </Link>

@@ -2,7 +2,7 @@ import { site } from '../data/catalog'
 
 export function LocationMap({ className = '' }: { className?: string }) {
   return (
-    <div className={`relative overflow-hidden border border-wood/10 ${className}`.trim()}>
+    <div className={`relative overflow-hidden rounded-[1.6rem] border border-wood/10 shadow-[0_24px_50px_rgba(91,56,43,0.08)] ${className}`.trim()}>
       <iframe
         title="DAKH, вул. Солонецька, 2-И, с. Мигове"
         src={site.map.embed}

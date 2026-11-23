@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { canonicalUrl, seoForDetail, seoForPath } from './seo'
+import {
+  DEFAULT_SHARE_IMAGE,
+  GITHUB_PAGES_ORIGIN,
+  canonicalUrl,
+  publicSiteOrigin,
+  seoForDetail,
+  seoForPath,
+  sitemapLocations,
+} from './seo'
 import { mergeStayIntoSearch, stayUrlFromSearch, stayUrlSearch, withStayUrl } from './publicBooking/stayUrl'
 
 describe('seo routes', () => {
@@ -27,7 +35,21 @@ describe('seo routes', () => {
   it('builds a canonical URL only with an https origin', () => {
     assert.equal(canonicalUrl('/rooms', '', '/dakh/'), '')
     assert.equal(canonicalUrl('/rooms', 'https://anastasiia1002.github.io', '/dakh/'), 'https://anastasiia1002.github.io/dakh/rooms')
+    assert.equal(canonicalUrl('/rooms/', GITHUB_PAGES_ORIGIN, '/dakh/'), 'https://anastasiia1002.github.io/dakh/rooms')
     assert.equal(canonicalUrl('/', 'https://example.com', '/'), 'https://example.com/')
+  })
+
+  it('points the published site at GitHub Pages, including room pages and not private routes', () => {
+    assert.equal(publicSiteOrigin(''), GITHUB_PAGES_ORIGIN)
+    assert.equal(publicSiteOrigin('http://localhost:5174'), GITHUB_PAGES_ORIGIN)
+    assert.equal(canonicalUrl('/rooms'), 'https://anastasiia1002.github.io/dakh/rooms')
+    assert.equal(canonicalUrl('/'), 'https://anastasiia1002.github.io/dakh/')
+    assert.equal(DEFAULT_SHARE_IMAGE, 'https://anastasiia1002.github.io/dakh/images/dakh-facade-night-1280.webp')
+    assert.deepEqual(sitemapLocations(['/', '/rooms', '/moie-bronyuvannya', '/rooms/dakh-room-14-1']), [
+      'https://anastasiia1002.github.io/dakh/',
+      'https://anastasiia1002.github.io/dakh/rooms',
+      'https://anastasiia1002.github.io/dakh/rooms/dakh-room-14-1',
+    ])
   })
 })
 

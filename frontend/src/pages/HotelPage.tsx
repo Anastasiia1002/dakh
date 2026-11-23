@@ -55,7 +55,7 @@ export function HotelPage({ category }: { category: AccommodationCategory }) {
         <div
           className={`relative flex min-h-[32svh] min-w-0 flex-col justify-end pb-16 pt-28 md:min-h-[52vh] md:pb-20 ${PAGE_SHELL}`}
         >
-          <p className="kicker text-[0.68rem] text-linen/80">{text.kicker}</p>
+          <p className="kicker text-linen/80">{text.kicker}</p>
           <h1 className="mt-3 max-w-xl break-words font-display text-5xl leading-[1.05] text-linen md:text-7xl">
             {text.title}
           </h1>

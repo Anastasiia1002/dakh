@@ -5,6 +5,7 @@ import { capacityLabel, cardTitle, kindLabel, publicSummary } from '../lib/catal
 import { accommodationHref } from '../lib/catalog/routes'
 import { stayUrlHasRange, withStayUrl, type StayUrlState } from '../lib/publicBooking/stayUrl'
 import type { PublicAccommodation } from '../lib/publicBooking/types'
+import { siteLink } from '../lib/siteChrome'
 import { Photo } from './Photo'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
@@ -28,7 +29,7 @@ export function RoomCard({
 
   return (
     <article className="group">
-      <Link to={to} className="block overflow-hidden">
+      <Link to={to} className="block overflow-hidden rounded-[1.6rem]">
         {accommodation.cover ? (
           <Photo
             src={accommodation.cover.url}
@@ -40,7 +41,7 @@ export function RoomCard({
           <div className={`${photoClassName} w-full bg-linen`} aria-hidden="true" />
         )}
       </Link>
-      <p className="kicker mt-5 text-[0.68rem] text-clay">{kindLabel(accommodation.kind)}</p>
+      <p className="kicker mt-5 text-clay">{kindLabel(accommodation.kind)}</p>
       <h3 className="font-display text-[1.85rem] leading-[1.12]">
         <Link to={to} className="block text-balance">
           {title}
@@ -59,17 +60,11 @@ export function RoomCard({
         </ul>
       ) : null}
       <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-        <Link
-          to={to}
-          className="text-[0.72rem] tracking-[0.14em] uppercase underline decoration-wood/30 underline-offset-4"
-        >
+        <Link to={to} className={siteLink}>
           {detailLabel}
         </Link>
         {bookingEnabled && stay && stayUrlHasRange(stay) ? (
-          <Link
-            to={to}
-            className="text-[0.72rem] font-semibold tracking-[0.14em] uppercase text-clay"
-          >
+          <Link to={to} className={siteLink}>
             Перевірити наявність
           </Link>
         ) : null}

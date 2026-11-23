@@ -6,6 +6,7 @@ import { DocumentHead } from './DocumentHead'
 import { DakhLogo } from './BrandMarks'
 import { QuickActions } from './QuickActions'
 import { PAGE_SHELL } from '../lib/layout'
+import { siteBtnPrimary } from '../lib/siteChrome'
 import { normalizePublicPath } from '../lib/seo'
 
 const bookingEnabled = import.meta.env?.VITE_BOOKING_ENABLED === 'true'
@@ -21,7 +22,7 @@ const headerNav = [
 const footerNav = [...headerNav, { to: '/moie-bronyuvannya', label: 'Моє бронювання' }]
 
 const headerAction =
-  'inline-flex min-h-11 items-center justify-center px-4 py-2.5 text-[0.68rem] font-semibold tracking-[0.16em] uppercase md:px-5 md:text-[0.72rem]'
+  'inline-flex min-h-11 items-center justify-center rounded-full px-5 text-[0.95rem] font-medium'
 
 function HeaderActions({
   className = '',
@@ -40,7 +41,7 @@ function HeaderActions({
         Подзвонити
       </a>
       {bookingEnabled ? (
-        <Link to="/bronuvannya" onClick={onNavigate} className={`${headerAction} bg-clay text-linen lg:hidden`}>
+        <Link to="/bronuvannya" onClick={onNavigate} className={`${siteBtnPrimary} px-5 lg:hidden`}>
           Забронювати
         </Link>
       ) : null}
@@ -129,7 +130,7 @@ export function Layout() {
       >
         <div className={`${PAGE_SHELL} flex items-center justify-between gap-2 py-4 sm:gap-3 sm:py-5 lg:gap-5`}>
           <DakhLogo tone={tone} compact />
-          <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[0.68rem] font-medium tracking-[0.12em] uppercase lg:flex xl:gap-x-6 xl:text-[0.72rem] xl:tracking-[0.14em]">
+          <nav className="hidden min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2 text-sm font-medium tracking-[0.08em] uppercase lg:flex xl:gap-x-7">
             {headerNav.map((item) => (
               <NavLink
                 key={item.to}
@@ -162,14 +163,14 @@ export function Layout() {
           <div
             id="site-menu"
             ref={menuRef}
-            className="relative z-[60] mx-4 mb-4 overflow-hidden border border-wood/10 bg-linen px-5 py-4 text-wood shadow-[0_16px_40px_rgba(91,56,43,0.16)] sm:mx-6 lg:hidden"
+            className="relative z-[60] mx-4 mb-4 overflow-hidden rounded-[1.6rem] border border-wood/10 bg-[#fbf8f1] px-5 py-4 text-wood shadow-[0_24px_50px_rgba(91,56,43,0.12)] sm:mx-6 lg:hidden"
           >
             {headerNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className="flex min-h-11 items-center py-2 text-sm tracking-[0.12em] uppercase"
+                className="flex min-h-11 items-center py-2 text-base font-medium"
               >
                 {item.label}
               </NavLink>
@@ -195,7 +196,7 @@ export function Layout() {
             </p>
           </div>
           <div className="text-sm">
-            <p className="kicker mb-3 text-[0.68rem] text-wood/55">Навігація</p>
+            <p className="kicker mb-3 text-wood/55">Навігація</p>
             {footerNav.map((item) => (
               <Link key={item.to} to={item.to} className="block min-h-11 py-2 sm:min-h-0 sm:py-1">
                 {item.label}
@@ -208,7 +209,7 @@ export function Layout() {
             ) : null}
           </div>
           <div className="text-sm">
-            <p className="kicker mb-3 text-[0.68rem] text-wood/55">Контакти</p>
+            <p className="kicker mb-3 text-wood/55">Контакти</p>
             <p className="text-[0.68rem] text-wood/55">Телефон</p>
             <a href={site.phoneHrefs[0]} className="block py-1">
               {site.phones[0]}

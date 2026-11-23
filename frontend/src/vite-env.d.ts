@@ -9,7 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string
   /** Only the exact string `true` turns on quotes, intents, OTP and confirmation. */
   readonly VITE_BOOKING_ENABLED?: string
-  /** Optional https origin for canonical URLs and sitemap. Leave empty until the owner picks Pages or Vercel. */
+  /** Optional https origin. Empty uses the published GitHub Pages site. */
   readonly VITE_PUBLIC_SITE_ORIGIN?: string
 }
 

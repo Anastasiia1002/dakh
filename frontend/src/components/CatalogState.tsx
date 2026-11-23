@@ -1,3 +1,5 @@
+import { siteBtnGhost } from '../lib/siteChrome'
+
 export function CatalogSkeleton({ columns = 3 }: { columns?: 2 | 3 }) {
   const grid = columns === 2 ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-3'
   return (
@@ -5,7 +7,7 @@ export function CatalogSkeleton({ columns = 3 }: { columns?: 2 | 3 }) {
       <p className="sr-only">Завантажуємо помешкання…</p>
       {Array.from({ length: columns }, (_, index) => (
         <div key={index} className="animate-pulse">
-          <div className="aspect-[4/3] bg-beige" />
+          <div className="aspect-[4/3] rounded-[1.6rem] bg-beige" />
           <div className="mt-5 h-3 w-24 bg-beige" />
           <div className="mt-4 h-8 w-2/3 bg-beige" />
           <div className="mt-3 h-3 w-full bg-beige" />
@@ -38,7 +40,7 @@ export function CatalogState({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-6 border border-wood/20 px-5 py-3 text-[0.72rem] font-semibold tracking-[0.14em] uppercase"
+            className={`mt-6 ${siteBtnGhost}`}
           >
             Спробувати ще раз
           </button>

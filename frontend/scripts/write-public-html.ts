@@ -3,17 +3,30 @@ import { dirname, join } from 'node:path'
 import { toPublicAccommodationSlug, type AccommodationCategory } from '../src/lib/catalog/categories.ts'
 import { knownDetailPaths } from '../src/lib/catalog/publicSlugs.ts'
 import { catalogCoverPreload, heroPreload, listingHeroPreload } from '../src/lib/localPhoto.ts'
-import { PUBLIC_SEO_ROUTES, seoForDetail, seoForPath, type PublicSeoRoute } from '../src/lib/seo.ts'
+import {
+  DEFAULT_SHARE_IMAGE,
+  GITHUB_PAGES_ORIGIN,
+  PUBLIC_SEO_ROUTES,
+  canonicalBase,
+  canonicalUrl,
+  hotelJsonLd,
+  resolvePublicOrigin,
+  seoForDetail,
+  seoForPath,
+  sitemapLocations,
+  type PublicSeoRoute,
+} from '../src/lib/seo.ts'
 import { resolveSiteBase } from '../src/lib/siteBase.ts'
 import type { PublicAccommodation } from '../src/lib/publicBooking/types.ts'
 
 const dist = 'dist'
 const index = readFileSync(join(dist, 'index.html'), 'utf8')
-const origin = (process.env.VITE_PUBLIC_SITE_ORIGIN ?? '').replace(/\/$/, '')
-const base = resolveSiteBase({
+const origin = resolvePublicOrigin(process.env.VITE_PUBLIC_SITE_ORIGIN) || GITHUB_PAGES_ORIGIN
+const deploymentBase = resolveSiteBase({
   DAKH_SITE_BASE: process.env.DAKH_SITE_BASE,
   VERCEL: process.env.VERCEL,
 })
+const shareBase = canonicalBase(origin, deploymentBase)
 const apiBase = (process.env.VITE_PUBLIC_API_BASE_URL ?? '').replace(/\/+$/, '')
 const hotelMap = process.env.VITE_ACCOMMODATION_HOTEL_MAP
 
@@ -29,28 +42,37 @@ function applySeo(
 ) {
   const seo = options.seo ?? seoForPath(pathname)
   const robots = seo.index ? 'index,follow' : 'noindex,nofollow'
+  const image = seo.image?.startsWith('https://') ? seo.image : DEFAULT_SHARE_IMAGE
+  const canonical = canonicalUrl(pathname, origin, shareBase)
   let next = html
     .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(seo.title)}</title>`)
+    .replace(/<meta name="twitter:title" content="[^"]*" \/>/, `<meta name="twitter:title" content="${escapeHtml(seo.title)}" />`)
     .replace(/content="Готель і ресторан DAKH у Мигові\. Буковина на смак, дотик і спокій\."/g, `content="${escapeHtml(seo.description)}"`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${escapeHtml(seo.title)}" />`)
-  if (origin) {
-    const canonical = pathname === '/' ? `${origin}${base}` : `${origin}${base.replace(/\/$/, '')}${pathname}`
-    if (!next.includes('rel="canonical"')) {
-      next = next.replace('</title>', `</title>\n    <link rel="canonical" href="${canonical}" />`)
-    }
-    next = next.replace('</head>', `    <meta property="og:url" content="${canonical}" />\n    <meta name="robots" content="${robots}" />\n  </head>`)
+    .replace(/<meta\s+property="og:image"\s+content="[^"]*"\s*\/>/, `<meta property="og:image" content="${escapeHtml(image)}" />`)
+    .replace(/<meta name="twitter:image" content="[^"]*" \/>/, `<meta name="twitter:image" content="${escapeHtml(image)}" />`)
+  if (!next.includes('rel="canonical"')) {
+    next = next.replace('</title>', `</title>\n    <link rel="canonical" href="${canonical}" />`)
+  }
+  next = next.replace(
+    '</head>',
+    `    <meta property="og:url" content="${canonical}" />\n    <meta name="robots" content="${robots}" />\n  </head>`,
+  )
+  const jsonLd = JSON.stringify(hotelJsonLd(canonicalUrl('/', origin, shareBase))).replace(/</g, '\\u003c')
+  if (next.includes('id="dakh-hotel-jsonld"')) {
+    next = next.replace(/<script id="dakh-hotel-jsonld" type="application\/ld\+json">[\s\S]*?<\/script>/, `<script id="dakh-hotel-jsonld" type="application/ld+json">${jsonLd}</script>`)
   } else {
-    next = next.replace('</head>', `    <meta name="robots" content="${robots}" />\n  </head>`)
+    next = next.replace('</head>', `    <script id="dakh-hotel-jsonld" type="application/ld+json">${jsonLd}</script>\n  </head>`)
   }
   if (pathname === '/') {
-    const preload = heroPreload(base)
+    const preload = heroPreload(deploymentBase)
     const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
     if (!next.includes(preload.href)) {
       next = next.replace('</title>', `</title>\n${tag}`)
     }
   }
   if (pathname === '/bronuvannya') {
-    const preload = listingHeroPreload('rooms', base)
+    const preload = listingHeroPreload('rooms', deploymentBase)
     const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
     if (!next.includes(preload.href)) {
       next = next.replace('</title>', `</title>\n${tag}`)
@@ -59,12 +81,12 @@ function applySeo(
     if (bookingChunk && !next.includes(bookingChunk)) {
       next = next.replace(
         '</title>',
-        `</title>\n    <link rel="modulepreload" crossorigin href="${base}assets/${bookingChunk}" />\n`,
+        `</title>\n    <link rel="modulepreload" crossorigin href="${deploymentBase}assets/${bookingChunk}" />\n`,
       )
     }
   }
   if (pathname === '/rooms' || pathname === '/houses') {
-    const preload = listingHeroPreload(pathname === '/houses' ? 'houses' : 'rooms', base)
+    const preload = listingHeroPreload(pathname === '/houses' ? 'houses' : 'rooms', deploymentBase)
     const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
     if (!next.includes(preload.href)) {
       next = next.replace('</title>', `</title>\n${tag}`)
@@ -73,12 +95,12 @@ function applySeo(
     if (hotelChunk && !next.includes(hotelChunk)) {
       next = next.replace(
         '</title>',
-        `</title>\n    <link rel="modulepreload" crossorigin href="${base}assets/${hotelChunk}" />\n`,
+        `</title>\n    <link rel="modulepreload" crossorigin href="${deploymentBase}assets/${hotelChunk}" />\n`,
       )
     }
   }
   if (options.cover) {
-    const preload = catalogCoverPreload(options.cover.publicSlug, base)
+    const preload = catalogCoverPreload(options.cover.publicSlug, deploymentBase)
     const tag = `    <link rel="preload" as="image" type="image/webp" href="${preload.href}" imagesrcset="${preload.imagesrcset}" imagesizes="${preload.imagesizes}" fetchpriority="high" />\n`
     if (!next.includes(preload.href)) {
       next = next.replace('</title>', `</title>\n${tag}`)
@@ -87,7 +109,7 @@ function applySeo(
     if (roomChunk && !next.includes(roomChunk)) {
       next = next.replace(
         '</title>',
-        `</title>\n    <link rel="modulepreload" crossorigin href="${base}assets/${roomChunk}" />\n`,
+        `</title>\n    <link rel="modulepreload" crossorigin href="${deploymentBase}assets/${roomChunk}" />\n`,
       )
     }
     if (!next.includes('photos.bookmenow.pro')) {
@@ -150,20 +172,18 @@ for (const path of detailPaths(catalog)) {
       writtenCovers.add(publicSlug)
     }
   }
-  const seo = item ? seoForDetail(path, item) : seoForPath(path)
+  const seo = item
+    ? seoForDetail(path, { ...item, image: item.cover?.url })
+    : seoForPath(path)
   writeRoute(path, applySeo(index, path, { seo, cover }))
 }
 
-if (origin) {
-  const urls = PUBLIC_SEO_ROUTES.filter((route) => route.index).map((route) => {
-    const loc = route.path === '/' ? `${origin}${base}` : `${origin}${base.replace(/\/$/, '')}${route.path}`
-    return `  <url><loc>${loc}</loc></url>`
-  })
-  writeFileSync(
-    join(dist, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`,
-  )
-}
+const sitemapPaths = [...PUBLIC_SEO_ROUTES.map((route) => route.path), ...detailPaths(catalog)]
+const urls = sitemapLocations(sitemapPaths, origin, shareBase).map((loc) => `  <url><loc>${loc}</loc></url>`)
+writeFileSync(
+  join(dist, 'sitemap.xml'),
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`,
+)
 
 console.log(
   `Wrote public HTML shells for indexable routes and ${knownDetailPaths().length} detail pages (${writtenCovers.size} sized covers)`,

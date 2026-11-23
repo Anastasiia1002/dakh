@@ -68,8 +68,9 @@ em {
 }
 
 .kicker {
+  font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 

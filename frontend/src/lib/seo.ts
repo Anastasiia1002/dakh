@@ -6,7 +6,13 @@ export type PublicSeoRoute = {
   title: string
   description: string
   index: boolean
+  image?: string
 }
+
+/** Published guest site. Canonical URLs and the sitemap point here. */
+export const GITHUB_PAGES_ORIGIN = 'https://anastasiia1002.github.io'
+export const GITHUB_PAGES_BASE = '/dakh/'
+export const DEFAULT_SHARE_IMAGE = `${GITHUB_PAGES_ORIGIN}${GITHUB_PAGES_BASE}images/dakh-facade-night-1280.webp`
 
 export const DEFAULT_SEO: PublicSeoRoute = {
   path: '/',
@@ -98,22 +104,25 @@ export function seoForPath(pathname: string): PublicSeoRoute {
 
 export function seoForDetail(
   pathname: string,
-  detail: { name: string; maxGuests: number; description: string },
+  detail: { name: string; maxGuests: number; description: string; image?: string },
 ): PublicSeoRoute {
   const fallback = seoForPath(pathname)
   const summary = publicSummary(detail.description).replace(/\s+/g, ' ').trim()
+  const image = detail.image?.startsWith('https://') ? detail.image : undefined
   return {
     ...fallback,
     title: `${publicTitle(detail.name, detail.maxGuests)} — DAKH Мигове`,
     description: summary.slice(0, 180) || fallback.description,
+    image,
   }
 }
 
-export function publicSiteOrigin() {
-  const raw = import.meta.env?.VITE_PUBLIC_SITE_ORIGIN?.trim() ?? ''
-  if (!raw) return ''
+/** HTTPS origin only. An empty or invalid value means “use the published site”. */
+export function resolvePublicOrigin(raw?: string | null) {
+  const trimmed = raw?.trim() ?? ''
+  if (!trimmed) return ''
   try {
-    const url = new URL(raw)
+    const url = new URL(trimmed)
     if (url.protocol !== 'https:') return ''
     return `${url.protocol}//${url.host}`
   } catch {
@@ -121,20 +130,45 @@ export function publicSiteOrigin() {
   }
 }
 
-export function canonicalUrl(pathname: string, origin = publicSiteOrigin(), base = import.meta.env?.BASE_URL ?? '/') {
-  if (!origin) return ''
-  const root = origin.replace(/\/$/, '')
-  const prefix = base.endsWith('/') ? base.slice(0, -1) : base
-  if (pathname === '/') return `${root}${prefix || ''}/`
-  return `${root}${prefix}${pathname}`
+export function publicSiteOrigin(raw = import.meta.env?.VITE_PUBLIC_SITE_ORIGIN) {
+  return resolvePublicOrigin(raw) || GITHUB_PAGES_ORIGIN
 }
 
-export function hotelJsonLd() {
+/** GitHub Pages keeps `/dakh/`. Any other HTTPS origin uses the deployment base. */
+export function canonicalBase(origin = publicSiteOrigin(), deploymentBase = import.meta.env?.BASE_URL ?? '/') {
+  if (origin === GITHUB_PAGES_ORIGIN) return GITHUB_PAGES_BASE
+  return deploymentBase.endsWith('/') ? deploymentBase : `${deploymentBase}/`
+}
+
+export function canonicalUrl(
+  pathname: string,
+  origin = publicSiteOrigin(),
+  base = canonicalBase(origin),
+) {
+  if (!origin) return ''
+  const path = normalizePublicPath(pathname)
+  const root = origin.replace(/\/$/, '')
+  const prefix = base.endsWith('/') ? base.slice(0, -1) : base
+  if (path === '/') return `${root}${prefix || ''}/`
+  return `${root}${prefix}${path}`
+}
+
+export function sitemapLocations(paths: readonly string[], origin = publicSiteOrigin(), base = canonicalBase(origin)) {
+  const locations = paths
+    .filter((path) => seoForPath(path).index)
+    .map((path) => canonicalUrl(path, origin, base))
+    .filter(Boolean)
+  return [...new Set(locations)]
+}
+
+export function hotelJsonLd(pageUrl = canonicalUrl('/')) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Hotel',
     name: site.hotel,
     description: DEFAULT_SEO.description,
+    url: pageUrl,
+    image: DEFAULT_SHARE_IMAGE,
     address: {
       '@type': 'PostalAddress',
       streetAddress: site.address,
