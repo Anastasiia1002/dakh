@@ -4,11 +4,9 @@ import { officialSocials } from './siteSocials'
 import { site } from '../data/catalog'
 
 describe('official social links', () => {
-  it('omits the placeholder Instagram URL from the public site', () => {
-    assert.equal(site.instagram, 'https://instagram.com/')
-    assert.deepEqual(officialSocials(site), [])
-    assert.deepEqual(officialSocials({ instagram: 'https://instagram.com/dakh.myhovo' }), [
-      { label: 'Instagram', href: 'https://instagram.com/dakh.myhovo' },
-    ])
+  it('publishes the DAKH Instagram profile and omits a bare instagram.com host', () => {
+    assert.equal(site.instagram, 'https://www.instagram.com/dakh.myhovo/')
+    assert.deepEqual(officialSocials(site), [{ label: 'Instagram', href: 'https://www.instagram.com/dakh.myhovo/' }])
+    assert.deepEqual(officialSocials({ instagram: 'https://instagram.com/' }), [])
   })
 })

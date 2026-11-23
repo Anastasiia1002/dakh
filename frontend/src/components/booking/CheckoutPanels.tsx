@@ -20,6 +20,7 @@ import {
 } from '../../lib/publicBooking/bookingSelection'
 import { Photo } from '../Photo'
 import { formatDate, formatMoneyAmount } from '../../lib/format'
+import { lengthStayTermsCopy, quotePriceLines } from '../../lib/quotePricing'
 import { guestCountLabel, partySummary } from '../../lib/ukrainian'
 import type { BookingDraft } from '../../lib/booking'
 import type {
@@ -214,6 +215,7 @@ export function RoomOptions({
   covers,
   emptyHouses = false,
   emptyHousesCopy = COTTAGE_EMPTY_COPY,
+  lengthStayOffers,
 }: {
   rooms: PublicAvailabilityRoomType[]
   selectedId: string
@@ -226,6 +228,7 @@ export function RoomOptions({
   covers?: Map<string, { url: string; coverKey: string; alt: string }>
   emptyHouses?: boolean
   emptyHousesCopy?: string
+  lengthStayOffers?: import('../../lib/publicBooking/types').PublicLengthStayOffer[]
 }) {
   const presentation = roomListPresentation({ searchable, status, error, place })
   if (presentation.state === 'need-dates' || presentation.state === 'loading') {
@@ -332,6 +335,11 @@ export function RoomOptions({
                         <span className="ml-1 text-sm font-sans font-normal tracking-normal text-wood/55">/ доба</span>
                       </span>
                     ) : null}
+                    {lengthStayTermsCopy(lengthStayOffers, room.kind).map((term) => (
+                      <span key={term} className="mt-1 block text-[0.72rem] text-wood/60">
+                        {term}
+                      </span>
+                    ))}
                   </span>
                 </label>
               )
@@ -608,6 +616,32 @@ export function QuoteSummary({
           </li>
         ))}
       </ul>
+      {(() => {
+        const lines = quotePriceLines(quote)
+        if (!lines.accommodation && !lines.discount) return null
+        return (
+          <dl className="mt-4 space-y-1 text-wood/70">
+            {lines.accommodation ? (
+              <div className="flex justify-between gap-4">
+                <dt>Проживання</dt>
+                <dd>{formatMoneyAmount(lines.accommodation)}</dd>
+              </div>
+            ) : null}
+            {lines.discount && lines.discountLabel ? (
+              <div className="flex justify-between gap-4">
+                <dt>{lines.discountLabel}</dt>
+                <dd>−{formatMoneyAmount(lines.discount)}</dd>
+              </div>
+            ) : null}
+            {lines.extras && lines.extras !== '0.00' ? (
+              <div className="flex justify-between gap-4">
+                <dt>Додаткові послуги</dt>
+                <dd>{formatMoneyAmount(lines.extras)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        )
+      })()}
       <p className="mt-6 font-display text-3xl">{formatMoneyAmount(quote.totalAmount)}</p>
       {(quote.services ?? []).some((line) => line.pricing === 'BY_AGREEMENT' || line.totalPrice == null) ? (
         <p className="mt-2 text-[0.72rem] text-wood/55">Заявки з оплатою за домовленістю не входять у показану суму.</p>

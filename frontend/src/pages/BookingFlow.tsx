@@ -506,6 +506,7 @@ export function BookingFlow({ hideIntro = false }: { hideIntro?: boolean }) {
                 covers={catalogCovers}
                 emptyHouses={search.searchable && roomListStatus === 'ready' && groupedRooms.houses.length === 0}
                 emptyHousesCopy={cottageEmptyCopy({ adults: draft.adults, cottages: listedHouses.items })}
+                lengthStayOffers={search.availability?.lengthStayOffers}
                 onSelect={(room) =>
                   patch({
                     roomTypeId: room.roomTypeId,

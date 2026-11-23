@@ -99,11 +99,18 @@ export interface PublicAvailabilityRoomType {
   ratePlans: PublicAvailabilityRatePlan[]
 }
 
+export interface PublicLengthStayOffer {
+  minNights: number
+  discountValue: string
+  kinds: Array<'ROOM' | 'COTTAGE'>
+}
+
 export interface PublicAvailabilityResponse {
   checkIn: string
   checkOut: string
   currency: SupportedCurrency
   roomTypes: PublicAvailabilityRoomType[]
+  lengthStayOffers?: PublicLengthStayOffer[]
 }
 
 export type PublicCalendarDayStatus = 'available' | 'booked' | 'restricted' | 'closed'
@@ -209,6 +216,12 @@ export interface PublicQuoteNight {
   currency: SupportedCurrency
 }
 
+export interface PublicQuoteAppliedRule {
+  name: string
+  minNights: number
+  discountValue: string
+}
+
 export interface PublicQuoteResponse {
   checkIn: string
   checkOut: string
@@ -220,6 +233,11 @@ export interface PublicQuoteResponse {
   nights: PublicQuoteNight[]
   services?: PublicQuoteServiceLine[]
   servicesTotal?: string
+  accommodationSubtotal?: string
+  automaticDiscount?: string
+  discountAmount?: string
+  appliedSource?: 'NONE' | 'AUTOMATIC' | 'PROMO'
+  appliedRule?: PublicQuoteAppliedRule | null
   totalAmount: string
   currency: SupportedCurrency
   quoteToken: string
@@ -289,6 +307,11 @@ export interface PublicBookingConfirmationResponse {
   roomTypeId: string
   roomTypeName: string
   roomNumber?: string | null
+  accommodationSubtotal?: string
+  discountAmount?: string
+  servicesTotal?: string
+  appliedSource?: 'NONE' | 'AUTOMATIC' | 'PROMO'
+  appliedRule?: PublicQuoteAppliedRule | null
   totalAmount: string
   currency: SupportedCurrency
   services?: PublicQuoteServiceLine[]

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Spot } from '../components/BrandMarks'
 import { CatalogState } from '../components/CatalogState'
+import { InstagramSection } from '../components/InstagramSection'
 import { Photo } from '../components/Photo'
 import { RoomCard } from '../components/RoomCard'
 import { categoryBase, categoryLabel, type AccommodationCategory } from '../lib/catalog/categories'
@@ -79,6 +80,7 @@ export function HomePage() {
 
       <HomeCatalog category="rooms" empty="Зараз немає опублікованих номерів." />
       <HomeCatalog category="houses" empty="Зараз немає опублікованих будиночків." />
+      <InstagramSection />
 
       <section className="photo-grain relative min-h-[70vh]">
         <Photo

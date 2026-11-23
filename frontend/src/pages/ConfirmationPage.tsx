@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatDate, formatMoneyAmount } from '../lib/format'
+import { quotePriceLines } from '../lib/quotePricing'
 import { publicBookingClient, recoverEmailError } from '../lib/publicBooking'
 import { BOOKING_DISABLED_COPY, isBookingEnabled } from '../lib/publicBooking/config'
 import { isHiddenInventoryLabel } from '../lib/publicBooking/display'
@@ -152,6 +153,32 @@ export function ConfirmationPage() {
             <span className="font-medium break-all">{confirmation.bookingReference}</span>
           </p>
           {validToken ? <IssuedAccessCode code={validToken} /> : null}
+          {(() => {
+            const lines = quotePriceLines(confirmation)
+            if (!lines.accommodation && !lines.discount) return null
+            return (
+              <dl className="mt-6 space-y-1 text-sm text-wood/70">
+                {lines.accommodation ? (
+                  <div className="flex justify-between gap-4">
+                    <dt>Проживання</dt>
+                    <dd>{formatMoneyAmount(lines.accommodation)}</dd>
+                  </div>
+                ) : null}
+                {lines.discount && lines.discountLabel ? (
+                  <div className="flex justify-between gap-4">
+                    <dt>{lines.discountLabel}</dt>
+                    <dd>−{formatMoneyAmount(lines.discount)}</dd>
+                  </div>
+                ) : null}
+                {lines.extras && lines.extras !== '0.00' ? (
+                  <div className="flex justify-between gap-4">
+                    <dt>Додаткові послуги</dt>
+                    <dd>{formatMoneyAmount(lines.extras)}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            )
+          })()}
           <p className="mt-6 font-display text-3xl">{formatMoneyAmount(confirmation.totalAmount)}</p>
           <p className="mt-2 text-[0.72rem] text-wood/55">Сума в {confirmation.currency}.</p>
         </div>
